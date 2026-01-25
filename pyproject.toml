@@ -1,0 +1,40 @@
+[project]
+name = "openstan"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Jason Farrar", email = "farrar.jason1@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "pyqt6>=6.10.2",
+]
+
+[project.scripts]
+openstan_cli = "openstan:cli"
+
+[project.gui-scripts]
+openstan_gui = "openstan:gui"
+
+[build-system]
+requires = ["uv_build>=0.9.17,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.14",
+]
+
+[tool.ruff]
+line-length = 140
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+  "E", # pycodestyle
+  "F", # pyflakes
+  "I", # isort
+  "B", # flake8-bugbear
+]
+
