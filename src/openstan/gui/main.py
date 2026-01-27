@@ -35,7 +35,7 @@ def main():
     sessionID = uuid4().hex
 
     window: Stan = Stan(gui_db=gui_db, sessionID=sessionID, username=username)
-    window.setWindowOpacity(0.5)
+    # window.setWindowOpacity(0.5)
     window.show()
 
     app.exec()
