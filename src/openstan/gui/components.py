@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
 
 
 class StanTreeView(QTreeView):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.setAutoFillBackground(True)
         self.setAlternatingRowColors(True)
@@ -26,28 +26,28 @@ class StanTreeView(QTreeView):
 
 
 class StanDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setModal(True)
         self.setAutoFillBackground(True)
 
 
 class StanCheckBox(QCheckBox):
-    def __init__(self, text="Checkbox"):
+    def __init__(self, text="Checkbox") -> None:
         super().__init__(text)
         # self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAutoFillBackground(True)
 
 
 class StanRadioButton(QRadioButton):
-    def __init__(self, text="Radio Button"):
+    def __init__(self, text="Radio Button") -> None:
         super().__init__(text)
         # self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAutoFillBackground(True)
 
 
 class StanErrorMessage(QErrorMessage):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Error")
         self.setModal(True)
@@ -55,7 +55,7 @@ class StanErrorMessage(QErrorMessage):
 
 
 class StanInfoMessage(QMessageBox):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Information")
         self.setModal(True)
@@ -63,7 +63,7 @@ class StanInfoMessage(QMessageBox):
 
 
 class StanForm(QFormLayout):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         self.setFormAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -72,28 +72,28 @@ class StanForm(QFormLayout):
 
 
 class StanFrame(QFrame):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Sunken | QFrame.Shape.Panel)
         self.setAutoFillBackground(True)
 
 
 class StanWidget(QWidget):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.setAutoFillBackground(True)
         # self.setMinimumSize(10, 10)
 
 
 class StanLabel(QLabel):
-    def __init__(self, text="Label"):
+    def __init__(self, text="Label") -> None:
         super().__init__(text)
         self.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.setTextFormat(Qt.TextFormat.MarkdownText)
 
 
 class StanButton(QPushButton):
-    def __init__(self, text="Button"):
+    def __init__(self, text="Button") -> None:
         super().__init__(text)
         # self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAutoFillBackground(True)
