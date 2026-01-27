@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"python.missingPackage.severity": "Warning",
+		"python.terminal.activateEnvInCurrentTerminal": true,
+		"python.testing.pytestEnabled": true,
+		"python.pyrefly.displayTypeErrors": "force-on",
+		"python.defaultInterpreterPath": ""
+	}
+}

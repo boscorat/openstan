@@ -23,18 +23,5 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "ruff>=0.14.14",
+    "pyrefly>=0.50.0",
 ]
-
-[tool.ruff]
-line-length = 140
-target-version = "py310"
-
-[tool.ruff.lint]
-select = [
-  "E", # pycodestyle
-  "F", # pyflakes
-  "I", # isort
-  "B", # flake8-bugbear
-]
-
