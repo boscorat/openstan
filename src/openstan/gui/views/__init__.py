@@ -7,4 +7,4 @@ from openstan.gui.views.project_view import ProjectView as ProjectView
 from openstan.gui.views.statement_queue_view import StatementQueueView
 from openstan.gui.views.title import TitleView
 
-__all__ = ["ExportView", "ProjectView", "StatementQueueView", "TitleView", "FooterView", "ContentFrameView"]
+__all__: list[str] = ["ExportView", "ProjectView", "StatementQueueView", "TitleView", "FooterView", "ContentFrameView"]

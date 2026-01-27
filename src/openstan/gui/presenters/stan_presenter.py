@@ -1,11 +1,18 @@
+from typing import TYPE_CHECKING
+
 from PyQt6.QtCore import QObject
 from PyQt6.QtCore import pyqtSlot as Slot
 
+if TYPE_CHECKING:
+    from PyQt6.QtSql import QSqlRecord
+
+    from openstan.gui.main import Stan
+
 
 class StanPresenter(QObject):
-    def __init__(self, stan):
+    def __init__(self, stan: "Stan") -> None:
         super().__init__()
-        self.stan = stan
+        self.stan: "Stan" = stan
 
         # presenters
         self.project_presenter = self.stan.project_presenter
@@ -13,43 +20,53 @@ class StanPresenter(QObject):
         self.statement_queue_presenter = self.stan.statement_queue_presenter
 
         # views
-        self.project_view = self.project_presenter.view
+        # self.project_view = self.project_presenter.view
         self.footer_view = self.stan.footer_view
 
         # signals
-        self.project_view.selection.currentIndexChanged.connect(self.project_selection_changed)
+        self.project_presenter.view.selection.currentIndexChanged.connect(self.project_selection_changed)
         self.session_presenter.db_lock_signal.connect(self.db_lock_handler)
 
         # add a new user to the database if not exists
         self.stan.userID = self.stan.user_model.user_id_from_username(self.stan.username)
         if not self.stan.userID:
-            self.stan.userID = self.stan.user_presenter.create_new_user(self.stan.username, self.stan.sessionID)
-        self.stan.sessionID = self.stan.session_presenter.new_session(self.stan.userID)
+            success: bool = bool(False)
+            msg: str = ""
+            success, self.stan.userID, msg = self.stan.user_presenter.create_new_user(self.stan.username, self.stan.sessionID)
+            if not success:
+                self.stan.error_db_lock.showMessage(f"{msg}\nThe application will close shortly.")
+        # start a new session
+        if self.stan.userID:
+            success: bool = bool(False)
+            msg: str = ""
+            success, self.stan.sessionID, msg = self.stan.session_presenter.new_session(self.stan.userID)
+            if not success:
+                self.stan.error_db_lock.showMessage(f"{msg}\nThe application will close shortly.")
+
+        # pass sessionID to other presenters
         self.project_presenter.sessionID = self.stan.sessionID
         self.statement_queue_presenter.sessionID = self.stan.sessionID
 
         # update current project info
-        self.update_current_project_info()
+        self.update_current_project_info(self.project_presenter.view.selection.currentIndex())
 
     @Slot()
-    def db_lock_handler(self):
+    def db_lock_handler(self) -> None:
         self.stan.error_db_lock.showMessage("Database is locked! Another active session may exist.\nThe application will close shortly.")
 
     @Slot(int)
-    def project_selection_changed(self, index):
+    def project_selection_changed(self, index: int) -> None:
         # Handle the project selection change logic here
         self.update_current_project_info(index)
 
-    def cleanup_before_exit(self):
-        self.session_presenter.end_active_sessions(sessionID=self.stan.sessionID, userID=self.stan.userID)
+    def cleanup_before_exit(self) -> None:
+        self.session_presenter.end_active_sessions()
         print("CLEANUP: StanPresenter.cleanup_before_exit: Session ended.")
 
-    def update_current_project_info(self, index=None):
-        if index is None:
-            index = self.project_view.selection.currentIndex()
-        selected_project = self.project_view.selection.model().record(index)
-        self.stan.current_project_name = selected_project.value("project_name")
-        self.stan.current_project_id = selected_project.value("project_ID")
+    def update_current_project_info(self, index: int) -> None:
+        current_record: QSqlRecord = self.project_presenter.model.record(index)
+        self.stan.current_project_name = current_record.value("project_name")
+        self.stan.current_project_id = current_record.value("project_ID")
         self.stan.statement_queue_presenter.projectID = self.stan.current_project_id
         self.stan.statement_queue_presenter.update_view()
         self.footer_view.labelProject.setText(f"##### Project: {self.stan.current_project_name} (ID: {self.stan.current_project_id})")

@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from PyQt6.QtSql import QSqlTableModel
+from PyQt6.QtSql import QSqlTableModel, QSqlRecord
 
 NEW_RECORD_STATUS = 8  # active status
 
@@ -12,9 +12,10 @@ class UserModel(QSqlTableModel):
         self.setTable("user")
         self.select()
 
-    def add_record(self, username: str, sessionID: str) -> tuple[bool, str, str | None]:
-        user_id = uuid4().hex
-        record = self.record()
+    def add_record(self, username: str, sessionID: str) -> tuple[bool, str, str]:
+        msg: str = ""
+        user_id: str = uuid4().hex
+        record: QSqlRecord = self.record()
         record.setValue("user_id", user_id)
         record.setValue("username", username)
         record.setValue("createdBy_session", sessionID)
@@ -24,12 +25,14 @@ class UserModel(QSqlTableModel):
         record.setValue("status_id", NEW_RECORD_STATUS)  # active status
         if self.insertRecord(-1, record):
             self.submitAll()
-            return (True, user_id, None)
+            msg = f"User record {user_id} successfully added"
+            return (True, user_id, msg)
         else:
-            return (False, user_id, self.lastError().text())
+            msg = self.lastError().text()
+            return (False, user_id, msg)
 
     def user_id_from_username(self, username: str) -> str | None:
-        filter_str = f"username = '{username}'"
+        filter_str: str = f"username = '{username}'"
         self.setFilter(filter_str)
         self.select()
         if self.rowCount() > 0:

@@ -1,11 +1,10 @@
-from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QGridLayout
 
-from openstan.gui.components import StanLabel, StanWidget
+from openstan.gui.components import Qt, StanLabel, StanWidget
 
 
 class FooterView(StanWidget):
-    def __init__(self, stan):
+    def __init__(self, stan) -> None:
         super().__init__()
         self.sessionID = stan.sessionID
         self.username = stan.username

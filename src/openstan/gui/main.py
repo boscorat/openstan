@@ -2,26 +2,26 @@ import os
 import sys
 from uuid import uuid4
 
-from PyQt6.QtCore import QSysInfo, Qt, qDebug
+from PyQt6.QtCore import QSysInfo, qDebug
 from PyQt6.QtSql import QSqlDatabase
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout
 
-from openstan.gui.components import StanErrorMessage, StanLabel  # mostly widget subclasses
+from openstan.gui.components import Qt, QWidget, StanErrorMessage, StanLabel  # mostly widget subclasses
 from openstan.gui.models import ProjectModel, SessionModel, StatementQueueModel, StatementQueueTreeModel, UserModel
 from openstan.gui.paths import Paths
 from openstan.gui.presenters import ProjectPresenter, SessionPresenter, StanPresenter, StatementQueuePresenter, UserPresenter
 from openstan.gui.views import ContentFrameView, ExportView, FooterView, ProjectView, StatementQueueView, TitleView
 
 
-def main():
+def main() -> None:
     qDebug("Starting StanCafe GUI application...")
     app: QApplication = QApplication(sys.argv)
 
     # set application style based on OS
     if QSysInfo.productType() == "windows":
         app.setStyle("Windows")
-    # elif QSysInfo.productType() in ("ios", "tvos", "watchos", "macos", "darwin"):
-    #     app.setStyle("macOS")
+    elif QSysInfo.productType() in ("ios", "tvos", "watchos", "macos", "darwin"):
+        app.setStyle("macOS")
     else:
         app.setStyle("Fusion")
 
@@ -32,7 +32,7 @@ def main():
 
     # user and session details
     username: str = os.path.expanduser("~").split(os.sep)[-1]
-    sessionID = uuid4().hex
+    sessionID: str = uuid4().hex
 
     window: Stan = Stan(gui_db=gui_db, sessionID=sessionID, username=username)
     # window.setWindowOpacity(0.5)
@@ -44,7 +44,7 @@ def main():
 
 
 class Stan(QMainWindow):
-    def __init__(self, gui_db, sessionID, username):
+    def __init__(self, gui_db, sessionID, username) -> None:
         super().__init__()
         self.gui_db = gui_db
         self.userID = None
@@ -110,7 +110,7 @@ class Stan(QMainWindow):
         self.stan.setLayout(layout)
         self.setCentralWidget(self.stan)
 
-    def closeEvent(self, a0):
+    def closeEvent(self, a0) -> None:
         print("Window is closing")
         if self.sessionID:
             self.stan_presenter.cleanup_before_exit()

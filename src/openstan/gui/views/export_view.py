@@ -1,15 +1,14 @@
-from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QGridLayout
 
-from openstan.gui.components import StanButton, StanCheckBox, StanRadioButton, StanWidget
+from openstan.gui.components import Qt, StanButton, StanCheckBox, StanRadioButton, StanWidget
 from openstan.gui.paths import Paths
 
 
 class ExportView(StanWidget):
     header = "#### Export Options"
 
-    def __init__(self, stan):
+    def __init__(self, stan) -> None:
         super().__init__()
         self.userID = stan.userID
         self.sessionID = stan.sessionID

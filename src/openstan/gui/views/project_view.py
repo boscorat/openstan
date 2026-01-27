@@ -1,14 +1,13 @@
-from PyQt6.QtCore import QStandardPaths, Qt
-from PyQt6.QtCore import pyqtSignal as Signal
+from PyQt6.QtCore import QStandardPaths, pyqtSignal
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QComboBox, QFileDialog, QGridLayout, QLineEdit, QWizard, QWizardPage
 
-from openstan.gui.components import StanButton, StanErrorMessage, StanForm, StanInfoMessage, StanLabel, StanWidget
+from openstan.gui.components import Qt, StanButton, StanErrorMessage, StanForm, StanInfoMessage, StanLabel, StanWidget
 from openstan.gui.paths import Paths
 
 
 class FolderSelectionDialog(QFileDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Select Project Folder Location")
         self.setDirectory(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.HomeLocation))
@@ -16,7 +15,7 @@ class FolderSelectionDialog(QFileDialog):
 
 
 class ProjectPageBasic(QWizardPage):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.newProjectID = "AUTO_GENERATED_ID"  # Will be set by project_presenter
         self.folder_path = None  # Will be set when user selects folder
@@ -58,7 +57,7 @@ class ProjectPageBasic(QWizardPage):
 
 
 class ProjectWizard(QWizard):
-    new_project_required = Signal()
+    new_project_required: pyqtSignal = pyqtSignal()
 
     def __init__(self):
         super().__init__()

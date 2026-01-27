@@ -11,7 +11,8 @@ class StatementQueueModel(QSqlTableModel):
         self.setTable("statement_queue")
         self.select()
 
-    def add_record(self, queue_id, parent_id, project_id, session_id, status_id, path, is_folder=0) -> tuple[bool, str, str | None]:
+    def add_record(self, queue_id, parent_id, project_id, session_id, status_id, path, is_folder=0) -> tuple[bool, str, str]:
+        msg: str = ""
         record: QSqlRecord = self.record()
         record.setValue("queue_id", queue_id)
         record.setValue("parent_id", parent_id)
@@ -23,9 +24,11 @@ class StatementQueueModel(QSqlTableModel):
         if self.insertRecord(-1, record):
             self.submitAll()
             self.db_updated.emit()
-            return (True, queue_id, None)
+            msg = f"Queue record {queue_id} successfully added"
+            return (True, queue_id, msg)
         else:
-            return (False, queue_id, self.lastError().text())
+            msg = self.lastError().text()
+            return (False, queue_id, msg)
 
     def delete_records(self, queue_ids: list[str]) -> tuple[bool, list[str], str]:
         success: bool = bool(False)

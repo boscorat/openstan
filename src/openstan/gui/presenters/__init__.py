@@ -4,4 +4,4 @@ from openstan.gui.presenters.stan_presenter import StanPresenter
 from openstan.gui.presenters.statement_queue_presenter import StatementQueuePresenter
 from openstan.gui.presenters.user_presenter import UserPresenter
 
-__all__ = ["ProjectPresenter", "UserPresenter", "SessionPresenter", "StanPresenter", "StatementQueuePresenter"]
+__all__: list[str] = ["ProjectPresenter", "UserPresenter", "SessionPresenter", "StanPresenter", "StatementQueuePresenter"]

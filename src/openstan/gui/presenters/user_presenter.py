@@ -1,21 +1,25 @@
+from typing import TYPE_CHECKING
+
 from PyQt6.QtCore import QObject
+
+if TYPE_CHECKING:
+    from openstan.gui.models.user_model import UserModel
 
 
 class UserPresenter(QObject):
-    def __init__(self, model, view=None):
+    def __init__(self: "UserPresenter", model: "UserModel", view=None) -> None:
         super().__init__()
-        self.model = model
+        self.model: "UserModel" = model
         self.view = view
         if self.view is not None:
             self.view.setModel(self.model)
 
-    def create_new_user(self, username, sessionID) -> bool:
-        user_db = self.model.add_record(username, sessionID)
-        if not user_db[0]:
+    def create_new_user(self, username, sessionID) -> tuple[bool, str, str]:
+        result: tuple[bool, str, str] = self.model.add_record(username, sessionID)
+        if not result[0]:
             print("Failed to create or retrieve user ID from the database.")
-            return False
+            return result
         else:
-            userID = user_db[1]
-            msg = f"User created successfully: {username} (ID: {userID})"
+            msg: str = f"User created successfully: {username} (ID: {result[1]})"
             print(msg)
-            return userID
+            return result

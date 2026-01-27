@@ -1,13 +1,12 @@
-from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QGridLayout
 
-from openstan.gui.components import StanLabel, StanWidget
+from openstan.gui.components import Qt, StanLabel, StanWidget
 from openstan.gui.paths import Paths
 
 
 class TitleView(StanWidget):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         title = "### Statement Analysis - configurable, accurate, flexible & extendable"
         label = StanLabel(title)
