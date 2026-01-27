@@ -20,7 +20,7 @@ class StatementQueuePresenter(QObject):
         self.view.buttonAddFolders.clicked.connect(self.open_folder_dialog)
         self.view.buttonAddFiles.clicked.connect(self.open_file_dialog)
         self.view.buttonRemove.clicked.connect(self.remove_selected_items)
-        # self.view.buttonClear.clicked.connect(self.clear_all_items)
+        self.view.buttonClear.clicked.connect(self.clear_all_items)
         self.view.tree.selectionModel().selectionChanged.connect(self.tree_selection_changed)  # type: ignore
 
     @Slot()
@@ -59,9 +59,14 @@ class StatementQueuePresenter(QObject):
     def remove_selected_items(self):
         # Logic to remove selected items from the model/view
         selected_indexes = self.view.tree.selectionModel().selectedIndexes()
-        selected_ids = [index.data() for index in selected_indexes if index.column() == 1]
-        for queue_id in selected_ids:
-            self.model.delete_record_by_id(queue_id)
+        selected_ids: list[str] = [str(index.data()) for index in selected_indexes if index.column() == 1]
+        self.model.delete_records(queue_ids = selected_ids)
+        self.update_view()
+
+    @Slot()
+    def clear_all_items(self):
+        result = self.model.clear_records()
+        print(result)
         self.update_view()
 
     def add_record(self, queue_id, parent_id, path, is_folder):

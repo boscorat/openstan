@@ -54,11 +54,11 @@ class StatementQueueView(StanWidget):
         self.buttonAddFolders.setIcon(QIcon(Paths.icon("folder_add.svg")))
         self.buttonAddFiles.setIcon(QIcon(Paths.icon("file_add.svg")))
         self.buttonRemove.setIcon(QIcon(Paths.icon("file_remove.svg")))
-        # self.buttonClear.setIcon(QIcon(Paths.icon("folder_remove.svg")))
+        self.buttonClear.setIcon(QIcon(Paths.icon("folder_remove.svg")))
         layout.addWidget(self.buttonAddFolders, 0, 0, alignment=Qt.AlignmentFlag.AlignBottom)
         layout.addWidget(self.buttonAddFiles, 0, 1, alignment=Qt.AlignmentFlag.AlignBottom)
         layout.addWidget(self.buttonRemove, 2, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        # layout.addWidget(self.buttonClear, 2, 1, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.buttonClear, 2, 1, alignment=Qt.AlignmentFlag.AlignTop)
 
         # # date table view for testing
         # self.table = QTableView()
