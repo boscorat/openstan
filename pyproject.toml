@@ -1,10 +1,10 @@
 [project]
 name = "openstan"
 version = "0.1.0"
-description = "Add your description here"
+description = "Open source application for statement analysis and visualization"
 readme = "README.md"
 authors = [
-    { name = "Jason Farrar", email = "farrar.jason1@gmail.com" }
+    { name = "Jason Farrar", email = "stillwaters.technology@gmail.com" }
 ]
 requires-python = ">=3.14"
 dependencies = [
