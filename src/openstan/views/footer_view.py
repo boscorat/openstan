@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QGridLayout
 
-from openstan.gui.components import Qt, StanLabel, StanWidget
+from openstan.components import Qt, StanLabel, StanWidget
 
 
 class FooterView(StanWidget):

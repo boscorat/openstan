@@ -6,7 +6,7 @@ from PyQt6.QtCore import pyqtSlot as Slot
 if TYPE_CHECKING:
     from PyQt6.QtSql import QSqlRecord
 
-    from openstan.gui.main import Stan
+    from openstan.main import Stan
 
 
 class StanPresenter(QObject):

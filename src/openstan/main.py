@@ -2,15 +2,18 @@ import os
 import sys
 from uuid import uuid4
 
+from bank_statement_parser import hello
 from PyQt6.QtCore import QSysInfo, qDebug
 from PyQt6.QtSql import QSqlDatabase
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout
 
-from openstan.gui.components import Qt, QWidget, StanErrorMessage, StanLabel  # mostly widget subclasses
-from openstan.gui.models import ProjectModel, SessionModel, StatementQueueModel, StatementQueueTreeModel, UserModel
-from openstan.gui.paths import Paths
-from openstan.gui.presenters import ProjectPresenter, SessionPresenter, StanPresenter, StatementQueuePresenter, UserPresenter
-from openstan.gui.views import ContentFrameView, ExportView, FooterView, ProjectView, StatementQueueView, TitleView
+from openstan.components import Qt, QWidget, StanErrorMessage, StanLabel  # mostly widget subclasses
+from openstan.models import ProjectModel, SessionModel, StatementQueueModel, StatementQueueTreeModel, UserModel
+from openstan.paths import Paths
+from openstan.presenters import ProjectPresenter, SessionPresenter, StanPresenter, StatementQueuePresenter, UserPresenter
+from openstan.views import ContentFrameView, ExportView, FooterView, ProjectView, StatementQueueView, TitleView
+
+hello()
 
 
 def main() -> None:

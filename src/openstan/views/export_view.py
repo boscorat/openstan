@@ -1,8 +1,8 @@
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QGridLayout
 
-from openstan.gui.components import Qt, StanButton, StanCheckBox, StanRadioButton, StanWidget
-from openstan.gui.paths import Paths
+from openstan.components import Qt, StanButton, StanCheckBox, StanRadioButton, StanWidget
+from openstan.paths import Paths
 
 
 class ExportView(StanWidget):

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QGridLayout
 
-from openstan.gui.components import Qt, StanFrame
+from openstan.components import Qt, StanFrame
 
 
 class ContentFrameView(StanFrame):

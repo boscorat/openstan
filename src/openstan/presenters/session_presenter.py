@@ -4,7 +4,7 @@ from uuid import uuid4
 from PyQt6.QtCore import QObject, pyqtSignal
 
 if TYPE_CHECKING:
-    from openstan.gui.models.session_model import SessionModel
+    from openstan.models.session_model import SessionModel
 
 
 class SessionPresenter(QObject):

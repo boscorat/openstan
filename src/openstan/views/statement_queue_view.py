@@ -2,8 +2,8 @@ from PyQt6.QtCore import QStandardPaths
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QFileDialog, QGridLayout
 
-from openstan.gui.components import Qt, StanButton, StanTreeView, StanWidget
-from openstan.gui.paths import Paths
+from openstan.components import Qt, StanButton, StanTreeView, StanWidget
+from openstan.paths import Paths
 
 
 class FileDialog(QFileDialog):

@@ -1,8 +1,8 @@
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QGridLayout
 
-from openstan.gui.components import Qt, StanLabel, StanWidget
-from openstan.gui.paths import Paths
+from openstan.components import Qt, StanLabel, StanWidget
+from openstan.paths import Paths
 
 
 class TitleView(StanWidget):

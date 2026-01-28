@@ -5,8 +5,8 @@ from uuid import uuid4
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 if TYPE_CHECKING:
-    from openstan.gui.models.project_model import ProjectModel
-    from openstan.gui.views.project_view import ProjectView
+    from openstan.models.project_model import ProjectModel
+    from openstan.views.project_view import ProjectView
 
 
 class ProjectPresenter(QObject):

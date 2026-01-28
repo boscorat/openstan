@@ -9,13 +9,19 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "pyqt6>=6.10.2",
+    "bank_statement_parser"
+]
+
+[tool.uv.sources]
+bank_statement_parser = { workspace = true }
+
+[tool.uv.workspace]
+members = [
+    "packages/bank_statement_parser",
 ]
 
 [project.scripts]
-openstan_cli = "openstan:cli"
-
-[project.gui-scripts]
-openstan_gui = "openstan:gui"
+openstan = "openstan:main"
 
 [build-system]
 requires = ["uv_build>=0.9.17,<0.10.0"]
@@ -24,4 +30,5 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "pyrefly>=0.50.0",
+    "ruff>=0.14.14",
 ]

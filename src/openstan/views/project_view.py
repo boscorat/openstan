@@ -2,8 +2,8 @@ from PyQt6.QtCore import QStandardPaths, pyqtSignal
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QComboBox, QFileDialog, QGridLayout, QLineEdit, QWizard, QWizardPage
 
-from openstan.gui.components import Qt, StanButton, StanErrorMessage, StanForm, StanInfoMessage, StanLabel, StanWidget
-from openstan.gui.paths import Paths
+from openstan.components import Qt, StanButton, StanErrorMessage, StanForm, StanInfoMessage, StanLabel, StanWidget
+from openstan.paths import Paths
 
 
 class FolderSelectionDialog(QFileDialog):

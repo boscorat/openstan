@@ -5,8 +5,8 @@ from uuid import uuid4
 from PyQt6.QtCore import QObject, pyqtSlot
 
 if TYPE_CHECKING:
-    from openstan.gui.models.statement_queue_model import StatementQueueModel, StatementQueueTreeModel
-    from openstan.gui.views.statement_queue_view import StatementQueueView
+    from openstan.models.statement_queue_model import StatementQueueModel, StatementQueueTreeModel
+    from openstan.views.statement_queue_view import StatementQueueView
 
 
 class StatementQueuePresenter(QObject):

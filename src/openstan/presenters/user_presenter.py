@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from PyQt6.QtCore import QObject
 
 if TYPE_CHECKING:
-    from openstan.gui.models.user_model import UserModel
+    from openstan.models.user_model import UserModel
 
 
 class UserPresenter(QObject):

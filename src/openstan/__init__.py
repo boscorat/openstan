@@ -1,5 +1,3 @@
-# from openstan.gui_main import main as gui
-from openstan.cli import cli
-from openstan.gui import gui
+from openstan.main import main
 
-__all__ = ["cli", "gui"]
+__all__: list[str] = ["main"]
