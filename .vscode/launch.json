@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug OpenStan GUI",
+      "name": "OpenStan GUI",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/.venv/bin/openstan_gui",
@@ -14,10 +14,22 @@
       }
     },
     {
-      "name": "Debug OpenStan CLI",
+      "name": "OpenStan CLI",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/.venv/bin/openstan_cli",
+      "console": "integratedTerminal",
+      "args": ["${file}"],
+      "justMyCode": false,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    },
+    {
+      "name": "OpenStan",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/.venv/bin/openstan",
       "console": "integratedTerminal",
       "args": ["${file}"],
       "justMyCode": false,

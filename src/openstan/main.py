@@ -1,19 +1,30 @@
 import os
 import sys
+from pathlib import Path
 from uuid import uuid4
 
-from bank_statement_parser import hello
+from bank_statement_parser.modules.classes import statements
 from PyQt6.QtCore import QSysInfo, qDebug
 from PyQt6.QtSql import QSqlDatabase
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QGridLayout, QHeaderView, QMainWindow, QVBoxLayout
 
-from openstan.components import Qt, QWidget, StanErrorMessage, StanLabel  # mostly widget subclasses
-from openstan.models import ProjectModel, SessionModel, StatementQueueModel, StatementQueueTreeModel, UserModel
+from openstan.components import (  # mostly widget subclasses
+    Qt,
+    QWidget,
+    StanErrorMessage,
+    StanLabel,
+    StanPolarsModel,
+    StanTableView,
+    StanTreeView,
+)
+from openstan.models import ProjectModel, SessionModel, StatementQueueModel, StatementQueueTreeModel, StatementResultModel, UserModel
 from openstan.paths import Paths
 from openstan.presenters import ProjectPresenter, SessionPresenter, StanPresenter, StatementQueuePresenter, UserPresenter
 from openstan.views import ContentFrameView, ExportView, FooterView, ProjectView, StatementQueueView, TitleView
 
-hello()
+file = Path("/Users/boscorat/Library/CloudStorage/OneDrive-Personal/OpenStan/Statements/HSBC/2025/HSBC_UK_CUR_31243535_20250608.pdf")
+stmt = statements.Statement(file=file)
+print(stmt)
 
 
 def main() -> None:
@@ -66,6 +77,7 @@ class Stan(QMainWindow):
         self.project_model = ProjectModel(db=gui_db)
         self.statement_queue_model = StatementQueueModel(db=gui_db)
         self.statement_queue_tree_model = StatementQueueTreeModel(db=gui_db)
+        self.statement_result_model = StatementResultModel(stmt=stmt)
         # main layout
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -110,7 +122,51 @@ class Stan(QMainWindow):
         layout.addWidget(export_block, alignment=Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self.footer_view, alignment=Qt.AlignmentFlag.AlignBottom)
 
-        self.stan.setLayout(layout)
+        self.master_layout = QGridLayout()
+        self.master_layout.addLayout(layout, 0, 0)
+
+        self.test_layout = QVBoxLayout()
+
+        # table testing
+        self.table_cab = StanTableView()
+        self.table_cab.setMinimumWidth(600)
+        self.table_head = StanTableView()
+        self.table_lines = StanTableView()
+        self.model_cab = StanPolarsModel(stmt.checks_and_balances)
+        self.model_head = StanPolarsModel(stmt.header_results.collect())
+        self.model_lines = StanPolarsModel(stmt.lines_results.collect())
+        self.table_cab.setModel(self.model_cab)
+        self.table_head.setModel(self.model_head)
+        self.table_lines.setModel(self.model_lines)
+
+        self.tree_result = StanTreeView()
+        self.tree_result.setMinimumWidth(600)
+        self.tree_result.setModel(self.statement_result_model)
+
+        headers: list[QHeaderView | None] = [
+            self.table_cab.verticalHeader(),
+            self.table_head.verticalHeader(),
+            self.table_lines.verticalHeader(),
+        ]
+        for header in headers:
+            if header:
+                header.setHidden(True)
+
+        self.test_layout.addWidget(self.table_cab, alignment=Qt.AlignmentFlag.AlignTop)
+        self.test_layout.addWidget(self.table_head, alignment=Qt.AlignmentFlag.AlignTop)
+        self.test_layout.addWidget(self.table_lines, alignment=Qt.AlignmentFlag.AlignTop)
+        self.test_layout.addWidget(self.tree_result, alignment=Qt.AlignmentFlag.AlignTop)
+
+        self.master_layout.addLayout(self.test_layout, 0, 1)
+
+        stmt_name: str = (
+            str(stmt.ID_ACCOUNT) + " " + str(self.model_head.df["STD_STATEMENT_DATE"][0])
+            if self.model_head.df.height > 0
+            else "Unknown Statement"
+        )
+        print(f"{stmt_name}")
+
+        self.stan.setLayout(self.master_layout)
         self.setCentralWidget(self.stan)
 
     def closeEvent(self, a0) -> None:

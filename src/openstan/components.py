@@ -1,4 +1,4 @@
-from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtCore import QAbstractTableModel, QSize, Qt
 from PyQt6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -9,9 +9,51 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QRadioButton,
+    QTableView,
     QTreeView,
     QWidget,
 )
+
+
+class StanPolarsModel(QAbstractTableModel):
+    def __init__(self, df):
+        super().__init__()
+        self.df = df
+
+    def rowCount(self, parent=None):
+        return self.df.height
+
+    def columnCount(self, parent=None):
+        return self.df.width
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.DisplayRole:
+            return str(self.df.item(index.row(), index.column()))
+        return None
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role=Qt.ItemDataRole.DisplayRole):
+        """Override method from QAbstractTableModel
+
+        Return dataframe index as vertical header data and columns as horizontal header data.
+        """
+        if role == Qt.ItemDataRole.DisplayRole:
+            if orientation == Qt.Orientation.Vertical:
+                return str(self.df.item(section, 0))
+            elif orientation == Qt.Orientation.Horizontal:
+                return str(self.df.columns[section])
+
+        return None
+
+
+class StanTableView(QTableView):
+    def __init__(self) -> None:
+        super().__init__()
+        self.setAutoFillBackground(True)
+        self.setAlternatingRowColors(True)
+        self.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.setSelectionMode(QTableView.SelectionMode.ExtendedSelection)
+        self.setShowGrid(True)
+        self.setSortingEnabled(True)
 
 
 class StanTreeView(QTreeView):

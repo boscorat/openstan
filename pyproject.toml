@@ -9,16 +9,11 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "pyqt6>=6.10.2",
-    "bank_statement_parser"
+    "bank_statement_parser",
 ]
 
 [tool.uv.sources]
-bank_statement_parser = { workspace = true }
-
-[tool.uv.workspace]
-members = [
-    "packages/bank_statement_parser",
-]
+bank_statement_parser = { git = "https://github.com/boscorat/bank_statement_parser.git"}
 
 [project.scripts]
 openstan = "openstan:main"
