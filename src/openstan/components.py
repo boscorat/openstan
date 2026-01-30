@@ -7,12 +7,19 @@ from PyQt6.QtWidgets import (
     QFrame,
     QLabel,
     QMessageBox,
+    QProgressBar,
     QPushButton,
     QRadioButton,
     QTableView,
     QTreeView,
     QWidget,
 )
+
+
+class StanProgressBar(QProgressBar):
+    def __init__(self) -> None:
+        super().__init__()
+        self.setAutoFillBackground(True)
 
 
 class StanPolarsModel(QAbstractTableModel):

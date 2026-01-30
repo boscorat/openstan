@@ -2,23 +2,71 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from PyQt6.QtCore import QObject, pyqtSlot
+from bank_statement_parser.modules.classes import statements
+from PyQt6.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
 
 if TYPE_CHECKING:
+    from PyQt6.QtCore import QThreadPool
+
     from openstan.models.statement_queue_model import StatementQueueModel, StatementQueueTreeModel
     from openstan.views.statement_queue_view import StatementQueueView
 
 
+class WorkerSignals(QObject):
+    """
+    Defines the signals available from a running worker thread.
+
+    progress
+        int progress complete,from 0-100
+    """
+
+    progress = pyqtSignal(int, statements.Statement)
+
+
+class SQWorker(QRunnable):
+    """
+    Statement Queue Worker thread
+
+    Inherits from QRunnable to handle worker thread setup, signals
+    and wrap-up.
+    """
+
+    def __init__(self, model: "StatementQueueModel") -> None:
+        super().__init__()
+        self.model = model
+        self.signals = WorkerSignals()
+        self.imported_statements: list[statements.Statement] = []
+
+    @pyqtSlot()
+    def run(self):
+        total_n = self.model.rowCount()
+        for n in range(total_n):
+            progress_pc = int(100 * float(n + 1) / total_n)  # Progress 0-100% as int
+            record = self.model.record(n)
+            if record.value("is_folder") == 1:
+                continue  # skip folders
+            print(f"Importing statement: {record.value('path')}")
+            stmt = statements.Statement(file=Path(record.value("path")))
+            self.signals.progress.emit(progress_pc, stmt)
+            self.imported_statements.append(stmt)
+
+
 class StatementQueuePresenter(QObject):
     def __init__(
-        self: "StatementQueuePresenter", model: "StatementQueueModel", view: "StatementQueueView", tree_model: "StatementQueueTreeModel"
+        self: StatementQueuePresenter,
+        model: StatementQueueModel,
+        view: StatementQueueView,
+        tree_model: StatementQueueTreeModel,
+        threadpool: QThreadPool,
     ) -> None:
         super().__init__()
+        self.threadpool: QThreadPool = threadpool
         self.sessionID: str | None = None  # to be set by StanPresenter
         self.projectID: str | None = None  # to be set by StanPresenter
-        self.model: "StatementQueueModel" = model
-        self.view: "StatementQueueView" = view
-        self.tree_model: "StatementQueueTreeModel" = tree_model
+        self.imported_statements: list[statements.Statement] = []
+        self.model: StatementQueueModel = model
+        self.view: StatementQueueView = view
+        self.tree_model: StatementQueueTreeModel = tree_model
         # self.view.table.setModel(self.model)
         self.view.tree.setModel(self.tree_model)
         self.view.tree.setHeaderHidden(True)
@@ -27,6 +75,31 @@ class StatementQueuePresenter(QObject):
         self.view.buttonAddFiles.clicked.connect(self.open_file_dialog)
         self.view.buttonRemove.clicked.connect(self.remove_selected_items)
         self.view.buttonClear.clicked.connect(self.clear_all_items)
+        self.view.buttonRunImport.clicked.connect(self.run_import)
+
+    @pyqtSlot(str)
+    def show_message(self, message: str) -> None:
+        print("Message:", message)
+        # self.view.statusBar.showMessage(message)
+
+    @pyqtSlot(int, statements.Statement)
+    def update_progress(self, value, statement) -> None:
+        self.imported_statements.append(statement)
+        self.view.progressBar.setValue(value)
+        print(f"Import progress: {value}% - Statement ID: {statement.ID_ACCOUNT}")
+
+    @pyqtSlot()
+    def run_import(self) -> None:
+        # Logic to run the import process for statements in the queue
+        print("Running statement import...")
+        self.view.buttonRunImport.setDisabled(True)
+        worker = SQWorker(model=self.model)
+        worker.signals.progress.connect(self.update_progress)
+        self.threadpool.start(worker)
+        self.imported_statements = worker.imported_statements
+        self.view.buttonRunImport.setEnabled(True)
+        # Simulate import process
+        print("Statement import completed.")
 
     @pyqtSlot()
     def open_folder_dialog(self) -> None:
@@ -98,5 +171,6 @@ class StatementQueuePresenter(QObject):
             # self.view.table.resizeColumnsToContents()
             # self.view.tree.expandAll()
             self.view.tree.expandToDepth(0)
+            self.view.buttonRunImport.setEnabled(True) if self.model.rowCount() > 0 else self.view.buttonRunImport.setEnabled(False)
         else:
             print("Project ID is not set. Cannot update view.")

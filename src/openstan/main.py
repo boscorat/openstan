@@ -4,7 +4,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from bank_statement_parser.modules.classes import statements
-from PyQt6.QtCore import QSysInfo, qDebug
+from PyQt6.QtCore import QSysInfo, QThreadPool, qDebug
 from PyQt6.QtSql import QSqlDatabase
 from PyQt6.QtWidgets import QApplication, QGridLayout, QHeaderView, QMainWindow, QVBoxLayout
 
@@ -24,6 +24,8 @@ from openstan.views import ContentFrameView, ExportView, FooterView, ProjectView
 
 file = Path("/Users/boscorat/Library/CloudStorage/OneDrive-Personal/OpenStan/Statements/HSBC/2025/HSBC_UK_CUR_31243535_20250608.pdf")
 stmt = statements.Statement(file=file)
+file2 = Path("/Users/boscorat/Library/CloudStorage/OneDrive-Personal/OpenStan/Statements/HSBC/2025/HSBC_UK_CUR_31243535_20250708.pdf")
+stmt2 = statements.Statement(file=file2)
 print(stmt)
 
 
@@ -60,6 +62,8 @@ def main() -> None:
 class Stan(QMainWindow):
     def __init__(self, gui_db, sessionID, username) -> None:
         super().__init__()
+        self.threadpool = QThreadPool()
+        print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
         self.gui_db = gui_db
         self.userID = None
         self.sessionID = sessionID
@@ -77,7 +81,9 @@ class Stan(QMainWindow):
         self.project_model = ProjectModel(db=gui_db)
         self.statement_queue_model = StatementQueueModel(db=gui_db)
         self.statement_queue_tree_model = StatementQueueTreeModel(db=gui_db)
-        self.statement_result_model = StatementResultModel(stmt=stmt)
+        self.statement_result_model = StatementResultModel()
+        self.statement_result_model.add_statement(stmt)
+        self.statement_result_model.add_statement(stmt2)
         # main layout
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -111,7 +117,10 @@ class Stan(QMainWindow):
         self.session_presenter = SessionPresenter(model=self.session_model, view=None)
         self.project_presenter = ProjectPresenter(model=self.project_model, view=self.project_view)
         self.statement_queue_presenter = StatementQueuePresenter(
-            model=self.statement_queue_model, view=self.statement_queue_view, tree_model=self.statement_queue_tree_model
+            model=self.statement_queue_model,
+            view=self.statement_queue_view,
+            tree_model=self.statement_queue_tree_model,
+            threadpool=self.threadpool,
         )
         self.stan_presenter = StanPresenter(stan=self)
 

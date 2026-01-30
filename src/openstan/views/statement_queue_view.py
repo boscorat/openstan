@@ -2,7 +2,7 @@ from PyQt6.QtCore import QStandardPaths
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QFileDialog, QGridLayout
 
-from openstan.components import Qt, StanButton, StanTreeView, StanWidget
+from openstan.components import Qt, StanButton, StanProgressBar, StanTreeView, StanWidget
 from openstan.paths import Paths
 
 
@@ -63,4 +63,9 @@ class StatementQueueView(StanWidget):
         self.buttonRunImport.setIcon(QIcon(Paths.icon("run.svg")))
         self.buttonRunImport.setDisabled(True)
         layout.addWidget(self.buttonRunImport, 4, 1, alignment=Qt.AlignmentFlag.AlignRight)
+
+        # Progress Bar
+        self.progressBar = StanProgressBar()
+        layout.addWidget(self.progressBar, 5, 0, 1, 2)
+
         self.setLayout(layout)

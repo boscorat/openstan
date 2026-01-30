@@ -1,3 +1,4 @@
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 
 from openstan.components import StanPolarsModel
@@ -19,9 +20,14 @@ class LinesModel(StanPolarsModel):
 
 
 class StatementResultModel(QStandardItemModel):
-    def __init__(self, stmt):
+    model_updated = pyqtSignal()
+
+    def __init__(self) -> None:
         super().__init__()
         self.setHorizontalHeaderLabels(["", "In", "Out", "Movement", "Success?"])
+        self.invisibleRootItem()
+
+    def add_statement(self, stmt):
         self.cab = ChecksAndBalancesModel(stmt)
         self.header = HeaderModel(stmt)
         self.lines = LinesModel(stmt)
@@ -55,8 +61,6 @@ class StatementResultModel(QStandardItemModel):
                     item_success,
                 ]
             )
-
-        self.invisibleRootItem()
         self.appendRow(
             [
                 stmt_name,
@@ -66,3 +70,4 @@ class StatementResultModel(QStandardItemModel):
                 stmt_success,
             ]
         )
+        self.model_updated.emit()
