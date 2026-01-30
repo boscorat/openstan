@@ -1,32 +1,28 @@
 import os
 import sys
-from pathlib import Path
 from uuid import uuid4
 
-from bank_statement_parser.modules.classes import statements
 from PyQt6.QtCore import QSysInfo, QThreadPool, qDebug
 from PyQt6.QtSql import QSqlDatabase
-from PyQt6.QtWidgets import QApplication, QGridLayout, QHeaderView, QMainWindow, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QGridLayout, QMainWindow, QVBoxLayout
 
 from openstan.components import (  # mostly widget subclasses
     Qt,
     QWidget,
     StanErrorMessage,
     StanLabel,
-    StanPolarsModel,
-    StanTableView,
-    StanTreeView,
 )
 from openstan.models import ProjectModel, SessionModel, StatementQueueModel, StatementQueueTreeModel, StatementResultModel, UserModel
 from openstan.paths import Paths
-from openstan.presenters import ProjectPresenter, SessionPresenter, StanPresenter, StatementQueuePresenter, UserPresenter
-from openstan.views import ContentFrameView, ExportView, FooterView, ProjectView, StatementQueueView, TitleView
-
-file = Path("/Users/boscorat/Library/CloudStorage/OneDrive-Personal/OpenStan/Statements/HSBC/2025/HSBC_UK_CUR_31243535_20250608.pdf")
-stmt = statements.Statement(file=file)
-file2 = Path("/Users/boscorat/Library/CloudStorage/OneDrive-Personal/OpenStan/Statements/HSBC/2025/HSBC_UK_CUR_31243535_20250708.pdf")
-stmt2 = statements.Statement(file=file2)
-print(stmt)
+from openstan.presenters import (
+    ProjectPresenter,
+    SessionPresenter,
+    StanPresenter,
+    StatementQueuePresenter,
+    StatementResultPresenter,
+    UserPresenter,
+)
+from openstan.views import ContentFrameView, ExportView, FooterView, ProjectView, StatementQueueView, StatementResultView, TitleView
 
 
 def main() -> None:
@@ -82,8 +78,6 @@ class Stan(QMainWindow):
         self.statement_queue_model = StatementQueueModel(db=gui_db)
         self.statement_queue_tree_model = StatementQueueTreeModel(db=gui_db)
         self.statement_result_model = StatementResultModel()
-        self.statement_result_model.add_statement(stmt)
-        self.statement_result_model.add_statement(stmt2)
         # main layout
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -92,16 +86,24 @@ class Stan(QMainWindow):
         self.stan = QWidget()
         self.title_view = TitleView()
         self.project_view = ProjectView()
-        self.footer_view = FooterView(stan=self)
+        self.footer_view = FooterView()
 
         # process flow widgets
-        self.statement_queue_view = StatementQueueView(stan=self)
-        self.export_view = ExportView(stan=self)
+        self.statement_queue_view = StatementQueueView()
+        self.statement_result_view = StatementResultView()
+        self.export_view = ExportView()
 
         statement_queue_block = ContentFrameView(
             widgets=[
                 (StanLabel(self.statement_queue_view.header), 0, 0),
                 (self.statement_queue_view, 1, 0),
+            ]
+        )
+
+        self.statement_result_block = ContentFrameView(
+            widgets=[
+                (StanLabel(self.statement_result_view.header), 0, 0),
+                (self.statement_result_view, 1, 0),
             ]
         )
 
@@ -111,6 +113,7 @@ class Stan(QMainWindow):
                 (self.export_view, 1, 0),
             ]
         )
+        self.statement_result_block.setVisible(False)  # hide initially
 
         # hook up the presenters
         self.user_presenter = UserPresenter(model=self.user_model, view=None)
@@ -122,6 +125,7 @@ class Stan(QMainWindow):
             tree_model=self.statement_queue_tree_model,
             threadpool=self.threadpool,
         )
+        self.statement_result_presenter = StatementResultPresenter(model=self.statement_result_model, view=self.statement_result_view)
         self.stan_presenter = StanPresenter(stan=self)
 
         # assemble layout
@@ -132,48 +136,49 @@ class Stan(QMainWindow):
         layout.addWidget(self.footer_view, alignment=Qt.AlignmentFlag.AlignBottom)
 
         self.master_layout = QGridLayout()
-        self.master_layout.addLayout(layout, 0, 0)
+        self.master_layout.addLayout(layout, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        self.master_layout.addWidget(self.statement_result_block, 0, 1, alignment=Qt.AlignmentFlag.AlignTop)
 
-        self.test_layout = QVBoxLayout()
+        # self.test_layout = QVBoxLayout()
 
-        # table testing
-        self.table_cab = StanTableView()
-        self.table_cab.setMinimumWidth(600)
-        self.table_head = StanTableView()
-        self.table_lines = StanTableView()
-        self.model_cab = StanPolarsModel(stmt.checks_and_balances)
-        self.model_head = StanPolarsModel(stmt.header_results.collect())
-        self.model_lines = StanPolarsModel(stmt.lines_results.collect())
-        self.table_cab.setModel(self.model_cab)
-        self.table_head.setModel(self.model_head)
-        self.table_lines.setModel(self.model_lines)
+        # # table testing
+        # self.table_cab = StanTableView()
+        # self.table_cab.setMinimumWidth(600)
+        # self.table_head = StanTableView()
+        # self.table_lines = StanTableView()
+        # self.model_cab = StanPolarsModel(stmt.checks_and_balances)
+        # self.model_head = StanPolarsModel(stmt.header_results.collect())
+        # self.model_lines = StanPolarsModel(stmt.lines_results.collect())
+        # self.table_cab.setModel(self.model_cab)
+        # self.table_head.setModel(self.model_head)
+        # self.table_lines.setModel(self.model_lines)
 
-        self.tree_result = StanTreeView()
-        self.tree_result.setMinimumWidth(600)
-        self.tree_result.setModel(self.statement_result_model)
+        # self.tree_result = StanTreeView()
+        # self.tree_result.setMinimumWidth(600)
+        # self.tree_result.setModel(self.statement_result_model)
 
-        headers: list[QHeaderView | None] = [
-            self.table_cab.verticalHeader(),
-            self.table_head.verticalHeader(),
-            self.table_lines.verticalHeader(),
-        ]
-        for header in headers:
-            if header:
-                header.setHidden(True)
+        # headers: list[QHeaderView | None] = [
+        #     self.table_cab.verticalHeader(),
+        #     self.table_head.verticalHeader(),
+        #     self.table_lines.verticalHeader(),
+        # ]
+        # for header in headers:
+        #     if header:
+        #         header.setHidden(True)
 
-        self.test_layout.addWidget(self.table_cab, alignment=Qt.AlignmentFlag.AlignTop)
-        self.test_layout.addWidget(self.table_head, alignment=Qt.AlignmentFlag.AlignTop)
-        self.test_layout.addWidget(self.table_lines, alignment=Qt.AlignmentFlag.AlignTop)
-        self.test_layout.addWidget(self.tree_result, alignment=Qt.AlignmentFlag.AlignTop)
+        # self.test_layout.addWidget(self.table_cab, alignment=Qt.AlignmentFlag.AlignTop)
+        # self.test_layout.addWidget(self.table_head, alignment=Qt.AlignmentFlag.AlignTop)
+        # self.test_layout.addWidget(self.table_lines, alignment=Qt.AlignmentFlag.AlignTop)
+        # self.test_layout.addWidget(self.tree_result, alignment=Qt.AlignmentFlag.AlignTop)
 
-        self.master_layout.addLayout(self.test_layout, 0, 1)
+        # self.master_layout.addLayout(self.test_layout, 0, 1)
 
-        stmt_name: str = (
-            str(stmt.ID_ACCOUNT) + " " + str(self.model_head.df["STD_STATEMENT_DATE"][0])
-            if self.model_head.df.height > 0
-            else "Unknown Statement"
-        )
-        print(f"{stmt_name}")
+        # stmt_name: str = (
+        #     str(stmt.ID_ACCOUNT) + " " + str(self.model_head.df["STD_STATEMENT_DATE"][0])
+        #     if self.model_head.df.height > 0
+        #     else "Unknown Statement"
+        # )
+        # print(f"{stmt_name}")
 
         self.stan.setLayout(self.master_layout)
         self.setCentralWidget(self.stan)

@@ -1,7 +1,12 @@
+from typing import TYPE_CHECKING
+
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 
 from openstan.components import StanPolarsModel
+
+if TYPE_CHECKING:
+    from bank_statement_parser.modules.classes import statements
 
 
 class ChecksAndBalancesModel(StanPolarsModel):
@@ -26,8 +31,18 @@ class StatementResultModel(QStandardItemModel):
         super().__init__()
         self.setHorizontalHeaderLabels(["", "In", "Out", "Movement", "Success?"])
         self.invisibleRootItem()
+        self.statements: list[statements.Statement] = []
+        self.total_statements_processed = 0
+        self.successful_statements = 0
+        self.failed_statements = 0
 
-    def add_statement(self, stmt):
+    def add_statement(self, stmt: statements.Statement) -> None:
+        self.statements.append(stmt)
+        self.total_statements_processed += 1
+        if stmt.success:
+            self.successful_statements += 1
+        else:
+            self.failed_statements += 1
         self.cab = ChecksAndBalancesModel(stmt)
         self.header = HeaderModel(stmt)
         self.lines = LinesModel(stmt)
@@ -50,7 +65,10 @@ class StatementResultModel(QStandardItemModel):
             item_name = QStandardItem(str(row[9]) + " " + str(row[11]))
             item_in = QStandardItem(str(row[12]))
             item_out = QStandardItem(str(row[13]))
-            item_movement = QStandardItem(str(row[17]))
+            try:
+                item_movement = QStandardItem(str(row[17]))
+            except IndexError:
+                item_movement = QStandardItem("")
             item_success = QStandardItem("")
             stmt_name.appendRow(
                 [

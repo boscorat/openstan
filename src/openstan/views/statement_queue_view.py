@@ -32,11 +32,8 @@ class FolderDialog(QFileDialog):
 class StatementQueueView(StanWidget):
     header = "#### Statement Queue - Select any new pdf statements to add to your project"
 
-    def __init__(self, stan) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.userID = stan.userID
-        self.sessionID = stan.sessionID
-        self.projectID = stan.current_project_id
         self.file_dialog = FileDialog()  # create file dialog instance - will be triggered on button click in StatementQueuePresenter
         self.folder_dialog = FolderDialog()  # create folder dialog instance - will be triggered on button click in StatementQueuePresenter
         layout = QGridLayout()
@@ -56,6 +53,7 @@ class StatementQueueView(StanWidget):
 
         # Tree View for statements
         self.tree = StanTreeView()
+        self.tree.setMinimumWidth(800)
         layout.addWidget(self.tree, 1, 0, 1, 2, alignment=Qt.AlignmentFlag.AlignVCenter)
 
         # Run Import Button

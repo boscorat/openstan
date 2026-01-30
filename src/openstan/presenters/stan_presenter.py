@@ -18,6 +18,7 @@ class StanPresenter(QObject):
         self.project_presenter = self.stan.project_presenter
         self.session_presenter = self.stan.session_presenter
         self.statement_queue_presenter = self.stan.statement_queue_presenter
+        self.statement_result_presenter = self.stan.statement_result_presenter
 
         # views
         # self.project_view = self.project_presenter.view
@@ -26,6 +27,7 @@ class StanPresenter(QObject):
         # signals
         self.project_presenter.view.selection.currentIndexChanged.connect(self.project_selection_changed)
         self.session_presenter.db_lock_signal.connect(self.db_lock_handler)
+        self.statement_queue_presenter.statement_imported.connect(self.statement_imported)
 
         # add a new user to the database if not exists
         self.stan.userID = self.stan.user_model.user_id_from_username(self.stan.username)
@@ -70,3 +72,9 @@ class StanPresenter(QObject):
         self.stan.statement_queue_presenter.projectID = self.stan.current_project_id
         self.stan.statement_queue_presenter.update_view()
         self.footer_view.labelProject.setText(f"##### Project: {self.stan.current_project_name} (ID: {self.stan.current_project_id})")
+
+    @Slot(object)
+    def statement_imported(self, stmt) -> None:
+        self.stan.statement_result_block.setVisible(True)
+        self.stan.statement_result_presenter.model.add_statement(stmt)
+        self.stan.statement_result_presenter.on_model_updated()

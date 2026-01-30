@@ -8,11 +8,8 @@ from openstan.paths import Paths
 class ExportView(StanWidget):
     header = "#### Export Options"
 
-    def __init__(self, stan) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.userID = stan.userID
-        self.sessionID = stan.sessionID
-        self.projectID = stan.current_project_id
         layout = QGridLayout()
         # export format selection
         self.checkExcel = StanCheckBox("Export to Excel")

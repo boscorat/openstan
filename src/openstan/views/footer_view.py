@@ -4,12 +4,10 @@ from openstan.components import Qt, StanLabel, StanWidget
 
 
 class FooterView(StanWidget):
-    def __init__(self, stan) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.sessionID = stan.sessionID
-        self.username = stan.username
         self.labelCopy = StanLabel("##### StanCafe © 2026")
-        self.labelUser = StanLabel(f"##### User: {self.username} | Session: {self.sessionID}")
+        self.labelUser = StanLabel("##### User: None | Session: None")
         self.labelProject = StanLabel("##### Project: None (ID: None)")
         layout = QGridLayout()
         layout.addWidget(self.labelCopy, 0, 3, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
