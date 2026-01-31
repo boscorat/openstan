@@ -21,6 +21,7 @@ class WorkerSignals(QObject):
     """
 
     progress = pyqtSignal(int, statements.Statement)
+    finished = pyqtSignal()
 
 
 class SQWorker(QRunnable):
@@ -48,10 +49,12 @@ class SQWorker(QRunnable):
             print(f"Importing statement: {record.value('path')}")
             stmt = statements.Statement(file=Path(record.value("path")))
             self.signals.progress.emit(progress_pc, stmt)
+        self.signals.finished.emit()
 
 
 class StatementQueuePresenter(QObject):
-    statement_imported = pyqtSignal(statements.Statement)
+    statement_imported = pyqtSignal(statements.Statement, int)
+    import_finished = pyqtSignal()
 
     def __init__(
         self: StatementQueuePresenter,
@@ -78,10 +81,9 @@ class StatementQueuePresenter(QObject):
         self.view.buttonRunImport.clicked.connect(self.run_import)
 
     @pyqtSlot(int, statements.Statement)
-    def update_progress(self, value, statement) -> None:
-        self.view.progressBar.setValue(value)
-        self.statement_imported.emit(statement)
-        print(f"Import progress: {value}% - Statement ID: {statement.ID_ACCOUNT}")
+    def update_progress(self, progress_bar_value, statement) -> None:
+        self.statement_imported.emit(statement, progress_bar_value)
+        print(f"Import progress: {progress_bar_value}% - Statement ID: {statement.ID_ACCOUNT}")
 
     @pyqtSlot()
     def run_import(self) -> None:
@@ -91,6 +93,7 @@ class StatementQueuePresenter(QObject):
         self.view.buttonRunImport.setDisabled(True)
         worker = SQWorker(model=self.model, batch_id=batch_id)
         worker.signals.progress.connect(self.update_progress)
+        worker.signals.finished.connect(self.import_finished.emit)
         self.threadpool.start(worker)
 
     @pyqtSlot()

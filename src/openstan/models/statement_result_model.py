@@ -36,6 +36,17 @@ class StatementResultModel(QStandardItemModel):
         self.successful_statements = 0
         self.failed_statements = 0
 
+    def on_statements_updated(self) -> None:
+        self.clear()
+        self.setHorizontalHeaderLabels(["", "In", "Out", "Movement", "Success?"])
+        self.invisibleRootItem()
+        self.total_statements_processed = 0
+        self.successful_statements = 0
+        self.failed_statements = 0
+        for stmt in self.statements:
+            self.add_statement(stmt)
+        self.model_updated.emit()
+
     def add_statement(self, stmt: statements.Statement) -> None:
         self.statements.append(stmt)
         self.total_statements_processed += 1

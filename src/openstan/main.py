@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from PyQt6.QtCore import QSysInfo, QThreadPool, qDebug
 from PyQt6.QtSql import QSqlDatabase
-from PyQt6.QtWidgets import QApplication, QGridLayout, QMainWindow, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QGridLayout, QMainWindow
 
 from openstan.components import (  # mostly widget subclasses
     Qt,
@@ -78,10 +78,11 @@ class Stan(QMainWindow):
         self.statement_queue_model = StatementQueueModel(db=gui_db)
         self.statement_queue_tree_model = StatementQueueTreeModel(db=gui_db)
         self.statement_result_model = StatementResultModel()
-        # main layout
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
+        # main layouts
+        self.layout_project = QGridLayout()
+        self.layout_project.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.layout_results = QGridLayout()
+        self.layout_results.setAlignment(Qt.AlignmentFlag.AlignTop)
         # master widgets
         self.stan = QWidget()
         self.title_view = TitleView()
@@ -93,7 +94,7 @@ class Stan(QMainWindow):
         self.statement_result_view = StatementResultView()
         self.export_view = ExportView()
 
-        statement_queue_block = ContentFrameView(
+        self.statement_queue_block = ContentFrameView(
             widgets=[
                 (StanLabel(self.statement_queue_view.header), 0, 0),
                 (self.statement_queue_view, 1, 0),
@@ -107,7 +108,7 @@ class Stan(QMainWindow):
             ]
         )
 
-        export_block = ContentFrameView(
+        self.export_block = ContentFrameView(
             widgets=[
                 (StanLabel(self.export_view.header), 0, 0),
                 (self.export_view, 1, 0),
@@ -128,17 +129,18 @@ class Stan(QMainWindow):
         self.statement_result_presenter = StatementResultPresenter(model=self.statement_result_model, view=self.statement_result_view)
         self.stan_presenter = StanPresenter(stan=self)
 
-        # assemble layout
-        layout.addWidget(self.title_view, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(self.project_view, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(statement_queue_block, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(export_block, alignment=Qt.AlignmentFlag.AlignTop)
-        layout.addWidget(self.footer_view, alignment=Qt.AlignmentFlag.AlignBottom)
-
+        # assemble project layout
+        self.layout_project.addWidget(self.title_view, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        self.layout_project.addWidget(self.project_view, 1, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        self.layout_project.addWidget(self.statement_queue_block, 2, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        self.layout_project.addWidget(self.export_block, 3, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        self.layout_project.addWidget(self.footer_view, 4, 0, alignment=Qt.AlignmentFlag.AlignBottom)
+        # assemble results layout
+        self.layout_project.addWidget(self.statement_result_block, 1, 0, 3, 1, alignment=Qt.AlignmentFlag.AlignTop)
+        # assemble master layout
         self.master_layout = QGridLayout()
-        self.master_layout.addLayout(layout, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        self.master_layout.addWidget(self.statement_result_block, 0, 1, alignment=Qt.AlignmentFlag.AlignTop)
-
+        self.master_layout.addLayout(self.layout_project, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        # self.master_layout.addLayout(self.layout_results, 0, 1, alignment=Qt.AlignmentFlag.AlignTop)
         # self.test_layout = QVBoxLayout()
 
         # # table testing
