@@ -46,6 +46,9 @@ class StanPresenter(QObject):
             if not success:
                 self.stan.error_db_lock.showMessage(f"{msg}\nThe application will close shortly.")
 
+        # update footer label with username and sessionID
+        self.footer_view.labelUser.setText(f"##### User: {self.stan.username} | Session: {self.stan.sessionID}")
+
         # pass sessionID to other presenters
         self.project_presenter.sessionID = self.stan.sessionID
         self.statement_queue_presenter.sessionID = self.stan.sessionID
