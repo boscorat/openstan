@@ -11,3 +11,7 @@ wheels/
 
 # MacOS files
 .DS_Store
+
+# Agent files
+AGENTS.md
+

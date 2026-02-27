@@ -39,8 +39,7 @@ class StatementResultPresenter(QObject):
 
     @pyqtSlot()
     def abandon_successful_statements(self) -> None:
-        self.model.statements = [stmt for stmt in self.model.statements if stmt.success]
-        self.model.on_statements_updated()
+        pass
 
     @pyqtSlot()
     def debug_failed_statements(self) -> None:

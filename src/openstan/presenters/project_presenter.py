@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+import bank_statement_parser as bsp
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 if TYPE_CHECKING:
@@ -41,16 +42,32 @@ class ProjectPresenter(QObject):
         if new_pro[0]:
             if self.create_project_folder():
                 if self.create_subfolders():
-                    info = f"Project '{self.view.wizard.page_basic.field('projectName')}' created successfully!"
-                    info += f"\nLocation: {self.view.wizard.page_basic.field('projectLocation')}"
-                    self.view.wizard.success_dialog.setText("Project Created Successfully")
-                    self.view.wizard.success_dialog.setDetailedText(info)
-                    if self.view.wizard.success_dialog.exec():
-                        self.view.wizard.project_created = True
-                        self.model.select()
-                        self.view.selection.setCurrentIndex(self.model.rowCount() - 1)
-                        self.view.wizard.accept()
-                        return True
+                    if self.create_project_database():
+                        if self.create_project_config():
+                            info = f"Project '{self.view.wizard.page_basic.field('projectName')}' created successfully!"
+                            info += f"\nLocation: {self.view.wizard.page_basic.field('projectLocation')}"
+                            self.view.wizard.success_dialog.setText("Project Created Successfully")
+                            self.view.wizard.success_dialog.setDetailedText(info)
+                            if self.view.wizard.success_dialog.exec():
+                                self.view.wizard.project_created = True
+                                self.model.select()
+                                self.view.selection.setCurrentIndex(self.model.rowCount() - 1)
+                                self.view.wizard.accept()
+                                return True
+                        else:
+                            error = "Failed to create project config files."
+                            self.view.wizard.back()
+                            self.model.delete_record_by_id(self.view.wizard.page_basic.newProjectID)
+                            print(error)
+                            self.view.wizard.failure_dialog.showMessage(error)
+                            return False
+                    else:
+                        error = "Failed to create project database."
+                        self.view.wizard.back()
+                        self.model.delete_record_by_id(self.view.wizard.page_basic.newProjectID)
+                        print(error)
+                        self.view.wizard.failure_dialog.showMessage(error)
+                        return False
                 else:
                     error = "Failed to create project subfolders."
                     self.view.wizard.back()
@@ -131,8 +148,33 @@ class ProjectPresenter(QObject):
             self.view.wizard.full_project_path.joinpath("exports").mkdir()
             self.view.wizard.full_project_path.joinpath("configs").mkdir()
             self.view.wizard.full_project_path.joinpath("logs").mkdir()
+            self.view.wizard.full_project_path.joinpath("logs").joinpath("debug").mkdir()
             self.view.wizard.full_project_path.joinpath("database").mkdir()
+            self.view.wizard.full_project_path.joinpath("parquet").mkdir()
             return True
         except Exception as e:
             print("Error creating project subfolders:", e)
+            return False
+
+    def create_project_database(self) -> bool:
+        try:
+            if self.view.wizard.full_project_path is None:
+                return False
+            db_path: Path = self.view.wizard.full_project_path.joinpath("database").joinpath("project.db")
+            bsp.create_db(db_path)
+            return True
+        except Exception as e:
+            print("Error creating project database:", e)
+            return False
+
+    def create_project_config(self) -> bool:
+        """Copies the default config file to the new project folder."""
+        try:
+            if self.view.wizard.full_project_path is None:
+                return False
+            config_path: Path = self.view.wizard.full_project_path.joinpath("configs")
+            bsp.copy_default_config(config_path)
+            return True
+        except Exception as e:
+            print("Error creating project config:", e)
             return False

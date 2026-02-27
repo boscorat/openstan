@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from bank_statement_parser.modules.classes import statements
+import bank_statement_parser as bsp
 from PyQt6.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
 
 if TYPE_CHECKING:
@@ -20,7 +20,7 @@ class WorkerSignals(QObject):
         int progress complete,from 0-100
     """
 
-    progress = pyqtSignal(int, statements.Statement)
+    progress = pyqtSignal(int, bsp.Statement)
     finished = pyqtSignal()
 
 
@@ -47,13 +47,13 @@ class SQWorker(QRunnable):
             if record.value("is_folder") == 1:
                 continue  # skip folders
             print(f"Importing statement: {record.value('path')}")
-            stmt = statements.Statement(file=Path(record.value("path")))
+            stmt = bsp.Statement(file=Path(record.value("path")))
             self.signals.progress.emit(progress_pc, stmt)
         self.signals.finished.emit()
 
 
 class StatementQueuePresenter(QObject):
-    statement_imported = pyqtSignal(statements.Statement, int)
+    statement_imported = pyqtSignal(bsp.Statement, int)
     import_finished = pyqtSignal()
 
     def __init__(
@@ -80,7 +80,7 @@ class StatementQueuePresenter(QObject):
         self.view.buttonClear.clicked.connect(self.clear_all_items)
         self.view.buttonRunImport.clicked.connect(self.run_import)
 
-    @pyqtSlot(int, statements.Statement)
+    @pyqtSlot(int, bsp.Statement)
     def update_progress(self, progress_bar_value, statement) -> None:
         self.statement_imported.emit(statement, progress_bar_value)
         print(f"Import progress: {progress_bar_value}% - Statement ID: {statement.ID_ACCOUNT}")
