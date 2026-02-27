@@ -12,6 +12,9 @@ wheels/
 # MacOS files
 .DS_Store
 
+# SQLite databases (generated at runtime; may contain sensitive data)
+*.db
+
 # Agent files
 AGENTS.md
 
