@@ -1,3 +1,4 @@
+from openstan.views.admin_view import AdminView
 from openstan.views.content_view import ContentFrameView
 from openstan.views.export_view import ExportView
 from openstan.views.footer_view import FooterView
@@ -7,6 +8,7 @@ from openstan.views.statement_result_view import StatementResultView
 from openstan.views.title import TitleView
 
 __all__: list[str] = [
+    "AdminView",
     "ExportView",
     "ProjectView",
     "StatementQueueView",
