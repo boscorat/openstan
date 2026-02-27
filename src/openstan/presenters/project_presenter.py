@@ -13,7 +13,9 @@ if TYPE_CHECKING:
 class ProjectPresenter(QObject):
     path_or_name_changed: pyqtSignal = pyqtSignal()
 
-    def __init__(self: "ProjectPresenter", model: "ProjectModel", view: "ProjectView") -> None:
+    def __init__(
+        self: "ProjectPresenter", model: "ProjectModel", view: "ProjectView"
+    ) -> None:
         super().__init__()
         self.sessionID: str | None = None  # to be set by StanPresenter
         self.model: "ProjectModel" = model
@@ -22,159 +24,232 @@ class ProjectPresenter(QObject):
         self.view.selection.setModelColumn(1)  # project_name column
         self.view.selection.setEditable(False)
 
-        # Connect signals
+        # Connect signals — new project wizard
         self.view.button_new.clicked.connect(self.open_new_project_wizard)
-        self.view.wizard.page_basic.location_button.clicked.connect(self.open_folder_selection_dialog)
+        self.view.wizard.page_basic.location_button.clicked.connect(
+            self.open_folder_selection_dialog
+        )
         self.view.wizard.page_basic.name_row.textChanged.connect(self.name_changed)
         self.path_or_name_changed.connect(self.update_location_label)
-        self.view.wizard.new_project_required.connect(self.create_new_project)
+        self.view.wizard.new_project_required.connect(self.handle_project_required)
+
+        # Connect signals — existing project wizard
+        self.view.button_existing.clicked.connect(self.open_existing_project_wizard)
+        self.view.wizard_existing.page_basic.location_button.clicked.connect(
+            self.open_folder_selection_dialog
+        )
+        self.view.wizard_existing.page_basic.name_row.textChanged.connect(
+            self.path_or_name_changed.emit
+        )
+        self.view.wizard_existing.new_project_required.connect(
+            self.handle_project_required
+        )
+
+    # ---------------------------------------------------------------------------
+    # Wizard dispatch — single slot handles both modes
+    # ---------------------------------------------------------------------------
 
     @pyqtSlot()
-    def create_new_project(self) -> bool:
-        error: str = ""
-        info: str = ""
-        new_pro: tuple[bool, str, str] = self.model.add_record(
-            self.view.wizard.page_basic.newProjectID,
-            self.view.wizard.page_basic.field("projectName"),
-            self.view.wizard.page_basic.field("projectLocation"),
-            self.sessionID,
-        )
-        if new_pro[0]:
-            if self.create_project_folder():
-                if self.create_subfolders():
-                    if self.create_project_database():
-                        if self.create_project_config():
-                            info = f"Project '{self.view.wizard.page_basic.field('projectName')}' created successfully!"
-                            info += f"\nLocation: {self.view.wizard.page_basic.field('projectLocation')}"
-                            self.view.wizard.success_dialog.setText("Project Created Successfully")
-                            self.view.wizard.success_dialog.setDetailedText(info)
-                            if self.view.wizard.success_dialog.exec():
-                                self.view.wizard.project_created = True
-                                self.model.select()
-                                self.view.selection.setCurrentIndex(self.model.rowCount() - 1)
-                                self.view.wizard.accept()
-                                return True
-                        else:
-                            error = "Failed to create project config files."
-                            self.view.wizard.back()
-                            self.model.delete_record_by_id(self.view.wizard.page_basic.newProjectID)
-                            print(error)
-                            self.view.wizard.failure_dialog.showMessage(error)
-                            return False
-                    else:
-                        error = "Failed to create project database."
-                        self.view.wizard.back()
-                        self.model.delete_record_by_id(self.view.wizard.page_basic.newProjectID)
-                        print(error)
-                        self.view.wizard.failure_dialog.showMessage(error)
-                        return False
-                else:
-                    error = "Failed to create project subfolders."
-                    self.view.wizard.back()
-                    self.model.delete_record_by_id(self.view.wizard.page_basic.newProjectID)
-                    print(error)
-                    self.view.wizard.failure_dialog.showMessage(error)
-                    return False
-            else:
-                error = f"Failed to create project folder. \n Does the folder '{self.view.wizard.full_project_path}' already exist?"
-                self.view.wizard.back()
-                self.model.delete_record_by_id(self.view.wizard.page_basic.newProjectID)
-                print(error)
-                self.view.wizard.failure_dialog.showMessage(error)
-                return False
+    def handle_project_required(self) -> None:
+        """Dispatch to the correct handler based on which wizard emitted the signal."""
+        wizard = self.sender()
+        if wizard is self.view.wizard_existing:
+            self.connect_existing_project()
         else:
-            if new_pro[2].startswith("UNIQUE constraint failed: project.project_name"):
-                error = f"Project with name '{self.view.wizard.page_basic.field('projectName')}' already exists."
-                self.view.wizard.back()
-                print(error)
-                self.view.wizard.failure_dialog.showMessage(error)
-                return False
-            else:
-                error = f"Failed to create project: {new_pro[2]}"
-                self.view.wizard.back()
-                print(error)
-                self.view.wizard.failure_dialog.showMessage(error)
-                return False
-        return False
+            self.create_new_project()
+
+    # ---------------------------------------------------------------------------
+    # New project
+    # ---------------------------------------------------------------------------
 
     @pyqtSlot()
     def open_new_project_wizard(self) -> None:
         self.view.wizard.page_basic.location_button.setDisabled(True)
         self.view.wizard.page_basic.newProjectID = uuid4().hex
-        self.view.wizard.page_basic.id_row.setText(self.view.wizard.page_basic.newProjectID)
+        self.view.wizard.page_basic.id_row.setText(
+            self.view.wizard.page_basic.newProjectID
+        )
         self.view.wizard.exec()
 
     @pyqtSlot()
-    def name_changed(self) -> None:
-        name: str = self.view.wizard.page_basic.name_row.text()
-        if len(name) > 0:
-            self.view.wizard.page_basic.location_button.setDisabled(False)
+    def create_new_project(self) -> bool:
+        wizard = self.view.wizard
+        project_name: str = wizard.page_basic.field("projectName")
+        full_path: Path | None = wizard.full_project_path
+
+        if full_path is None:
+            wizard.failure_dialog.showMessage("No project folder path set.")
+            return False
+
+        # Create the root project folder first (bsp requires it to exist before scaffolding)
+        try:
+            full_path.mkdir(parents=True, exist_ok=False)
+        except FileExistsError:
+            error = f"Folder '{full_path}' already exists. Choose a different name or location."
+            wizard.back()
+            print(error)
+            wizard.failure_dialog.showMessage(error)
+            return False
+        except Exception as e:
+            error = f"Failed to create project folder: {e}"
+            wizard.back()
+            print(error)
+            wizard.failure_dialog.showMessage(error)
+            return False
+
+        # bsp scaffolds subfolders, database and default config automatically
+        try:
+            bsp.validate_or_initialise_project(full_path)
+        except Exception as e:
+            # Clean up the folder we just created so we don't leave a partial project
+            try:
+                full_path.rmdir()
+            except Exception:
+                pass
+            error = f"Failed to initialise project: {e}"
+            wizard.back()
+            print(error)
+            wizard.failure_dialog.showMessage(error)
+            return False
+
+        new_pro: tuple[bool, str, str] = self.model.add_record(
+            wizard.page_basic.newProjectID,
+            project_name,
+            str(full_path),
+            self.sessionID,
+        )
+        if new_pro[0]:
+            info = (
+                f"Project '{project_name}' created successfully!\nLocation: {full_path}"
+            )
+            wizard.success_dialog.setText("Project Created Successfully")
+            wizard.success_dialog.setDetailedText(info)
+            if wizard.success_dialog.exec():
+                wizard.project_created = True
+                self.model.select()
+                self.view.selection.setCurrentIndex(self.model.rowCount() - 1)
+                wizard.accept()
+                return True
         else:
-            self.view.wizard.page_basic.location_button.setDisabled(True)
+            if new_pro[2].startswith("UNIQUE constraint failed: project.project_name"):
+                error = f"Project with name '{project_name}' already exists."
+            else:
+                error = f"Failed to create project: {new_pro[2]}"
+            wizard.back()
+            print(error)
+            wizard.failure_dialog.showMessage(error)
+            return False
+        return False
+
+    # ---------------------------------------------------------------------------
+    # Existing project
+    # ---------------------------------------------------------------------------
+
+    @pyqtSlot()
+    def open_existing_project_wizard(self) -> None:
+        self.view.wizard_existing.page_basic.newProjectID = uuid4().hex
+        self.view.wizard_existing.page_basic.id_row.setText(
+            self.view.wizard_existing.page_basic.newProjectID
+        )
+        self.view.wizard_existing.exec()
+
+    @pyqtSlot()
+    def connect_existing_project(self) -> bool:
+        wizard = self.view.wizard_existing
+        project_name: str = wizard.page_basic.name_row.text()
+        full_path: Path | None = wizard.full_project_path
+
+        if full_path is None:
+            wizard.failure_dialog.showMessage("No project folder selected.")
+            return False
+
+        # Validate the selected folder is a usable bsp project (may scaffold missing pieces)
+        try:
+            bsp.validate_or_initialise_project(full_path)
+        except Exception as e:
+            error = f"The selected folder does not appear to be a valid project: {e}"
+            wizard.back()
+            print(error)
+            wizard.failure_dialog.showMessage(error)
+            return False
+
+        new_pro: tuple[bool, str, str] = self.model.add_record(
+            wizard.page_basic.newProjectID,
+            project_name,
+            str(full_path),
+            self.sessionID,
+        )
+        if new_pro[0]:
+            info = (
+                f"Project '{project_name}' added successfully!\nLocation: {full_path}"
+            )
+            wizard.success_dialog.setText("Project Added Successfully")
+            wizard.success_dialog.setDetailedText(info)
+            if wizard.success_dialog.exec():
+                wizard.project_created = True
+                self.model.select()
+                self.view.selection.setCurrentIndex(self.model.rowCount() - 1)
+                wizard.accept()
+                return True
+        else:
+            if new_pro[2].startswith("UNIQUE constraint failed: project.project_name"):
+                error = f"Project with name '{project_name}' already exists."
+            else:
+                error = f"Failed to add project: {new_pro[2]}"
+            wizard.back()
+            print(error)
+            wizard.failure_dialog.showMessage(error)
+            return False
+        return False
+
+    # ---------------------------------------------------------------------------
+    # Shared folder selection and label update
+    # ---------------------------------------------------------------------------
+
+    @pyqtSlot()
+    def open_folder_selection_dialog(self) -> None:
+        """Handles folder selection for both wizards — detects caller via sender()."""
+        # Determine which wizard's page triggered this
+        sender_button = self.sender()
+        if sender_button is self.view.wizard_existing.page_basic.location_button:
+            page = self.view.wizard_existing.page_basic
+            wizard = self.view.wizard_existing
+        else:
+            page = self.view.wizard.page_basic
+            wizard = self.view.wizard
+
+        if page.folder_selection_dialog.exec() == 1:
+            selected: Path = Path(page.folder_selection_dialog.selectedFiles()[0])
+            page.folder_path = selected
+
+            if wizard.mode == "existing":
+                # Path is the project folder itself; pre-populate name from folder name
+                wizard.full_project_path = selected
+                page.name_row.setDisabled(False)
+                page.name_row.setPlaceholderText("")
+                page.name_row.setText(selected.name)
+                page.location_label.setText(str(selected.absolute()))
+                page.location_label.show()
+            else:
+                self.path_or_name_changed.emit()
+
+    @pyqtSlot()
+    def name_changed(self) -> None:
+        """Only used by the new-project wizard to gate the location button."""
+        name: str = self.view.wizard.page_basic.name_row.text()
+        self.view.wizard.page_basic.location_button.setDisabled(len(name) == 0)
         self.path_or_name_changed.emit()
 
     @pyqtSlot()
     def update_location_label(self) -> None:
+        """Updates the full-path label for the new-project wizard."""
         folder: Path | None = self.view.wizard.page_basic.folder_path
         name: str = self.view.wizard.page_basic.name_row.text()
         if folder and len(name) > 0:
             self.view.wizard.full_project_path = folder.joinpath(name)
-            self.view.wizard.page_basic.location_label.setText(str(self.view.wizard.full_project_path.absolute()))
+            self.view.wizard.page_basic.location_label.setText(
+                str(self.view.wizard.full_project_path.absolute())
+            )
             self.view.wizard.page_basic.location_label.show()
         else:
             self.view.wizard.page_basic.location_label.hide()
-
-    @pyqtSlot()
-    def open_folder_selection_dialog(self) -> None:
-        if self.view.wizard.page_basic.folder_selection_dialog.exec() == 1:
-            self.view.wizard.page_basic.folder_path = Path(self.view.wizard.page_basic.folder_selection_dialog.selectedFiles()[0])
-            self.path_or_name_changed.emit()
-
-    # Helper methods
-    def create_project_folder(self) -> bool:
-        try:
-            if self.view.wizard.full_project_path:
-                self.view.wizard.full_project_path.mkdir(parents=True, exist_ok=False)
-                return True
-        except Exception as e:
-            print("Error creating project folder:", e)
-            return False
-        return False
-
-    def create_subfolders(self) -> bool:
-        try:
-            if self.view.wizard.full_project_path is None:
-                return False
-            self.view.wizard.full_project_path.joinpath("exports").mkdir()
-            self.view.wizard.full_project_path.joinpath("configs").mkdir()
-            self.view.wizard.full_project_path.joinpath("logs").mkdir()
-            self.view.wizard.full_project_path.joinpath("logs").joinpath("debug").mkdir()
-            self.view.wizard.full_project_path.joinpath("database").mkdir()
-            self.view.wizard.full_project_path.joinpath("parquet").mkdir()
-            return True
-        except Exception as e:
-            print("Error creating project subfolders:", e)
-            return False
-
-    def create_project_database(self) -> bool:
-        try:
-            if self.view.wizard.full_project_path is None:
-                return False
-            db_path: Path = self.view.wizard.full_project_path.joinpath("database").joinpath("project.db")
-            bsp.create_db(db_path)
-            return True
-        except Exception as e:
-            print("Error creating project database:", e)
-            return False
-
-    def create_project_config(self) -> bool:
-        """Copies the default config file to the new project folder."""
-        try:
-            if self.view.wizard.full_project_path is None:
-                return False
-            config_path: Path = self.view.wizard.full_project_path.joinpath("configs")
-            bsp.copy_default_config(config_path)
-            return True
-        except Exception as e:
-            print("Error creating project config:", e)
-            return False
