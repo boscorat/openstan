@@ -9,11 +9,11 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "pyqt6>=6.10.2",
-    "bank_statement_parser",
+    "uk-bank-statement-parser",
 ]
 
 [tool.uv.sources]
-bank_statement_parser = { workspace = true }
+uk-bank-statement-parser = { workspace = true }
 
 [tool.uv.workspace]
 members = [

@@ -8,7 +8,10 @@ from PyQt6.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
 if TYPE_CHECKING:
     from PyQt6.QtCore import QThreadPool
 
-    from openstan.models.statement_queue_model import StatementQueueModel, StatementQueueTreeModel
+    from openstan.models.statement_queue_model import (
+        StatementQueueModel,
+        StatementQueueTreeModel,
+    )
     from openstan.views.statement_queue_view import StatementQueueView
 
 
@@ -83,7 +86,9 @@ class StatementQueuePresenter(QObject):
     @pyqtSlot(int, bsp.Statement)
     def update_progress(self, progress_bar_value, statement) -> None:
         self.statement_imported.emit(statement, progress_bar_value)
-        print(f"Import progress: {progress_bar_value}% - Statement ID: {statement.ID_ACCOUNT}")
+        print(
+            f"Import progress: {progress_bar_value}% - Statement ID: {statement.ID_ACCOUNT}"
+        )
 
     @pyqtSlot()
     def run_import(self) -> None:
@@ -104,12 +109,16 @@ class StatementQueuePresenter(QObject):
             # add folder as it's own parent
             folder_id: str = uuid4().hex
             folder_path = Path(selected_folder)
-            self.add_record(queue_id=folder_id, parent_id=folder_id, path=folder_path, is_folder=1)
+            self.add_record(
+                queue_id=folder_id, parent_id=folder_id, path=folder_path, is_folder=1
+            )
             # add each file in the folder as child items
             for file in folder_path.iterdir():
                 if file.is_file() and file.suffix.lower() == ".pdf":
                     file_id: str = uuid4().hex
-                    self.add_record(queue_id=file_id, parent_id=folder_id, path=file, is_folder=0)
+                    self.add_record(
+                        queue_id=file_id, parent_id=folder_id, path=file, is_folder=0
+                    )
             self.update_view()
 
     @pyqtSlot()
@@ -119,7 +128,9 @@ class StatementQueuePresenter(QObject):
             print("Selected files:", selected_files)
             for file in selected_files:
                 file_id = uuid4().hex
-                self.add_record(queue_id=file_id, parent_id=file_id, path=Path(file), is_folder=0)
+                self.add_record(
+                    queue_id=file_id, parent_id=file_id, path=Path(file), is_folder=0
+                )
             self.update_view()
 
     @pyqtSlot()
@@ -128,7 +139,9 @@ class StatementQueuePresenter(QObject):
         selected_indexes: list | None = self.view.tree.selectedIndexes()
         if not selected_indexes:
             return
-        selected_ids: list[str] = [str(index.data()) for index in selected_indexes if index.column() == 1]
+        selected_ids: list[str] = [
+            str(index.data()) for index in selected_indexes if index.column() == 1
+        ]
         self.model.delete_records(queue_ids=selected_ids)
         self.update_view()
 
@@ -154,10 +167,6 @@ class StatementQueuePresenter(QObject):
         else:
             print(f"Record added successfully: {queue_id}")
 
-    def get_records(self) -> None:
-        # Logic to retrieve records from the model
-        pass
-
     def update_view(self) -> None:
         if self.projectID is not None:
             self.model.setFilter(f"project_id = '{self.projectID}'")
@@ -166,6 +175,10 @@ class StatementQueuePresenter(QObject):
             # self.view.table.resizeColumnsToContents()
             # self.view.tree.expandAll()
             self.view.tree.expandToDepth(0)
-            self.view.buttonRunImport.setEnabled(True) if self.model.rowCount() > 0 else self.view.buttonRunImport.setEnabled(False)
+            self.view.buttonRunImport.setEnabled(
+                True
+            ) if self.model.rowCount() > 0 else self.view.buttonRunImport.setEnabled(
+                False
+            )
         else:
             print("Project ID is not set. Cannot update view.")
