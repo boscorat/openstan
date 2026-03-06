@@ -6,7 +6,7 @@ from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from openstan.components import StanPolarsModel
 
 if TYPE_CHECKING:
-    from bank_statement_parser.modules.classes import statements
+    from bank_statement_parser import Statement
 
 
 class ChecksAndBalancesModel(StanPolarsModel):
@@ -31,7 +31,7 @@ class StatementResultModel(QStandardItemModel):
         super().__init__()
         self.setHorizontalHeaderLabels(["", "In", "Out", "Movement", "Success?"])
         self.invisibleRootItem()
-        self.statements: list[statements.Statement] = []
+        self.statements: list[Statement] = []
         self.total_statements_processed = 0
         self.successful_statements = 0
         self.failed_statements = 0
@@ -47,7 +47,7 @@ class StatementResultModel(QStandardItemModel):
             self.add_statement(stmt)
         self.model_updated.emit()
 
-    def add_statement(self, stmt: statements.Statement) -> None:
+    def add_statement(self, stmt: Statement) -> None:
         self.statements.append(stmt)
         self.total_statements_processed += 1
         if stmt.success:
