@@ -39,6 +39,7 @@ class StanPresenter(QObject):
         self.statement_queue_presenter.view_results_requested.connect(self.show_results)
         self.statement_result_presenter.exit_results.connect(self.hide_results)
         self.statement_result_presenter.batch_abandoned.connect(self.on_batch_abandoned)
+        self.statement_result_presenter.batch_committed.connect(self.on_batch_committed)
         self.footer_view.admin_requested.connect(self.open_admin_dialog)
 
         # add a new user to the database if not exists
@@ -75,6 +76,8 @@ class StanPresenter(QObject):
         # pass sessionID to other presenters
         self.project_presenter.sessionID = self.stan.sessionID
         self.statement_queue_presenter.sessionID = self.stan.sessionID
+        self.statement_result_presenter.session_id = self.stan.sessionID
+        self.statement_result_presenter.username = self.stan.username
 
         # update current project info
         self.update_current_project_info(
@@ -110,7 +113,16 @@ class StanPresenter(QObject):
         self.statement_queue_presenter.projectPath = (
             self.stan.current_project_paths.root
         )
+        self.statement_result_presenter.project_path = (
+            self.stan.current_project_paths.root
+        )
         print(current_record.value("project_location"))
+
+        # Always reset to the queue view on project change and clear any
+        # in-memory results from the previous project.  The session-restore
+        # block below will repopulate if this project has a locked batch.
+        self.statement_result_presenter.clear_for_project_change()
+        self.hide_results()
 
         # Session restore: check for a locked batch on this project
         batch_id = self.statement_queue_presenter.model.get_batch_id(
@@ -231,6 +243,17 @@ class StanPresenter(QObject):
         """Called when the user abandons a batch from the results view."""
         self.hide_results()
         # Refresh queue view to reflect unlocked state
+        self.statement_queue_presenter.update_view()
+
+    @pyqtSlot()
+    def on_batch_committed(self) -> None:
+        """Called after a batch is successfully committed to project.db.
+
+        Hides the results panel, clears the queue, and resets all queue
+        buttons so the user is ready to start a new import.
+        """
+        self.hide_results()
+        self.statement_queue_presenter.clear_all_items()
         self.statement_queue_presenter.update_view()
 
     @pyqtSlot()

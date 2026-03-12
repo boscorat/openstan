@@ -23,10 +23,15 @@ Signals emitted (consumed by StanPresenter)
 """
 
 import sys
+import traceback
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+import bank_statement_parser as bsp
+from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
 
+from openstan.components import StanErrorMessage, StanInfoMessage
 from openstan.models.statement_result_model import ResultRow
 
 if TYPE_CHECKING:
@@ -41,9 +46,109 @@ if TYPE_CHECKING:
     from openstan.views.statement_result_view import StatementResultView
 
 
+# ---------------------------------------------------------------------------
+# Background worker for the three-step commit sequence
+# ---------------------------------------------------------------------------
+
+
+class CommitWorkerSignals(QObject):
+    """Cross-thread signals for CommitWorker."""
+
+    step = pyqtSignal(str)  # emitted before each bsp call — step description
+    finished = pyqtSignal()  # all three calls succeeded
+    error = pyqtSignal(str)  # one call raised — human-readable message
+
+
+class CommitWorker(QRunnable):
+    """Run update_db → copy_statements_to_project → delete_temp_files off-thread.
+
+    Parameters
+    ----------
+    processed_pdfs:
+        Ordered list of ``PdfResult`` objects (or ``BaseException`` for
+        failed items) that match *pdfs* index-for-index.
+    pdfs:
+        Ordered list of source PDF ``Path`` objects.
+    batch_id, session_id, user_id, path:
+        Metadata forwarded to ``bsp.update_db``.
+    pdf_count, errors, reviews:
+        Aggregate counts forwarded to ``bsp.update_db``.
+    project_path:
+        Resolved project root — must never be ``None``.
+    """
+
+    def __init__(
+        self,
+        processed_pdfs: list,
+        pdfs: list[Path],
+        batch_id: str,
+        session_id: str,
+        user_id: str,
+        path: str,
+        pdf_count: int,
+        errors: int,
+        reviews: int,
+        project_path: Path,
+    ) -> None:
+        super().__init__()
+        self.signals = CommitWorkerSignals()
+        self._processed_pdfs = processed_pdfs
+        self._pdfs = pdfs
+        self._batch_id = batch_id
+        self._session_id = session_id
+        self._user_id = user_id
+        self._path = path
+        self._pdf_count = pdf_count
+        self._errors = errors
+        self._reviews = reviews
+        self._project_path = project_path
+
+    def run(self) -> None:
+        try:
+            self.signals.step.emit("Updating database…")
+            bsp.update_db(
+                processed_pdfs=self._processed_pdfs,
+                batch_id=self._batch_id,
+                session_id=self._session_id,
+                user_id=self._user_id,
+                path=self._path,
+                company_key=None,
+                account_key=None,
+                pdf_count=self._pdf_count,
+                errors=self._errors,
+                reviews=self._reviews,
+                duration_secs=0,
+                process_time=datetime.now(timezone.utc),
+                project_path=self._project_path,
+            )
+
+            self.signals.step.emit("Copying statements…")
+            bsp.copy_statements_to_project(
+                processed_pdfs=self._processed_pdfs,
+                pdfs=self._pdfs,
+                project_path=self._project_path,
+            )
+
+            self.signals.step.emit("Cleaning up temporary files…")
+            bsp.delete_temp_files(
+                processed_pdfs=self._processed_pdfs,
+                project_path=self._project_path,
+            )
+
+        except Exception:
+            traceback.print_exc(file=sys.stderr)
+            self.signals.error.emit(
+                "An error occurred during commit. See stderr for details."
+            )
+            return
+
+        self.signals.finished.emit()
+
+
 class StatementResultPresenter(QObject):
     exit_results = pyqtSignal()
     batch_abandoned = pyqtSignal()
+    batch_committed = pyqtSignal()
 
     def __init__(
         self,
@@ -85,6 +190,12 @@ class StatementResultPresenter(QObject):
 
         self._current_batch_id: str | None = None
         self._current_project_id: str | None = None
+
+        # Set by StanPresenter.update_current_project_info so the commit worker
+        # has the correct context without accessing stan directly.
+        self.session_id: str = ""
+        self.project_path: Path | None = None
+        self.username: str = ""
 
     # ---------------------------------------------------------------------------
     # Public: live import — called per statement_imported signal
@@ -151,6 +262,22 @@ class StatementResultPresenter(QObject):
                     file=sys.stderr,
                 )
         print(f"Persist complete for batch {batch_id}.")
+
+    # ---------------------------------------------------------------------------
+    # Public: project change — always called before session restore check
+    # ---------------------------------------------------------------------------
+
+    def clear_for_project_change(self) -> None:
+        """Reset all result state when the user switches project.
+
+        Clears in-memory models and resets the view to its empty state.
+        Called unconditionally by ``StanPresenter.update_current_project_info``
+        before the session-restore check; if the new project has a locked batch
+        ``load_results_from_db`` will repopulate immediately afterward.
+        """
+        self._current_batch_id = None
+        self._current_project_id = None
+        self.__clear_views()
 
     # ---------------------------------------------------------------------------
     # Public: session restore — called on project switch with locked batch
@@ -230,8 +357,158 @@ class StatementResultPresenter(QObject):
 
     @pyqtSlot()
     def __on_commit_batch(self) -> None:
-        """Stub — full implementation deferred to a later milestone."""
-        print("Commit batch: not yet implemented.")
+        """Launch CommitWorker to run update_db → copy_statements → delete_temps.
+
+        Disables Commit and Abandon buttons while the worker runs.  On success
+        the same abandon-batch cleanup is performed (DB rows/payloads deleted,
+        queue lock cleared) since the data is now safely in project.db.  On
+        error a StanErrorMessage dialog is shown and the buttons re-enabled so
+        the user can retry.
+        """
+        batch_id = self._current_batch_id
+        project_id = self._current_project_id
+
+        if not batch_id or not project_id:
+            return
+
+        if self.project_path is None:
+            StanErrorMessage(parent=self.view).showMessage(
+                "Cannot commit: project path is not set."
+            )
+            return
+
+        # Collect result_ids so we can load payloads in insertion order
+        result_ids = self.result_model.get_result_ids_for_batch(batch_id)
+
+        # Build pdfs + processed_pdfs lists in insertion order by iterating
+        # all_rows() from each in-memory model (SUCCESS first, then REVIEW,
+        # then FAILURE — matching the order rows were added to the DB).
+        all_rows_ordered: list[ResultRow] = (
+            self.success_model.all_rows()
+            + self.review_model.all_rows()
+            + self.failure_model.all_rows()
+        )
+
+        # Load payloads from DB (handles session-restore where pdf_result is None)
+        id_to_payload = self.payload_model.load_payloads_for_batch(result_ids)
+
+        # Re-map: result_ids are ordered the same way all_rows() were persisted
+        # (persist_batch_to_db iterates success+review+failure in the same order).
+        processed_pdfs: list = []
+        pdfs: list[Path] = []
+        for i, row in enumerate(all_rows_ordered):
+            result_id = result_ids[i] if i < len(result_ids) else None
+            payload = (
+                id_to_payload.get(result_id)
+                if result_id is not None
+                else row.pdf_result
+            )
+            if payload is None and row.pdf_result is not None:
+                payload = row.pdf_result
+            if payload is not None:
+                processed_pdfs.append(payload)
+                pdfs.append(row.file_path)
+
+        n_success = self.success_model.row_count
+        n_review = self.review_model.row_count
+        n_failure = self.failure_model.row_count
+        pdf_count = n_success + n_review + n_failure
+
+        folder_path = self.queue_model.get_folder_paths_for_batch(batch_id)
+
+        # Lock UI for the duration of the worker
+        self.view.buttonCommitBatch.setEnabled(False)
+        self.view.buttonAbandonBatch.setEnabled(False)
+        self.view.progressBar.setValue(0)
+
+        worker = CommitWorker(
+            processed_pdfs=processed_pdfs,
+            pdfs=pdfs,
+            batch_id=batch_id,
+            session_id=self.session_id,
+            user_id=self.username,
+            path=folder_path,
+            pdf_count=pdf_count,
+            errors=n_failure,
+            reviews=n_review,
+            project_path=self.project_path,
+        )
+
+        worker.signals.step.connect(self.__on_commit_step)
+        worker.signals.finished.connect(self.__on_commit_finished)
+        worker.signals.error.connect(self.__on_commit_error)
+
+        QThreadPool.globalInstance().start(worker)
+
+    # ---------------------------------------------------------------------------
+    # Commit worker callbacks
+    # ---------------------------------------------------------------------------
+
+    _COMMIT_STEP_VALUES = {
+        "Updating database…": 0,
+        "Copying statements…": 33,
+        "Cleaning up temporary files…": 66,
+    }
+
+    @pyqtSlot(str)
+    def __on_commit_step(self, description: str) -> None:
+        """Advance progress bar and update label for the current step."""
+        value = self._COMMIT_STEP_VALUES.get(description, self.view.progressBar.value())
+        self.view.progressBar.setValue(value)
+        self.view.labelStatementsProcessed.setText(description)
+
+    @pyqtSlot()
+    def __on_commit_finished(self) -> None:
+        """All three bsp calls succeeded — notify user, clean up, and close."""
+        batch_id = self._current_batch_id
+        project_id = self._current_project_id
+
+        # Perform the same DB cleanup as abandon (data is now in project.db)
+        if batch_id:
+            result_ids = self.result_model.get_result_ids_for_batch(batch_id)
+            ok, msg = self.payload_model.delete_payloads_for_results(result_ids)
+            if not ok:
+                print(
+                    f"ERROR: Could not delete payloads after commit: {msg}",
+                    file=sys.stderr,
+                )
+            ok, msg = self.result_model.delete_results_for_batch(batch_id)
+            if not ok:
+                print(
+                    f"ERROR: Could not delete results after commit: {msg}",
+                    file=sys.stderr,
+                )
+            if project_id:
+                ok, msg = self.queue_model.clear_batch_id(project_id)
+                if not ok:
+                    print(
+                        f"ERROR: Could not clear batch_id after commit: {msg}",
+                        file=sys.stderr,
+                    )
+
+        self._current_batch_id = None
+        self._current_project_id = None
+
+        # Show the success modal before clearing the view — the message would
+        # vanish immediately if we hid the results panel first.
+        info = StanInfoMessage(parent=self.view)
+        info.setText("Batch committed successfully.")
+        info.exec()
+
+        # Clear in-memory state and reset the results panel to its empty state.
+        self.__clear_views()
+
+        # Notify StanPresenter to hide the results panel, clear the queue, and
+        # refresh the queue view.
+        self.batch_committed.emit()
+
+    @pyqtSlot(str)
+    def __on_commit_error(self, message: str) -> None:
+        """A bsp call failed — show error dialog and re-enable retry."""
+        StanErrorMessage(parent=self.view).showMessage(message)
+        # Re-enable so the user can retry or abandon
+        self.view.buttonCommitBatch.setEnabled(self.success_model.row_count > 0)
+        self.view.buttonAbandonBatch.setEnabled(True)
 
     # ---------------------------------------------------------------------------
     # Internal helpers
