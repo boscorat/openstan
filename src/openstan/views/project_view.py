@@ -27,7 +27,11 @@ class FolderSelectionDialog(QFileDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Select Project Folder Location")
-        self.setDirectory(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.HomeLocation))
+        self.setDirectory(
+            QStandardPaths.writableLocation(
+                QStandardPaths.StandardLocation.HomeLocation
+            )
+        )
         self.setFileMode(QFileDialog.FileMode.Directory)
 
 
@@ -41,7 +45,9 @@ class ProjectPageBasic(QWizardPage):
         self.setTitle("Project Details")
 
         if mode == "existing":
-            self.folder_selection_dialog.setWindowTitle("Select Existing Project Folder")
+            self.folder_selection_dialog.setWindowTitle(
+                "Select Existing Project Folder"
+            )
             self.setSubTitle(
                 "\nThe project ID has been auto-generated."
                 "\n"
@@ -128,7 +134,9 @@ class ProjectWizard(QWizard):
             self.page_basic.location_button.setDisabled(True)
         if self.mode == "existing":
             self.page_basic.name_row.setDisabled(True)
-            self.page_basic.name_row.setPlaceholderText("Populated after folder selection")
+            self.page_basic.name_row.setPlaceholderText(
+                "Populated after folder selection"
+            )
         self.page_basic.newProjectID = "AUTO_GENERATED_ID"
         self.page_basic.id_row.setText(self.page_basic.newProjectID)
         self.full_project_path = None
@@ -164,7 +172,9 @@ class ProjectView(StanWidget):
         self.button_existing.setIcon(QIcon(Paths.icon("folder_add.svg")))
         self.button_existing.setMinimumWidth(180)
         layout = QGridLayout()
-        layout.addWidget(self.label, 0, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        layout.addWidget(
+            self.label, 0, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
         layout.addWidget(
             self.selection,
             0,

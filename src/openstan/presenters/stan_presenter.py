@@ -1,5 +1,7 @@
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bank_statement_parser import ProjectPaths
 from PyQt6.QtCore import QObject, pyqtSlot
 
 if TYPE_CHECKING:
@@ -30,9 +32,6 @@ class StanPresenter(QObject):
         self.session_presenter.db_lock_signal.connect(self.db_lock_handler)
         self.statement_queue_presenter.statement_imported.connect(
             self.statement_imported
-        )
-        self.statement_queue_presenter.import_finished.connect(
-            self.stan.statement_result_presenter.show_buttons_based_on_results
         )
         self.footer_view.admin_requested.connect(self.open_admin_dialog)
 
@@ -95,14 +94,21 @@ class StanPresenter(QObject):
         current_record: QSqlRecord = self.project_presenter.model.record(index)
         self.stan.current_project_name = current_record.value("project_name")
         self.stan.current_project_id = current_record.value("project_ID")
-        self.stan.statement_queue_presenter.projectID = self.stan.current_project_id
-        self.stan.statement_queue_presenter.update_view()
+        self.statement_queue_presenter.projectID = self.stan.current_project_id
+        self.statement_queue_presenter.update_view()
         self.footer_view.labelProject.setText(
             f"##### Project: {self.stan.current_project_name} (ID: {self.stan.current_project_id})"
         )
+        self.stan.current_project_paths = ProjectPaths.resolve(
+            Path(current_record.value("project_location")).absolute()
+        )
+        self.statement_queue_presenter.projectPath = (
+            self.stan.current_project_paths.root
+        )
+        print(current_record.value("project_location"))
 
-    @pyqtSlot(object, int)
-    def statement_imported(self, stmt, progress_bar_value) -> None:
+    @pyqtSlot(Path, object, int)
+    def statement_imported(self, file_path: Path, stmt, progress_bar_value) -> None:
         self.stan.statement_result_presenter.view.progressBar.setValue(
             progress_bar_value
         )
@@ -110,8 +116,13 @@ class StanPresenter(QObject):
         self.stan.statement_queue_block.setVisible(False)
         self.stan.export_block.setVisible(False)
         self.stan.statement_result_block.setVisible(True)
-        self.stan.statement_result_presenter.model.add_statement(stmt)
-        self.stan.statement_result_presenter.on_model_updated()
+        result_presenter = self.stan.statement_result_presenter
+        if stmt.result == "SUCCESS":
+            result_presenter.success_model.add_statement(file_path, stmt)
+        elif stmt.result == "REVIEW":
+            result_presenter.review_model.add_statement(file_path, stmt)
+        else:
+            result_presenter.failure_model.add_statement(file_path, stmt)
 
     @pyqtSlot()
     def open_admin_dialog(self) -> None:

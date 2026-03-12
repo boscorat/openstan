@@ -7,14 +7,16 @@ NEW_RECORD_STATUS = 8  # active status
 
 
 class ProjectModel(QSqlTableModel):
-    db_updated: pyqtSignal  = pyqtSignal()
+    db_updated: pyqtSignal = pyqtSignal()
 
     def __init__(self, db) -> None:
         super().__init__(db=db)
         self.setTable("project")
         self.select()
 
-    def add_record(self, project_id, project_name, project_location, sessionID) -> tuple[bool, str, str]:
+    def add_record(
+        self, project_id, project_name, project_location, sessionID
+    ) -> tuple[bool, str, str]:
         msg: str = ""
         record: QSqlRecord = self.record()
         record.setValue("project_ID", project_id)

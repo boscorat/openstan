@@ -38,7 +38,12 @@ class StanPolarsModel(QAbstractTableModel):
             return str(self.df.item(index.row(), index.column()))
         return None
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role=Qt.ItemDataRole.DisplayRole):
+    def headerData(
+        self,
+        section: int,
+        orientation: Qt.Orientation,
+        role=Qt.ItemDataRole.DisplayRole,
+    ):
         """Override method from QAbstractTableModel
 
         Return dataframe index as vertical header data and columns as horizontal header data.
@@ -58,9 +63,10 @@ class StanTableView(QTableView):
         self.setAutoFillBackground(True)
         self.setAlternatingRowColors(True)
         self.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        self.setSelectionMode(QTableView.SelectionMode.ExtendedSelection)
-        self.setShowGrid(True)
-        self.setSortingEnabled(True)
+        self.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+        self.setShowGrid(False)
+        self.horizontalHeader().setStretchLastSection(True)
+        self.verticalHeader().setVisible(False)
 
 
 class StanTreeView(QTreeView):
@@ -123,7 +129,9 @@ class StanForm(QFormLayout):
 class StanFrame(QFrame):
     def __init__(self) -> None:
         super().__init__()
-        self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Sunken | QFrame.Shape.Panel)
+        self.setFrameStyle(
+            QFrame.Shape.StyledPanel | QFrame.Shadow.Sunken | QFrame.Shape.Panel
+        )
         self.setAutoFillBackground(True)
 
 

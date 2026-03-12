@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from uuid import uuid4
 
+from bank_statement_parser import ProjectPaths
 from PyQt6.QtCore import QSysInfo, QThreadPool, qDebug
 from PyQt6.QtSql import QSqlDatabase
 from PyQt6.QtWidgets import QApplication, QGridLayout, QMainWindow
@@ -19,7 +20,9 @@ from openstan.models import (
     SessionModel,
     StatementQueueModel,
     StatementQueueTreeModel,
-    StatementResultModel,
+    FailureResultModel,
+    ReviewResultModel,
+    SuccessResultModel,
     UserModel,
 )
 from openstan.paths import Paths
@@ -92,6 +95,7 @@ class Stan(QMainWindow):
         self.username = username
         self.current_project_name = None
         self.current_project_id = None
+        self.current_project_paths: ProjectPaths | None = None
 
         # error message dialogs
         self.error_db_lock = StanErrorMessage(self)
@@ -103,7 +107,9 @@ class Stan(QMainWindow):
         self.project_model = ProjectModel(db=gui_db)
         self.statement_queue_model = StatementQueueModel(db=gui_db)
         self.statement_queue_tree_model = StatementQueueTreeModel(db=gui_db)
-        self.statement_result_model = StatementResultModel()
+        self.success_result_model = SuccessResultModel()
+        self.review_result_model = ReviewResultModel()
+        self.failure_result_model = FailureResultModel()
         # main layouts
         self.layout_project = QGridLayout()
         self.layout_project.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -156,7 +162,10 @@ class Stan(QMainWindow):
             threadpool=self.threadpool,
         )
         self.statement_result_presenter = StatementResultPresenter(
-            model=self.statement_result_model, view=self.statement_result_view
+            success_model=self.success_result_model,
+            review_model=self.review_result_model,
+            failure_model=self.failure_result_model,
+            view=self.statement_result_view,
         )
         self.admin_presenter = AdminPresenter(
             model=self.project_model, view=self.admin_view, stan=self
@@ -188,48 +197,6 @@ class Stan(QMainWindow):
         self.master_layout.addLayout(
             self.layout_project, 0, 0, alignment=Qt.AlignmentFlag.AlignTop
         )
-        # self.master_layout.addLayout(self.layout_results, 0, 1, alignment=Qt.AlignmentFlag.AlignTop)
-        # self.test_layout = QVBoxLayout()
-
-        # # table testing
-        # self.table_cab = StanTableView()
-        # self.table_cab.setMinimumWidth(600)
-        # self.table_head = StanTableView()
-        # self.table_lines = StanTableView()
-        # self.model_cab = StanPolarsModel(stmt.checks_and_balances)
-        # self.model_head = StanPolarsModel(stmt.header_results.collect())
-        # self.model_lines = StanPolarsModel(stmt.lines_results.collect())
-        # self.table_cab.setModel(self.model_cab)
-        # self.table_head.setModel(self.model_head)
-        # self.table_lines.setModel(self.model_lines)
-
-        # self.tree_result = StanTreeView()
-        # self.tree_result.setMinimumWidth(600)
-        # self.tree_result.setModel(self.statement_result_model)
-
-        # headers: list[QHeaderView | None] = [
-        #     self.table_cab.verticalHeader(),
-        #     self.table_head.verticalHeader(),
-        #     self.table_lines.verticalHeader(),
-        # ]
-        # for header in headers:
-        #     if header:
-        #         header.setHidden(True)
-
-        # self.test_layout.addWidget(self.table_cab, alignment=Qt.AlignmentFlag.AlignTop)
-        # self.test_layout.addWidget(self.table_head, alignment=Qt.AlignmentFlag.AlignTop)
-        # self.test_layout.addWidget(self.table_lines, alignment=Qt.AlignmentFlag.AlignTop)
-        # self.test_layout.addWidget(self.tree_result, alignment=Qt.AlignmentFlag.AlignTop)
-
-        # self.master_layout.addLayout(self.test_layout, 0, 1)
-
-        # stmt_name: str = (
-        #     str(stmt.ID_ACCOUNT) + " " + str(self.model_head.df["STD_STATEMENT_DATE"][0])
-        #     if self.model_head.df.height > 0
-        #     else "Unknown Statement"
-        # )
-        # print(f"{stmt_name}")
-
         self.stan.setLayout(self.master_layout)
         self.setCentralWidget(self.stan)
 

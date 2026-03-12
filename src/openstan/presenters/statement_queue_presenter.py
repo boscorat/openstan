@@ -8,7 +8,10 @@ from PyQt6.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
 if TYPE_CHECKING:
     from PyQt6.QtCore import QThreadPool
 
-    from openstan.models.statement_queue_model import StatementQueueModel, StatementQueueTreeModel
+    from openstan.models.statement_queue_model import (
+        StatementQueueModel,
+        StatementQueueTreeModel,
+    )
     from openstan.views.statement_queue_view import StatementQueueView
 
 
@@ -20,7 +23,7 @@ class WorkerSignals(QObject):
         int progress complete,from 0-100
     """
 
-    progress = pyqtSignal(int, bsp.Statement)
+    progress = pyqtSignal(Path, int, bsp.PdfResult)
     finished = pyqtSignal()
 
 
@@ -32,8 +35,14 @@ class SQWorker(QRunnable):
     and wrap-up.
     """
 
-    def __init__(self, model: StatementQueueModel, batch_id: str) -> None:
+    def __init__(
+        self,
+        presenter: StatementQueuePresenter,
+        model: StatementQueueModel,
+        batch_id: str,
+    ) -> None:
         super().__init__()
+        self.presenter = presenter
         self.model = model
         self.signals = WorkerSignals()
         self.batch_id = batch_id
@@ -46,14 +55,24 @@ class SQWorker(QRunnable):
             record = self.model.record(n)
             if record.value("is_folder") == 1:
                 continue  # skip folders
-            print(f"Importing statement: {record.value('path')}")
-            stmt = bsp.Statement(file=Path(record.value("path")))
-            self.signals.progress.emit(progress_pc, stmt)
+            file_path = Path(record.value("path"))
+            print(f"Importing statement: {file_path.stem} ({n + 1}/{total_n})")
+            # stmt = bsp.Statement(file=Path(record.value("path")))
+            stmt = bsp.process_pdf_statement(
+                pdf=file_path,
+                batch_id=self.batch_id,
+                session_id=self.presenter.sessionID,
+                user_id="",
+                company_key=None,
+                account_key=None,
+                project_path=self.presenter.projectPath,
+            )
+            self.signals.progress.emit(file_path, progress_pc, stmt)
         self.signals.finished.emit()
 
 
 class StatementQueuePresenter(QObject):
-    statement_imported = pyqtSignal(bsp.Statement, int)
+    statement_imported = pyqtSignal(Path, bsp.PdfResult, int)
     import_finished = pyqtSignal()
 
     def __init__(
@@ -65,8 +84,11 @@ class StatementQueuePresenter(QObject):
     ) -> None:
         super().__init__()
         self.threadpool: QThreadPool = threadpool
-        self.sessionID: str | None = None  # to be set by StanPresenter
-        self.projectID: str | None = None  # to be set by StanPresenter
+        self.sessionID: str = "<<NO SESSION ID>>"  # to be set by StanPresenter
+        self.projectID: str = "<<NO PROJECT ID>>"  # to be set by StanPresenter
+        self.projectPath: Path = Path(
+            "<<NO PROJECT PATH>>"
+        )  # to be set by StanPresenter
         self.model: StatementQueueModel = model
         self.view: StatementQueueView = view
         self.tree_model: StatementQueueTreeModel = tree_model
@@ -80,10 +102,14 @@ class StatementQueuePresenter(QObject):
         self.view.buttonClear.clicked.connect(self.clear_all_items)
         self.view.buttonRunImport.clicked.connect(self.run_import)
 
-    @pyqtSlot(int, bsp.Statement)
-    def update_progress(self, progress_bar_value, statement) -> None:
-        self.statement_imported.emit(statement, progress_bar_value)
-        print(f"Import progress: {progress_bar_value}% - Statement ID: {statement.ID_ACCOUNT}")
+    @pyqtSlot(Path, int, bsp.PdfResult)
+    def update_progress(
+        self, file_path: Path, progress_bar_value: int, statement: bsp.PdfResult
+    ) -> None:
+        self.statement_imported.emit(file_path, statement, progress_bar_value)
+        print(
+            f" Import progress: {progress_bar_value}% - Result: {statement.result} {statement.outcome}"
+        )
 
     @pyqtSlot()
     def run_import(self) -> None:
@@ -91,7 +117,7 @@ class StatementQueuePresenter(QObject):
         batch_id: str = uuid4().hex
         print("Running statement import...")
         self.view.buttonRunImport.setDisabled(True)
-        worker = SQWorker(model=self.model, batch_id=batch_id)
+        worker = SQWorker(presenter=self, model=self.model, batch_id=batch_id)
         worker.signals.progress.connect(self.update_progress)
         worker.signals.finished.connect(self.import_finished.emit)
         self.threadpool.start(worker)
@@ -104,12 +130,16 @@ class StatementQueuePresenter(QObject):
             # add folder as it's own parent
             folder_id: str = uuid4().hex
             folder_path = Path(selected_folder)
-            self.add_record(queue_id=folder_id, parent_id=folder_id, path=folder_path, is_folder=1)
+            self.add_record(
+                queue_id=folder_id, parent_id=folder_id, path=folder_path, is_folder=1
+            )
             # add each file in the folder as child items
             for file in folder_path.iterdir():
                 if file.is_file() and file.suffix.lower() == ".pdf":
                     file_id: str = uuid4().hex
-                    self.add_record(queue_id=file_id, parent_id=folder_id, path=file, is_folder=0)
+                    self.add_record(
+                        queue_id=file_id, parent_id=folder_id, path=file, is_folder=0
+                    )
             self.update_view()
 
     @pyqtSlot()
@@ -119,7 +149,9 @@ class StatementQueuePresenter(QObject):
             print("Selected files:", selected_files)
             for file in selected_files:
                 file_id = uuid4().hex
-                self.add_record(queue_id=file_id, parent_id=file_id, path=Path(file), is_folder=0)
+                self.add_record(
+                    queue_id=file_id, parent_id=file_id, path=Path(file), is_folder=0
+                )
             self.update_view()
 
     @pyqtSlot()
@@ -128,7 +160,9 @@ class StatementQueuePresenter(QObject):
         selected_indexes: list | None = self.view.tree.selectedIndexes()
         if not selected_indexes:
             return
-        selected_ids: list[str] = [str(index.data()) for index in selected_indexes if index.column() == 1]
+        selected_ids: list[str] = [
+            str(index.data()) for index in selected_indexes if index.column() == 1
+        ]
         self.model.delete_records(queue_ids=selected_ids)
         self.update_view()
 
@@ -154,10 +188,6 @@ class StatementQueuePresenter(QObject):
         else:
             print(f"Record added successfully: {queue_id}")
 
-    def get_records(self) -> None:
-        # Logic to retrieve records from the model
-        pass
-
     def update_view(self) -> None:
         if self.projectID is not None:
             self.model.setFilter(f"project_id = '{self.projectID}'")
@@ -166,6 +196,10 @@ class StatementQueuePresenter(QObject):
             # self.view.table.resizeColumnsToContents()
             # self.view.tree.expandAll()
             self.view.tree.expandToDepth(0)
-            self.view.buttonRunImport.setEnabled(True) if self.model.rowCount() > 0 else self.view.buttonRunImport.setEnabled(False)
+            self.view.buttonRunImport.setEnabled(
+                True
+            ) if self.model.rowCount() > 0 else self.view.buttonRunImport.setEnabled(
+                False
+            )
         else:
             print("Project ID is not set. Cannot update view.")
