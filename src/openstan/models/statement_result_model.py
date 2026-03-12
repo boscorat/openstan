@@ -31,6 +31,8 @@ shown without re-running the import.
 """
 
 import pickle
+
+from PyQt6.QtCore import QByteArray
 import sys
 import traceback
 from dataclasses import dataclass, field
@@ -335,7 +337,9 @@ class StatementResultPayloadModel(QSqlTableModel):
             return (False, "Failed to pickle PdfResult")
         record: QSqlRecord = self.record()
         record.setValue("result_id", result_id)
-        record.setValue("payload", blob)
+        # Wrap in QByteArray so Qt stores a true BLOB rather than a string
+        # representation of bytes — required for pickle.loads to work on read.
+        record.setValue("payload", QByteArray(blob))
         if self.insertRecord(-1, record) and self.submitAll():
             return (True, f"Payload for {result_id} stored")
         err = self.lastError().text()
@@ -377,7 +381,13 @@ class StatementResultPayloadModel(QSqlTableModel):
             rid = str(record.value("result_id"))
             blob = record.value("payload")
             try:
-                obj = pickle.loads(blob)  # noqa: S301 — intentional, bsp-internal only
+                # QSqlTableModel returns BLOB columns as QByteArray; convert to
+                # bytes before unpickling.  bytes() works on both QByteArray and
+                # bytearray; fall back to the raw value for any unexpected type.
+                raw: bytes = (
+                    bytes(blob) if isinstance(blob, (QByteArray, bytearray)) else blob
+                )
+                obj = pickle.loads(raw)  # noqa: S301 — intentional, bsp-internal only
                 results[rid] = obj
             except Exception:
                 print(

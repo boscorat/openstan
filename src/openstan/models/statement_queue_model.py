@@ -150,6 +150,23 @@ class StatementQueueModel(QSqlTableModel):
         """Return True if the queue for *project_id* has an active batch in flight."""
         return self.get_batch_id(project_id) is not None
 
+    def get_folder_paths_for_batch(self, batch_id: str) -> str:
+        """Return '|'-joined path values of is_folder=1 rows for *batch_id*.
+
+        Used by the commit worker to build the ``path`` argument for
+        ``bsp.update_db``.  Returns an empty string if no folder rows exist
+        (e.g. the batch contained only individually-queued files).
+        """
+        self.setFilter(f"batch_id = '{batch_id}' AND is_folder = 1")
+        self.select()
+        paths: list[str] = []
+        for row in range(self.rowCount()):
+            record: QSqlRecord = self.record(row)
+            value = record.value("path")
+            if value:
+                paths.append(str(value))
+        return "|".join(paths)
+
 
 class StatementQueueTreeModel(QStandardItemModel):
     parent_filter = "parent_id = queue_id"

@@ -66,14 +66,24 @@ class SQWorker(QRunnable):
     @pyqtSlot()
     def run(self) -> None:
         total_n = self.model.rowCount()
+        # Pre-count file rows (non-folder) so progress % and idx are based on
+        # files only — folder rows are skipped and must not consume an idx slot.
+        total_files: int = sum(
+            1 for r in range(total_n) if self.model.record(r).value("is_folder") != 1
+        )
+        file_idx: int = 0
         for n in range(total_n):
-            progress_pc = int(100 * float(n + 1) / total_n)
             record = self.model.record(n)
             if record.value("is_folder") == 1:
                 continue  # skip folder rows
+            progress_pc = (
+                int(100 * float(file_idx + 1) / total_files) if total_files else 100
+            )
             file_path = Path(record.value("path"))
             queue_id = str(record.value("queue_id"))
-            print(f"Importing statement: {file_path.stem} ({n + 1}/{total_n})")
+            print(
+                f"Importing statement: {file_path.stem} ({file_idx + 1}/{total_files})"
+            )
             stmt = bsp.process_pdf_statement(
                 pdf=file_path,
                 batch_id=self.batch_id,
@@ -82,8 +92,10 @@ class SQWorker(QRunnable):
                 company_key=None,
                 account_key=None,
                 project_path=self.presenter.projectPath,
+                idx=file_idx,
             )
             self.signals.progress.emit(file_path, progress_pc, stmt, queue_id)
+            file_idx += 1
         self.signals.finished.emit()
 
 
