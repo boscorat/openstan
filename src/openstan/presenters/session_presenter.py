@@ -32,7 +32,9 @@ class SessionPresenter(QObject):
             self.db_lock_signal.emit()
         else:
             sessionID: str = result[1]
-            msg: str = f"Session created successfully: {sessionID} for user ID: {userID}"
+            msg: str = (
+                f"Session created successfully: {sessionID} for user ID: {userID}"
+            )
             return result
         print(msg)
         return result

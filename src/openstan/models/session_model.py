@@ -29,7 +29,9 @@ class SessionModel(QSqlTableModel):
         for row in range(self.rowCount()):
             record: QSqlRecord = self.record(row)
             if record.value("is_active"):
-                self.setData(self.index(row, self.fieldIndex("terminated")), datetime.now())
+                self.setData(
+                    self.index(row, self.fieldIndex("terminated")), datetime.now()
+                )
                 self.setData(self.index(row, self.fieldIndex("is_active")), 0)
                 self.submitAll()
                 sessions_ended += 1

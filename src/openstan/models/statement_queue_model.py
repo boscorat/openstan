@@ -11,7 +11,9 @@ class StatementQueueModel(QSqlTableModel):
         self.setTable("statement_queue")
         self.select()
 
-    def add_record(self, queue_id, parent_id, project_id, session_id, status_id, path, is_folder=0) -> tuple[bool, str, str]:
+    def add_record(
+        self, queue_id, parent_id, project_id, session_id, status_id, path, is_folder=0
+    ) -> tuple[bool, str, str]:
         msg: str = ""
         record: QSqlRecord = self.record()
         record.setValue("queue_id", queue_id)
@@ -42,20 +44,22 @@ class StatementQueueModel(QSqlTableModel):
         for row in range(self.rowCount()):
             record: QSqlRecord = self.record(last_record - row)
             print(record.value("parent_id"))
-            if record.value("parent_id") in queue_ids: # is it a parent record?
-                if record.value("queue_id") != record.value("parent_id"): # if it's not it's own parent then it's a child record
+            if record.value("parent_id") in queue_ids:  # is it a parent record?
+                if record.value("queue_id") != record.value(
+                    "parent_id"
+                ):  # if it's not it's own parent then it's a child record
                     children_deleted.append(record.value("queue_id"))
                     self.removeRow(last_record - row)
-                else: # it must be a stand-alone record that's it's own parent
+                else:  # it must be a stand-alone record that's it's own parent
                     if record.value("is_folder") == 1:
                         folders_deleted.append(record.value("queue_id"))
                     else:
                         files_deleted.append(record.value("queue_id"))
                     self.removeRow(last_record - row)
-            else: # we pass on parent only records until all children have been removed due to self-referencing foreign key
+            else:  # we pass on parent only records until all children have been removed due to self-referencing foreign key
                 pass
         # now we re-count and remove any parents
-        last_record = self.rowCount() # update record caount after child deletions
+        last_record = self.rowCount()  # update record caount after child deletions
         for row in range(self.rowCount()):
             record: QSqlRecord = self.record(last_record - row)
             if record.value("queue_id") in queue_ids:
@@ -77,12 +81,14 @@ class StatementQueueModel(QSqlTableModel):
         else:
             msg = "failure to delete any records"
             return (success, queue_ids, msg)
-            
+
     def clear_records(self) -> tuple[bool, list[str], str]:
         queue_ids: list[str] = list()
         for row in range(self.rowCount()):
             record: QSqlRecord = self.record(row)
-            if record.value("queue_id") == record.value("parent_id"): # we only need to collect parent records as the children will be removed automatically
+            if (
+                record.value("queue_id") == record.value("parent_id")
+            ):  # we only need to collect parent records as the children will be removed automatically
                 queue_ids.append(record.value("queue_id"))
             else:
                 pass
@@ -132,7 +138,9 @@ class StatementQueueTreeModel(QStandardItemModel):
                     if child_count == 0:
                         parent_path.setText(parent_path.text() + " (empty)")
                     else:
-                        parent_path.setText(parent_path.text() + f" ({child_count} pdf files)")
+                        parent_path.setText(
+                            parent_path.text() + f" ({child_count} pdf files)"
+                        )
                     folders_root.appendRow([parent_path, parent_id])
                     folder_count += 1
                 else:

@@ -1,7 +1,13 @@
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QGridLayout
 
-from openstan.components import Qt, StanButton, StanCheckBox, StanRadioButton, StanWidget
+from openstan.components import (
+    Qt,
+    StanButton,
+    StanCheckBox,
+    StanRadioButton,
+    StanWidget,
+)
 from openstan.paths import Paths
 
 
@@ -28,6 +34,8 @@ class ExportView(StanWidget):
         # Run Import Button
         self.buttonRunImport = StanButton("Run Data Export")
         self.buttonRunImport.setIcon(QIcon(Paths.icon("run.svg")))
-        layout.addWidget(self.buttonRunImport, 1, 3, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(
+            self.buttonRunImport, 1, 3, alignment=Qt.AlignmentFlag.AlignRight
+        )
 
         self.setLayout(layout)

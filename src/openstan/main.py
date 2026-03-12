@@ -20,7 +20,9 @@ from openstan.models import (
     SessionModel,
     StatementQueueModel,
     StatementQueueTreeModel,
-    StatementResultModel,
+    FailureResultModel,
+    ReviewResultModel,
+    SuccessResultModel,
     UserModel,
 )
 from openstan.paths import Paths
@@ -84,7 +86,9 @@ class Stan(QMainWindow):
     def __init__(self, gui_db, sessionID, username) -> None:
         super().__init__()
         self.threadpool = QThreadPool()
-        print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
+        print(
+            "Multithreading with maximum %d threads" % self.threadpool.maxThreadCount()
+        )
         self.gui_db = gui_db
         self.userID = None
         self.sessionID = sessionID
@@ -103,7 +107,9 @@ class Stan(QMainWindow):
         self.project_model = ProjectModel(db=gui_db)
         self.statement_queue_model = StatementQueueModel(db=gui_db)
         self.statement_queue_tree_model = StatementQueueTreeModel(db=gui_db)
-        self.statement_result_model = StatementResultModel()
+        self.success_result_model = SuccessResultModel()
+        self.review_result_model = ReviewResultModel()
+        self.failure_result_model = FailureResultModel()
         # main layouts
         self.layout_project = QGridLayout()
         self.layout_project.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -146,28 +152,51 @@ class Stan(QMainWindow):
         # hook up the presenters
         self.user_presenter = UserPresenter(model=self.user_model, view=None)
         self.session_presenter = SessionPresenter(model=self.session_model, view=None)
-        self.project_presenter = ProjectPresenter(model=self.project_model, view=self.project_view)
+        self.project_presenter = ProjectPresenter(
+            model=self.project_model, view=self.project_view
+        )
         self.statement_queue_presenter = StatementQueuePresenter(
             model=self.statement_queue_model,
             view=self.statement_queue_view,
             tree_model=self.statement_queue_tree_model,
             threadpool=self.threadpool,
         )
-        self.statement_result_presenter = StatementResultPresenter(model=self.statement_result_model, view=self.statement_result_view)
-        self.admin_presenter = AdminPresenter(model=self.project_model, view=self.admin_view, stan=self)
+        self.statement_result_presenter = StatementResultPresenter(
+            success_model=self.success_result_model,
+            review_model=self.review_result_model,
+            failure_model=self.failure_result_model,
+            view=self.statement_result_view,
+        )
+        self.admin_presenter = AdminPresenter(
+            model=self.project_model, view=self.admin_view, stan=self
+        )
         self.stan_presenter = StanPresenter(stan=self)
 
         # assemble project layout
-        self.layout_project.addWidget(self.title_view, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        self.layout_project.addWidget(self.project_view, 1, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        self.layout_project.addWidget(self.statement_queue_block, 2, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        self.layout_project.addWidget(self.export_block, 3, 0, alignment=Qt.AlignmentFlag.AlignTop)
-        self.layout_project.addWidget(self.footer_view, 4, 0, alignment=Qt.AlignmentFlag.AlignBottom)
+        self.layout_project.addWidget(
+            self.title_view, 0, 0, alignment=Qt.AlignmentFlag.AlignTop
+        )
+        self.layout_project.addWidget(
+            self.project_view, 1, 0, alignment=Qt.AlignmentFlag.AlignTop
+        )
+        self.layout_project.addWidget(
+            self.statement_queue_block, 2, 0, alignment=Qt.AlignmentFlag.AlignTop
+        )
+        self.layout_project.addWidget(
+            self.export_block, 3, 0, alignment=Qt.AlignmentFlag.AlignTop
+        )
+        self.layout_project.addWidget(
+            self.footer_view, 4, 0, alignment=Qt.AlignmentFlag.AlignBottom
+        )
         # assemble results layout
-        self.layout_project.addWidget(self.statement_result_block, 1, 0, 3, 1, alignment=Qt.AlignmentFlag.AlignTop)
+        self.layout_project.addWidget(
+            self.statement_result_block, 1, 0, 3, 1, alignment=Qt.AlignmentFlag.AlignTop
+        )
         # assemble master layout
         self.master_layout = QGridLayout()
-        self.master_layout.addLayout(self.layout_project, 0, 0, alignment=Qt.AlignmentFlag.AlignTop)
+        self.master_layout.addLayout(
+            self.layout_project, 0, 0, alignment=Qt.AlignmentFlag.AlignTop
+        )
         self.stan.setLayout(self.master_layout)
         self.setCentralWidget(self.stan)
 

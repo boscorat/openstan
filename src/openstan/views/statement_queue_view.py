@@ -8,12 +8,18 @@ from openstan.paths import Paths
 
 class FileDialog(QFileDialog):
     caption = "Statement pdf files"
-    initial_filter = "Portable Document Format files (*.pdf)"  # Select one from the list.
+    initial_filter = (
+        "Portable Document Format files (*.pdf)"  # Select one from the list.
+    )
 
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(self.caption)
-        self.setDirectory(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.HomeLocation))
+        self.setDirectory(
+            QStandardPaths.writableLocation(
+                QStandardPaths.StandardLocation.HomeLocation
+            )
+        )
         self.setNameFilter(self.initial_filter)
         self.selectNameFilter(self.initial_filter)
         self.setFileMode(QFileDialog.FileMode.ExistingFiles)
@@ -25,12 +31,18 @@ class FolderDialog(QFileDialog):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle(self.caption)
-        self.setDirectory(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.HomeLocation))
+        self.setDirectory(
+            QStandardPaths.writableLocation(
+                QStandardPaths.StandardLocation.HomeLocation
+            )
+        )
         self.setFileMode(QFileDialog.FileMode.Directory)
 
 
 class StatementQueueView(StanWidget):
-    header = "#### Statement Queue - Select any new pdf statements to add to your project"
+    header = (
+        "#### Statement Queue - Select any new pdf statements to add to your project"
+    )
 
     def __init__(self) -> None:
         super().__init__()
@@ -46,8 +58,12 @@ class StatementQueueView(StanWidget):
         self.buttonAddFiles.setIcon(QIcon(Paths.icon("file_add.svg")))
         self.buttonRemove.setIcon(QIcon(Paths.icon("file_remove.svg")))
         self.buttonClear.setIcon(QIcon(Paths.icon("folder_remove.svg")))
-        layout.addWidget(self.buttonAddFolders, 0, 0, alignment=Qt.AlignmentFlag.AlignBottom)
-        layout.addWidget(self.buttonAddFiles, 0, 1, alignment=Qt.AlignmentFlag.AlignBottom)
+        layout.addWidget(
+            self.buttonAddFolders, 0, 0, alignment=Qt.AlignmentFlag.AlignBottom
+        )
+        layout.addWidget(
+            self.buttonAddFiles, 0, 1, alignment=Qt.AlignmentFlag.AlignBottom
+        )
         layout.addWidget(self.buttonRemove, 2, 0, alignment=Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self.buttonClear, 2, 1, alignment=Qt.AlignmentFlag.AlignTop)
 
@@ -60,6 +76,8 @@ class StatementQueueView(StanWidget):
         self.buttonRunImport = StanButton("Run Statement Import")
         self.buttonRunImport.setIcon(QIcon(Paths.icon("run.svg")))
         self.buttonRunImport.setDisabled(True)
-        layout.addWidget(self.buttonRunImport, 4, 1, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(
+            self.buttonRunImport, 4, 1, alignment=Qt.AlignmentFlag.AlignRight
+        )
 
         self.setLayout(layout)

@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QRadioButton,
+    QTableView,
     QTreeView,
     QWidget,
 )
@@ -54,6 +55,18 @@ class StanPolarsModel(QAbstractTableModel):
                 return str(self.df.columns[section])
 
         return None
+
+
+class StanTableView(QTableView):
+    def __init__(self) -> None:
+        super().__init__()
+        self.setAutoFillBackground(True)
+        self.setAlternatingRowColors(True)
+        self.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.setSelectionMode(QTableView.SelectionMode.SingleSelection)
+        self.setShowGrid(False)
+        self.horizontalHeader().setStretchLastSection(True)
+        self.verticalHeader().setVisible(False)
 
 
 class StanTreeView(QTreeView):
