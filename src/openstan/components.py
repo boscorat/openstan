@@ -65,6 +65,8 @@ class StanTableView(QTableView):
         self.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.setSelectionMode(QTableView.SelectionMode.SingleSelection)
         self.setShowGrid(False)
+        self.setMinimumHeight(200)
+        self.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
         self.horizontalHeader().setStretchLastSection(True)
         self.verticalHeader().setVisible(False)
 

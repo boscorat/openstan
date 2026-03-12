@@ -1,5 +1,5 @@
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QGridLayout, QVBoxLayout
+from PyQt6.QtWidgets import QGridLayout, QTabWidget, QVBoxLayout
 
 from openstan.components import (
     Qt,
@@ -13,18 +13,38 @@ from openstan.paths import Paths
 
 
 class StatementResultView(StanWidget):
+    """Results view shown after a statement import batch completes.
+
+    Three result categories (SUCCESS / REVIEW / FAILURE) are presented as tabs
+    inside a ``QTabWidget``.  Each tab is hidden when its count is zero and
+    shown as soon as the first row arrives, so the widget stays uncluttered
+    during sparse batches.
+
+    Three action buttons:
+    * ``buttonCloseResults``  — navigate back to the queue view; queue stays locked.
+    * ``buttonAbandonBatch``  — delete all results and unlock the queue.
+    * ``buttonCommitBatch``   — commit successful results (stub); enabled only when
+                                n_success > 0.
+    """
+
     header = "#### Statement Import Results"
+
+    # Tab indices — kept as class constants so the presenter can reference them
+    # without hard-coding magic numbers.
+    TAB_SUCCESS = 0
+    TAB_REVIEW = 1
+    TAB_FAILURE = 2
 
     def __init__(self) -> None:
         super().__init__()
         outer_layout = QVBoxLayout()
 
-        # Progress Bar
+        # ── Progress Bar ───────────────────────────────────────────────────
         self.progressBar = StanProgressBar()
         self.progressBar.setMinimumWidth(800)
         outer_layout.addWidget(self.progressBar, alignment=Qt.AlignmentFlag.AlignTop)
 
-        # Summary label
+        # ── Summary label ──────────────────────────────────────────────────
         self.labelStatementsProcessed = StanLabel(
             "Processed: 0  |  Success: 0  |  Review: 0  |  Failed: 0"
         )
@@ -32,70 +52,53 @@ class StatementResultView(StanWidget):
             self.labelStatementsProcessed, alignment=Qt.AlignmentFlag.AlignLeft
         )
 
-        # ── SUCCESS section ────────────────────────────────────────────────
-        self.labelSuccess = StanLabel("##### SUCCESS (0)")
+        # ── Tabbed result sections ─────────────────────────────────────────
+        self.results_tabs = QTabWidget()
+        self.results_tabs.setMinimumWidth(800)
+
+        # SUCCESS tab
         self.success_table = StanTableView()
-        self.success_table.setMinimumWidth(800)
-        self.success_table.setMinimumHeight(160)
+        self.results_tabs.addTab(self.success_table, "SUCCESS (0)")
 
-        success_buttons = QGridLayout()
-        self.buttonAbandonSuccessful = StanButton("Abandon Successful")
-        self.buttonAbandonSuccessful.setIcon(QIcon(Paths.icon("bin.svg")))
-        self.buttonAddSuccessful = StanButton("Add Successful")
-        self.buttonAddSuccessful.setIcon(QIcon(Paths.icon("tick.svg")))
-        success_buttons.addWidget(
-            self.buttonAbandonSuccessful, 0, 0, alignment=Qt.AlignmentFlag.AlignRight
-        )
-        success_buttons.addWidget(
-            self.buttonAddSuccessful, 0, 1, alignment=Qt.AlignmentFlag.AlignRight
-        )
-
-        outer_layout.addWidget(self.labelSuccess, alignment=Qt.AlignmentFlag.AlignLeft)
-        outer_layout.addWidget(self.success_table)
-        outer_layout.addLayout(success_buttons)
-
-        # ── REVIEW section ─────────────────────────────────────────────────
-        self.labelReview = StanLabel("##### REVIEW (0)")
+        # REVIEW tab
         self.review_table = StanTableView()
-        self.review_table.setMinimumWidth(800)
-        self.review_table.setMinimumHeight(120)
+        self.results_tabs.addTab(self.review_table, "REVIEW (0)")
 
-        outer_layout.addWidget(self.labelReview, alignment=Qt.AlignmentFlag.AlignLeft)
-        outer_layout.addWidget(self.review_table)
-
-        # ── FAILURE section ────────────────────────────────────────────────
-        self.labelFailure = StanLabel("##### FAILURE (0)")
+        # FAILURE tab
         self.failure_table = StanTableView()
-        self.failure_table.setMinimumWidth(800)
-        self.failure_table.setMinimumHeight(120)
+        self.results_tabs.addTab(self.failure_table, "FAILURE (0)")
 
-        failure_buttons = QGridLayout()
-        self.buttonDebugFailed = StanButton("Debug Failed")
-        self.buttonDebugFailed.setIcon(QIcon(Paths.icon("bug.svg")))
-        self.buttonAbandonFailed = StanButton("Abandon Failed")
-        self.buttonAbandonFailed.setIcon(QIcon(Paths.icon("bin.svg")))
-        failure_buttons.addWidget(
-            self.buttonDebugFailed, 0, 0, alignment=Qt.AlignmentFlag.AlignRight
+        # All tabs start hidden; the presenter shows them as rows arrive
+        self.results_tabs.setTabVisible(self.TAB_SUCCESS, False)
+        self.results_tabs.setTabVisible(self.TAB_REVIEW, False)
+        self.results_tabs.setTabVisible(self.TAB_FAILURE, False)
+
+        outer_layout.addWidget(self.results_tabs, stretch=1)
+
+        # ── Batch action buttons ───────────────────────────────────────────
+        action_buttons = QGridLayout()
+
+        self.buttonCloseResults = StanButton("Close Results")
+        self.buttonCloseResults.setIcon(QIcon(Paths.icon("exit.svg")))
+
+        self.buttonAbandonBatch = StanButton("Abandon Batch")
+        self.buttonAbandonBatch.setIcon(QIcon(Paths.icon("bin.svg")))
+
+        self.buttonCommitBatch = StanButton("Commit Batch")
+        self.buttonCommitBatch.setIcon(QIcon(Paths.icon("tick.svg")))
+        self.buttonCommitBatch.setEnabled(
+            False
+        )  # enabled by presenter when n_success > 0
+
+        action_buttons.addWidget(
+            self.buttonCloseResults, 0, 0, alignment=Qt.AlignmentFlag.AlignLeft
         )
-        failure_buttons.addWidget(
-            self.buttonAbandonFailed, 0, 1, alignment=Qt.AlignmentFlag.AlignRight
+        action_buttons.addWidget(
+            self.buttonAbandonBatch, 0, 1, alignment=Qt.AlignmentFlag.AlignRight
+        )
+        action_buttons.addWidget(
+            self.buttonCommitBatch, 0, 2, alignment=Qt.AlignmentFlag.AlignRight
         )
 
-        outer_layout.addWidget(self.labelFailure, alignment=Qt.AlignmentFlag.AlignLeft)
-        outer_layout.addWidget(self.failure_table)
-        outer_layout.addLayout(failure_buttons)
-
-        # ── Global exit button ─────────────────────────────────────────────
-        self.buttonExit = StanButton("Exit Results View")
-        self.buttonExit.setIcon(QIcon(Paths.icon("exit.svg")))
-        outer_layout.addWidget(self.buttonExit, alignment=Qt.AlignmentFlag.AlignRight)
-
-        # Hide all action buttons initially; presenter reveals them once
-        # results are available.
-        self.buttonAddSuccessful.setVisible(False)
-        self.buttonAbandonSuccessful.setVisible(False)
-        self.buttonDebugFailed.setVisible(False)
-        self.buttonAbandonFailed.setVisible(False)
-        self.buttonExit.setVisible(False)
-
+        outer_layout.addLayout(action_buttons)
         self.setLayout(outer_layout)
