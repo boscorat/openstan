@@ -87,11 +87,38 @@ CREATE TABLE IF NOT EXISTS "statement_queue" (
     "status_id"  INTEGER NOT NULL DEFAULT 0,
     "path"       TEXT NOT NULL,
     "is_folder"  INTEGER NOT NULL DEFAULT 0,
+    "batch_id"   TEXT DEFAULT NULL,
     PRIMARY KEY("queue_id"),
     FOREIGN KEY("parent_id")  REFERENCES "statement_queue"("queue_id"),
     FOREIGN KEY("project_id") REFERENCES "project"("project_id"),
     FOREIGN KEY("session_id") REFERENCES "session"("session_id"),
     FOREIGN KEY("status_id")  REFERENCES "status"("status_id")
+);
+
+CREATE TABLE IF NOT EXISTS "statement_result" (
+    "result_id"      TEXT,
+    "batch_id"       TEXT NOT NULL,
+    "queue_id"       TEXT NOT NULL,
+    "project_id"     TEXT NOT NULL,
+    "result"         TEXT NOT NULL,
+    "file_path"      TEXT NOT NULL,
+    "id_account"     TEXT,
+    "statement_date" TEXT,
+    "payments_in"    REAL,
+    "payments_out"   REAL,
+    "error_type"     TEXT,
+    "message"        TEXT,
+    "created"        TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY("result_id"),
+    FOREIGN KEY("queue_id")   REFERENCES "statement_queue"("queue_id"),
+    FOREIGN KEY("project_id") REFERENCES "project"("project_id")
+);
+
+CREATE TABLE IF NOT EXISTS "statement_result_payload" (
+    "result_id" TEXT,
+    "payload"   BLOB NOT NULL,
+    PRIMARY KEY("result_id"),
+    FOREIGN KEY("result_id") REFERENCES "statement_result"("result_id")
 );
 """
 

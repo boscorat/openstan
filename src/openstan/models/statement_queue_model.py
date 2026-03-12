@@ -94,6 +94,62 @@ class StatementQueueModel(QSqlTableModel):
                 pass
         return self.delete_records(queue_ids)
 
+    # ---------------------------------------------------------------------------
+    # Batch lock / unlock
+    # ---------------------------------------------------------------------------
+
+    def set_batch_id(self, project_id: str, batch_id: str) -> tuple[bool, str]:
+        """Lock the queue for *project_id* by stamping every row with *batch_id*.
+
+        Called at the start of a statement import run.  Returns (success, message).
+        """
+        self.setFilter(f"project_id = '{project_id}'")
+        self.select()
+        for row in range(self.rowCount()):
+            record: QSqlRecord = self.record(row)
+            record.setValue("batch_id", batch_id)
+            self.setRecord(row, record)
+        if self.submitAll():
+            self.select()
+            return (True, f"Queue locked with batch_id {batch_id}")
+        return (False, self.lastError().text())
+
+    def clear_batch_id(self, project_id: str) -> tuple[bool, str]:
+        """Unlock the queue for *project_id* by clearing batch_id on every row.
+
+        Called when a batch is abandoned.  Returns (success, message).
+        """
+        self.setFilter(f"project_id = '{project_id}'")
+        self.select()
+        for row in range(self.rowCount()):
+            record: QSqlRecord = self.record(row)
+            record.setValue("batch_id", None)
+            self.setRecord(row, record)
+        if self.submitAll():
+            self.select()
+            return (True, "Queue unlocked")
+        return (False, self.lastError().text())
+
+    def get_batch_id(self, project_id: str) -> str | None:
+        """Return the active batch_id for *project_id*, or None if unlocked.
+
+        Reads the first non-folder row's batch_id value.  All rows for a given
+        project share the same batch_id so checking one is sufficient.
+        """
+        self.setFilter(f"project_id = '{project_id}' AND is_folder = 0")
+        self.select()
+        if self.rowCount() == 0:
+            return None
+        value = self.record(0).value("batch_id")
+        # QSqlTableModel returns None or empty string for NULL
+        if value is None or value == "":
+            return None
+        return str(value)
+
+    def is_locked(self, project_id: str) -> bool:
+        """Return True if the queue for *project_id* has an active batch in flight."""
+        return self.get_batch_id(project_id) is not None
+
 
 class StatementQueueTreeModel(QStandardItemModel):
     parent_filter = "parent_id = queue_id"

@@ -1,8 +1,11 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import bank_statement_parser as bsp
 from bank_statement_parser import ProjectPaths
 from PyQt6.QtCore import QObject, pyqtSlot
+
+from openstan.models.statement_result_model import ResultRow
 
 if TYPE_CHECKING:
     from PyQt6.QtSql import QSqlRecord
@@ -22,7 +25,6 @@ class StanPresenter(QObject):
         self.statement_result_presenter = self.stan.statement_result_presenter
 
         # views
-        # self.project_view = self.project_presenter.view
         self.footer_view = self.stan.footer_view
 
         # signals
@@ -33,6 +35,10 @@ class StanPresenter(QObject):
         self.statement_queue_presenter.statement_imported.connect(
             self.statement_imported
         )
+        self.statement_queue_presenter.import_finished.connect(self.on_import_finished)
+        self.statement_queue_presenter.view_results_requested.connect(self.show_results)
+        self.statement_result_presenter.exit_results.connect(self.hide_results)
+        self.statement_result_presenter.batch_abandoned.connect(self.on_batch_abandoned)
         self.footer_view.admin_requested.connect(self.open_admin_dialog)
 
         # add a new user to the database if not exists
@@ -83,7 +89,6 @@ class StanPresenter(QObject):
 
     @pyqtSlot(int)
     def project_selection_changed(self, index: int) -> None:
-        # Handle the project selection change logic here
         self.update_current_project_info(index)
 
     def cleanup_before_exit(self) -> None:
@@ -107,22 +112,126 @@ class StanPresenter(QObject):
         )
         print(current_record.value("project_location"))
 
-    @pyqtSlot(Path, object, int)
-    def statement_imported(self, file_path: Path, stmt, progress_bar_value) -> None:
+        # Session restore: check for a locked batch on this project
+        batch_id = self.statement_queue_presenter.model.get_batch_id(
+            self.stan.current_project_id
+        )
+        if batch_id:
+            # Stale-lock detection: if the queue is locked but no results were
+            # persisted (e.g. app closed mid-batch), treat it as abandoned and
+            # unlock automatically so the user is not stuck.
+            result_ids = self.stan.statement_result_model.get_result_ids_for_batch(
+                batch_id
+            )
+            if not result_ids:
+                print(
+                    f"Stale lock detected for batch {batch_id} — no persisted results. "
+                    "Clearing batch_id automatically."
+                )
+                self.stan.statement_queue_model.clear_batch_id(
+                    self.stan.current_project_id
+                )
+                self.statement_queue_presenter.update_view()
+            else:
+                # Genuine restore: repopulate in-memory models from DB.
+                # Do NOT auto-navigate to the results view — the user should
+                # start from the queue and press "View Results" themselves.
+                self.statement_result_presenter.load_results_from_db(
+                    batch_id, self.stan.current_project_id
+                )
+
+    @pyqtSlot(Path, bsp.PdfResult, int, str)
+    def statement_imported(
+        self,
+        file_path: Path,
+        stmt: bsp.PdfResult,
+        progress_bar_value: int,
+        queue_id: str,
+    ) -> None:
         self.stan.statement_result_presenter.view.progressBar.setValue(
             progress_bar_value
         )
-        self.stan.project_view.setVisible(False)
-        self.stan.statement_queue_block.setVisible(False)
-        self.stan.export_block.setVisible(False)
-        self.stan.statement_result_block.setVisible(True)
-        result_presenter = self.stan.statement_result_presenter
+
+        # Show the results block while import is in progress
+        self.show_results()
+
+        # Extract display fields from the typed payload
+        id_account: str | None = None
+        statement_date: str | None = None
+        payments_in: float | None = None
+        payments_out: float | None = None
+        error_type: str | None = None
+        message: str | None = None
+
         if stmt.result == "SUCCESS":
-            result_presenter.success_model.add_statement(file_path, stmt)
+            info = stmt.payload.statement_info  # type: ignore[union-attr]
+            id_account = info.id_account
+            statement_date = str(info.statement_date)
+            payments_in = float(info.payments_in)
+            payments_out = float(info.payments_out)
         elif stmt.result == "REVIEW":
-            result_presenter.review_model.add_statement(file_path, stmt)
+            info = stmt.payload.statement_info  # type: ignore[union-attr]
+            id_account = info.id_account
+            statement_date = str(info.statement_date)
+            payments_in = float(info.payments_in)
+            payments_out = float(info.payments_out)
+            message = stmt.payload.message  # type: ignore[union-attr]
         else:
-            result_presenter.failure_model.add_statement(file_path, stmt)
+            error_type = stmt.payload.error_type  # type: ignore[union-attr]
+            message = stmt.payload.message  # type: ignore[union-attr]
+
+        batch_id = self.statement_queue_presenter._current_batch_id or ""
+
+        row = ResultRow(
+            result_id="",  # assigned at persist time
+            batch_id=batch_id,
+            queue_id=queue_id,
+            project_id=str(self.stan.current_project_id or ""),
+            result=stmt.result,
+            file_path=file_path,
+            id_account=id_account,
+            statement_date=statement_date,
+            payments_in=payments_in,
+            payments_out=payments_out,
+            error_type=error_type,
+            message=message,
+            pdf_result=stmt,
+        )
+        self.statement_result_presenter.add_result_to_memory(row)
+
+    @pyqtSlot()
+    def on_import_finished(self) -> None:
+        """Worker thread finished: persist all in-memory results to gui.db."""
+        batch_id = self.statement_queue_presenter._current_batch_id
+        if batch_id:
+            self.statement_result_presenter.persist_batch_to_db(batch_id)
+        else:
+            print("WARNING: on_import_finished called with no current batch_id.")
+
+    # ---------------------------------------------------------------------------
+    # Show / hide results panel
+    # ---------------------------------------------------------------------------
+
+    def show_results(self) -> None:
+        """Switch the content area to the results block."""
+        self.stan.statement_queue_block.setVisible(False)
+        self.stan.statement_result_block.setVisible(True)
+
+    def hide_results(self) -> None:
+        """Switch the content area back to the main project view."""
+        self.stan.statement_result_block.setVisible(False)
+        self.stan.statement_queue_block.setVisible(True)
+
+    # ---------------------------------------------------------------------------
+    # Batch lifecycle callbacks
+    # ---------------------------------------------------------------------------
+
+    @pyqtSlot()
+    def on_batch_abandoned(self) -> None:
+        """Called when the user abandons a batch from the results view."""
+        self.hide_results()
+        # Refresh queue view to reflect unlocked state
+        self.statement_queue_presenter.update_view()
 
     @pyqtSlot()
     def open_admin_dialog(self) -> None:

@@ -6,7 +6,7 @@ from uuid import uuid4
 from bank_statement_parser import ProjectPaths
 from PyQt6.QtCore import QSysInfo, QThreadPool, qDebug
 from PyQt6.QtSql import QSqlDatabase
-from PyQt6.QtWidgets import QApplication, QGridLayout, QMainWindow
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout
 
 from openstan.components import (  # mostly widget subclasses
     Qt,
@@ -16,12 +16,14 @@ from openstan.components import (  # mostly widget subclasses
 )
 from openstan.data.create_gui_db import create_gui_db
 from openstan.models import (
+    FailureResultModel,
     ProjectModel,
+    ReviewResultModel,
     SessionModel,
     StatementQueueModel,
     StatementQueueTreeModel,
-    FailureResultModel,
-    ReviewResultModel,
+    StatementResultModel,
+    StatementResultPayloadModel,
     SuccessResultModel,
     UserModel,
 )
@@ -38,7 +40,6 @@ from openstan.presenters import (
 from openstan.views import (
     AdminView,
     ContentFrameView,
-    ExportView,
     FooterView,
     ProjectView,
     StatementQueueView,
@@ -74,7 +75,6 @@ def main() -> None:
     sessionID: str = uuid4().hex
 
     window: Stan = Stan(gui_db=gui_db, sessionID=sessionID, username=username)
-    # window.setWindowOpacity(0.5)
     window.show()
 
     app.exec()
@@ -101,7 +101,7 @@ class Stan(QMainWindow):
         self.error_db_lock = StanErrorMessage(self)
         self.error_db_lock.accepted.connect(self.close)
 
-        # models initiation
+        # ── Models ────────────────────────────────────────────────────────
         self.user_model = UserModel(db=gui_db)
         self.session_model = SessionModel(db=gui_db)
         self.project_model = ProjectModel(db=gui_db)
@@ -110,46 +110,38 @@ class Stan(QMainWindow):
         self.success_result_model = SuccessResultModel()
         self.review_result_model = ReviewResultModel()
         self.failure_result_model = FailureResultModel()
-        # main layouts
-        self.layout_project = QGridLayout()
-        self.layout_project.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.layout_results = QGridLayout()
-        self.layout_results.setAlignment(Qt.AlignmentFlag.AlignTop)
-        # master widgets
+        self.statement_result_model = StatementResultModel(db=gui_db)
+        self.statement_result_payload_model = StatementResultPayloadModel(db=gui_db)
+
+        # ── Views ─────────────────────────────────────────────────────────
         self.stan = QWidget()
         self.title_view = TitleView()
         self.project_view = ProjectView()
         self.footer_view = FooterView()
         self.admin_view = AdminView(parent=self)
 
-        # process flow widgets
         self.statement_queue_view = StatementQueueView()
         self.statement_result_view = StatementResultView()
-        self.export_view = ExportView()
 
+        # stretch_content=True lets the inner tree / tab widget grow vertically
         self.statement_queue_block = ContentFrameView(
             widgets=[
                 (StanLabel(self.statement_queue_view.header), 0, 0),
                 (self.statement_queue_view, 1, 0),
-            ]
+            ],
+            stretch_content=True,
         )
 
         self.statement_result_block = ContentFrameView(
             widgets=[
                 (StanLabel(self.statement_result_view.header), 0, 0),
                 (self.statement_result_view, 1, 0),
-            ]
-        )
-
-        self.export_block = ContentFrameView(
-            widgets=[
-                (StanLabel(self.export_view.header), 0, 0),
-                (self.export_view, 1, 0),
-            ]
+            ],
+            stretch_content=True,
         )
         self.statement_result_block.setVisible(False)  # hide initially
 
-        # hook up the presenters
+        # ── Presenters ────────────────────────────────────────────────────
         self.user_presenter = UserPresenter(model=self.user_model, view=None)
         self.session_presenter = SessionPresenter(model=self.session_model, view=None)
         self.project_presenter = ProjectPresenter(
@@ -165,6 +157,9 @@ class Stan(QMainWindow):
             success_model=self.success_result_model,
             review_model=self.review_result_model,
             failure_model=self.failure_result_model,
+            result_model=self.statement_result_model,
+            payload_model=self.statement_result_payload_model,
+            queue_model=self.statement_queue_model,
             view=self.statement_result_view,
         )
         self.admin_presenter = AdminPresenter(
@@ -172,32 +167,24 @@ class Stan(QMainWindow):
         )
         self.stan_presenter = StanPresenter(stan=self)
 
-        # assemble project layout
-        self.layout_project.addWidget(
-            self.title_view, 0, 0, alignment=Qt.AlignmentFlag.AlignTop
+        # ── Layout ────────────────────────────────────────────────────────
+        # VBox: title → project selector → [queue block | result block] → footer
+        # The queue/result block row has stretch=1 so it absorbs all extra
+        # vertical space when the window is resized.  Footer has stretch=0
+        # so it stays pinned to the bottom.
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        layout.addWidget(self.title_view, stretch=0)
+        layout.addWidget(
+            self.project_view, stretch=0, alignment=Qt.AlignmentFlag.AlignTop
         )
-        self.layout_project.addWidget(
-            self.project_view, 1, 0, alignment=Qt.AlignmentFlag.AlignTop
-        )
-        self.layout_project.addWidget(
-            self.statement_queue_block, 2, 0, alignment=Qt.AlignmentFlag.AlignTop
-        )
-        self.layout_project.addWidget(
-            self.export_block, 3, 0, alignment=Qt.AlignmentFlag.AlignTop
-        )
-        self.layout_project.addWidget(
-            self.footer_view, 4, 0, alignment=Qt.AlignmentFlag.AlignBottom
-        )
-        # assemble results layout
-        self.layout_project.addWidget(
-            self.statement_result_block, 1, 0, 3, 1, alignment=Qt.AlignmentFlag.AlignTop
-        )
-        # assemble master layout
-        self.master_layout = QGridLayout()
-        self.master_layout.addLayout(
-            self.layout_project, 0, 0, alignment=Qt.AlignmentFlag.AlignTop
-        )
-        self.stan.setLayout(self.master_layout)
+        layout.addWidget(self.statement_queue_block, stretch=1)
+        layout.addWidget(self.statement_result_block, stretch=1)
+        layout.addWidget(self.footer_view, stretch=0)
+
+        self.stan.setLayout(layout)
         self.setCentralWidget(self.stan)
 
     def closeEvent(self, a0) -> None:
@@ -205,7 +192,7 @@ class Stan(QMainWindow):
         if self.sessionID:
             self.stan_presenter.cleanup_before_exit()
         if a0:
-            a0.accept()  # Accept
+            a0.accept()
 
 
 if __name__ == "__main__":
