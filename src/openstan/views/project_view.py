@@ -171,6 +171,7 @@ class ProjectView(StanWidget):
         self.button_existing = StanButton("Add Existing Project")
         self.button_existing.setIcon(QIcon(Paths.icon("folder_add.svg")))
         self.button_existing.setMinimumWidth(180)
+        self.summary_label = StanLabel("")
         layout = QGridLayout()
         layout.addWidget(
             self.label, 0, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
@@ -205,9 +206,17 @@ class ProjectView(StanWidget):
             5,
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         )
+        layout.addWidget(
+            self.summary_label,
+            1,
+            0,
+            1,
+            6,
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+        )
         layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.setLayout(layout)
-        self.setMaximumHeight(50)
+        self.setMaximumHeight(75)
 
     def reset_wizard(self) -> None:
         self.wizard = ProjectWizard(mode="new")

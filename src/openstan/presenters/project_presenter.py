@@ -1,13 +1,77 @@
+import sqlite3
+import sys
+import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import bank_statement_parser as bsp
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+import polars as pl
+from PyQt6.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
 
 if TYPE_CHECKING:
     from openstan.models.project_model import ProjectModel
     from openstan.views.project_view import ProjectView
+
+
+class ProjectSummarySignals(QObject):
+    """Cross-thread signals for ProjectSummaryWorker."""
+
+    summary_ready: pyqtSignal = pyqtSignal(str)
+
+
+class ProjectSummaryWorker(QRunnable):
+    """Background worker that queries project.db mart tables and emits a summary string.
+
+    Emits an empty string when the mart has not yet been built or all counts are zero.
+    Any exception is printed to stderr and an empty string is emitted so the UI is
+    never left in a broken state.
+    """
+
+    def __init__(self, project_path: Path) -> None:
+        super().__init__()
+        self._project_path: Path = project_path
+        self.signals: ProjectSummarySignals = ProjectSummarySignals()
+
+    @pyqtSlot()
+    def run(self) -> None:
+        try:
+            tx_count: int = (
+                bsp.db.FactTransaction(self._project_path)
+                .all.select(pl.len())
+                .collect()
+                .item()
+            )
+            stmt_count: int = (
+                bsp.db.DimStatement(self._project_path)
+                .all.select(pl.len())
+                .collect()
+                .item()
+            )
+            acc_count: int = (
+                bsp.db.DimAccount(self._project_path)
+                .all.select(pl.len())
+                .collect()
+                .item()
+            )
+        except sqlite3.OperationalError, bsp.StatementError:
+            # Mart tables not yet built, or project.db missing — show nothing.
+            self.signals.summary_ready.emit("")
+            return
+        except Exception:
+            traceback.print_exc(file=sys.stderr)
+            self.signals.summary_ready.emit("")
+            return
+
+        if tx_count == 0 and stmt_count == 0 and acc_count == 0:
+            self.signals.summary_ready.emit("")
+            return
+
+        text = (
+            f"{tx_count:,} transactions in {stmt_count:,} statements"
+            f" across {acc_count:,} {'account' if acc_count == 1 else 'accounts'}"
+        )
+        self.signals.summary_ready.emit(text)
 
 
 class ProjectPresenter(QObject):

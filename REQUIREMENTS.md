@@ -24,6 +24,9 @@ folder on disk that is scaffolded and validated by `bank_statement_parser`.
   that I can declutter the list without losing data.
 - **PM-5** As a user, I want to permanently delete a project including its folder from disk, so
   that I can clean up projects I no longer need.
+- **PM-6** As a user, I want to see a summary of the selected project's contents (transaction
+  count, statement count, and account count) displayed beneath the project selector, so that I
+  can assess the scope of a project at a glance without opening any views.
 
 ### Acceptance Criteria
 
@@ -36,6 +39,16 @@ folder on disk that is scaffolded and validated by `bank_statement_parser`.
 - Delete-from-disk requires explicit user confirmation via `StanInfoMessage` before any
   destructive action is taken.
 - All project mutations are recorded in `event_log` via the existing SQLite triggers.
+- (PM-6) The summary label is displayed immediately below the project selector combo box and
+  reads in the form `N transactions in M statements across K accounts`.
+- (PM-6) Summary counts are fetched in a background thread (`ProjectSummaryWorker`) so the UI
+  is never blocked; the label is cleared while the fetch is in progress.
+- (PM-6) Counts are sourced exclusively from the `bsp.db` mart API (`FactTransaction`,
+  `DimStatement`, `DimAccount`) — no raw SQL from `openstan` (see D001).
+- (PM-6) If the data mart has not yet been built for the project (mart tables absent or all
+  zero), the summary label is left blank.
+- (PM-6) The summary refreshes automatically whenever the selected project changes, and again
+  after a batch is committed.
 
 ---
 
