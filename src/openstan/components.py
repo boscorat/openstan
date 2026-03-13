@@ -67,8 +67,8 @@ class StanTableView(QTableView):
         self.setShowGrid(False)
         self.setMinimumHeight(200)
         self.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
-        self.horizontalHeader().setStretchLastSection(True)
-        self.verticalHeader().setVisible(False)
+        self.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
+        self.verticalHeader().setVisible(False)  # type: ignore[union-attr]
 
 
 class StanTreeView(QTreeView):
@@ -79,7 +79,7 @@ class StanTreeView(QTreeView):
         self.setSelectionBehavior(QTreeView.SelectionBehavior.SelectRows)
         self.setSelectionMode(QTreeView.SelectionMode.ExtendedSelection)
         self.setUniformRowHeights(True)
-        self.setAnimated(True)
+        self.setAnimated(False)
 
 
 class StanDialog(QDialog):
@@ -131,9 +131,7 @@ class StanForm(QFormLayout):
 class StanFrame(QFrame):
     def __init__(self) -> None:
         super().__init__()
-        self.setFrameStyle(
-            QFrame.Shape.StyledPanel | QFrame.Shadow.Sunken | QFrame.Shape.Panel
-        )
+        self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Sunken | QFrame.Shape.Panel)
         self.setAutoFillBackground(True)
 
 

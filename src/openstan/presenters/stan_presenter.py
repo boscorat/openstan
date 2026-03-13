@@ -35,6 +35,7 @@ class StanPresenter(QObject):
         self.statement_queue_presenter.statement_imported.connect(
             self.statement_imported
         )
+        self.statement_queue_presenter.import_started.connect(self.on_import_started)
         self.statement_queue_presenter.import_finished.connect(self.on_import_finished)
         self.statement_queue_presenter.view_results_requested.connect(self.show_results)
         self.statement_result_presenter.exit_results.connect(self.hide_results)
@@ -125,9 +126,7 @@ class StanPresenter(QObject):
         self.hide_results()
 
         # Session restore: check for a locked batch on this project
-        batch_id = self.statement_queue_presenter.model.get_batch_id(
-            self.stan.current_project_id
-        )
+        batch_id = self.statement_queue_presenter.model.get_batch_id()
         if batch_id:
             # Stale-lock detection: if the queue is locked but no results were
             # persisted (e.g. app closed mid-batch), treat it as abandoned and
@@ -140,9 +139,9 @@ class StanPresenter(QObject):
                     f"Stale lock detected for batch {batch_id} — no persisted results. "
                     "Clearing batch_id automatically."
                 )
-                self.stan.statement_queue_model.clear_batch_id(
-                    self.stan.current_project_id
-                )
+                self.stan.statement_queue_model.clear_batch_id()
+                # Also remove any orphaned batch duration record
+                self.stan.batch_model.delete_batch(batch_id)
                 self.statement_queue_presenter.update_view()
             else:
                 # Genuine restore: repopulate in-memory models from DB.
@@ -212,13 +211,27 @@ class StanPresenter(QObject):
         self.statement_result_presenter.add_result_to_memory(row)
 
     @pyqtSlot()
-    def on_import_finished(self) -> None:
-        """Worker thread finished: persist all in-memory results to gui.db."""
+    def on_import_started(self) -> None:
+        """Import worker has started: disable result action buttons."""
+        self.statement_result_presenter.set_importing(True)
+
+    @pyqtSlot(float)
+    def on_import_finished(self, duration_secs: float) -> None:
+        """Worker thread finished: persist batch record and all in-memory results."""
         batch_id = self.statement_queue_presenter._current_batch_id
         if batch_id:
+            ok, msg = self.stan.batch_model.create_batch(
+                batch_id=batch_id,
+                project_id=str(self.stan.current_project_id or ""),
+                duration_secs=duration_secs,
+            )
+            if not ok:
+                print(f"WARNING: Could not persist batch duration: {msg}", flush=True)
             self.statement_result_presenter.persist_batch_to_db(batch_id)
         else:
             print("WARNING: on_import_finished called with no current batch_id.")
+        # Re-enable action buttons now that import is complete
+        self.statement_result_presenter.set_importing(False)
 
     # ---------------------------------------------------------------------------
     # Show / hide results panel

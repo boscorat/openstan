@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "pyqt6>=6.10.2",
-    "uk-bank-statement-parser>=0.2.1a1",
+    "uk-bank-statement-parser",
 ]
 
 [project.scripts]
@@ -24,3 +24,6 @@ dev = [
     "pyrefly>=0.50.0",
     "ruff>=0.14.14",
 ]
+
+[tool.uv.sources]
+uk-bank-statement-parser = { path = "../bank_statement_parser", editable = true }

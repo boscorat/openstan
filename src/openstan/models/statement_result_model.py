@@ -384,8 +384,12 @@ class StatementResultPayloadModel(QSqlTableModel):
                 # QSqlTableModel returns BLOB columns as QByteArray; convert to
                 # bytes before unpickling.  bytes() works on both QByteArray and
                 # bytearray; fall back to the raw value for any unexpected type.
+                # QByteArray is not recognised by pyrefly's stubs as Buffer/iterable,
+                # but at runtime it is iterable over ints, so bytearray(blob) works.
                 raw: bytes = (
-                    bytes(blob) if isinstance(blob, (QByteArray, bytearray)) else blob
+                    bytes(bytearray(blob))  # type: ignore[call-overload]
+                    if isinstance(blob, (QByteArray, bytearray))
+                    else blob
                 )
                 obj = pickle.loads(raw)  # noqa: S301 — intentional, bsp-internal only
                 results[rid] = obj

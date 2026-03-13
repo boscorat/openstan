@@ -35,6 +35,7 @@ from openstan.components import StanErrorMessage, StanInfoMessage
 from openstan.models.statement_result_model import ResultRow
 
 if TYPE_CHECKING:
+    from openstan.models.batch_model import BatchModel
     from openstan.models.statement_result_model import (
         FailureResultModel,
         ReviewResultModel,
@@ -75,6 +76,9 @@ class CommitWorker(QRunnable):
         Aggregate counts forwarded to ``bsp.update_db``.
     project_path:
         Resolved project root — must never be ``None``.
+    duration_secs:
+        Actual PDF processing seconds for this batch, read from the
+        ``batch`` table in gui.db so the value persists across sessions.
     """
 
     def __init__(
@@ -89,6 +93,7 @@ class CommitWorker(QRunnable):
         errors: int,
         reviews: int,
         project_path: Path,
+        duration_secs: float,
     ) -> None:
         super().__init__()
         self.signals = CommitWorkerSignals()
@@ -102,6 +107,7 @@ class CommitWorker(QRunnable):
         self._errors = errors
         self._reviews = reviews
         self._project_path = project_path
+        self._duration_secs = duration_secs
 
     def run(self) -> None:
         try:
@@ -117,7 +123,7 @@ class CommitWorker(QRunnable):
                 pdf_count=self._pdf_count,
                 errors=self._errors,
                 reviews=self._reviews,
-                duration_secs=0,
+                duration_secs=self._duration_secs,
                 process_time=datetime.now(timezone.utc),
                 project_path=self._project_path,
             )
@@ -158,6 +164,7 @@ class StatementResultPresenter(QObject):
         result_model: "StatementResultModel",
         payload_model: "StatementResultPayloadModel",
         queue_model: "StatementQueueModel",
+        batch_model: "BatchModel",
         view: "StatementResultView",
     ) -> None:
         super().__init__()
@@ -172,6 +179,7 @@ class StatementResultPresenter(QObject):
         self.result_model = result_model
         self.payload_model = payload_model
         self.queue_model = queue_model
+        self.batch_model = batch_model
 
         # Wire each table view to its in-memory model
         self.view.success_table.setModel(self.success_model)
@@ -190,6 +198,10 @@ class StatementResultPresenter(QObject):
 
         self._current_batch_id: str | None = None
         self._current_project_id: str | None = None
+
+        # True while the background import worker is running — all three action
+        # buttons are disabled until import finishes to prevent a mid-batch commit.
+        self._importing: bool = False
 
         # Set by StanPresenter.update_current_project_info so the commit worker
         # has the correct context without accessing stan directly.
@@ -310,6 +322,26 @@ class StatementResultPresenter(QObject):
                 self.failure_model.add_row(row)
 
     # ---------------------------------------------------------------------------
+    # Public: import lifecycle — called by StanPresenter
+    # ---------------------------------------------------------------------------
+
+    def set_importing(self, importing: bool) -> None:
+        """Set whether a background import is currently running.
+
+        When *importing* is ``True`` all three action buttons are disabled so
+        the user cannot commit or abandon a batch that is still being built.
+        When *importing* is ``False`` (import finished) the buttons are
+        re-enabled according to the normal rules: Close and Abandon are always
+        enabled, Commit only when n_success > 0.
+
+        Called by ``StanPresenter``:
+        * ``True``  — just before the worker thread is started.
+        * ``False`` — inside ``on_import_finished``, after persisting to DB.
+        """
+        self._importing = importing
+        self.__apply_button_state()
+
+    # ---------------------------------------------------------------------------
     # Button slots
     # ---------------------------------------------------------------------------
 
@@ -338,21 +370,26 @@ class StatementResultPresenter(QObject):
             if not ok:
                 print(f"ERROR: Could not delete results: {msg}", file=sys.stderr)
 
-            # 4. Clear batch_id on queue rows → unlock the queue
+            # 4. Delete batch record
+            ok, msg = self.batch_model.delete_batch(batch_id)
+            if not ok:
+                print(f"ERROR: Could not delete batch record: {msg}", file=sys.stderr)
+
+            # 5. Clear batch_id on queue rows → unlock the queue
             if project_id:
-                ok, msg = self.queue_model.clear_batch_id(project_id)
+                ok, msg = self.queue_model.clear_batch_id()
                 if not ok:
                     print(
                         f"ERROR: Could not clear batch_id on queue: {msg}",
                         file=sys.stderr,
                     )
 
-        # 5. Clear in-memory state and reset labels
+        # 6. Clear in-memory state and reset labels
         self._current_batch_id = None
         self._current_project_id = None
         self.__clear_views()
 
-        # 6. Notify StanPresenter
+        # 7. Notify StanPresenter
         self.batch_abandoned.emit()
 
     @pyqtSlot()
@@ -416,6 +453,9 @@ class StatementResultPresenter(QObject):
 
         folder_path = self.queue_model.get_folder_paths_for_batch(batch_id)
 
+        # Read persisted processing duration for this batch
+        duration_secs = self.batch_model.get_duration(batch_id)
+
         # Lock UI for the duration of the worker
         self.view.buttonCommitBatch.setEnabled(False)
         self.view.buttonAbandonBatch.setEnabled(False)
@@ -432,13 +472,16 @@ class StatementResultPresenter(QObject):
             errors=n_failure,
             reviews=n_review,
             project_path=self.project_path,
+            duration_secs=duration_secs,
         )
 
         worker.signals.step.connect(self.__on_commit_step)
         worker.signals.finished.connect(self.__on_commit_finished)
         worker.signals.error.connect(self.__on_commit_error)
 
-        QThreadPool.globalInstance().start(worker)
+        thread_pool = QThreadPool.globalInstance()
+        assert thread_pool is not None, "QThreadPool.globalInstance() returned None"
+        thread_pool.start(worker)
 
     # ---------------------------------------------------------------------------
     # Commit worker callbacks
@@ -478,8 +521,14 @@ class StatementResultPresenter(QObject):
                     f"ERROR: Could not delete results after commit: {msg}",
                     file=sys.stderr,
                 )
+            ok, msg = self.batch_model.delete_batch(batch_id)
+            if not ok:
+                print(
+                    f"ERROR: Could not delete batch record after commit: {msg}",
+                    file=sys.stderr,
+                )
             if project_id:
-                ok, msg = self.queue_model.clear_batch_id(project_id)
+                ok, msg = self.queue_model.clear_batch_id()
                 if not ok:
                     print(
                         f"ERROR: Could not clear batch_id after commit: {msg}",
@@ -506,9 +555,8 @@ class StatementResultPresenter(QObject):
     def __on_commit_error(self, message: str) -> None:
         """A bsp call failed — show error dialog and re-enable retry."""
         StanErrorMessage(parent=self.view).showMessage(message)
-        # Re-enable so the user can retry or abandon
-        self.view.buttonCommitBatch.setEnabled(self.success_model.row_count > 0)
-        self.view.buttonAbandonBatch.setEnabled(True)
+        # Re-enable so the user can retry or abandon (import is not running)
+        self.__apply_button_state()
 
     # ---------------------------------------------------------------------------
     # Internal helpers
@@ -543,8 +591,23 @@ class StatementResultPresenter(QObject):
         self.view.review_table.resizeColumnsToContents()
         self.view.failure_table.resizeColumnsToContents()
 
-        # Commit enabled only when there is at least one successful result
-        self.view.buttonCommitBatch.setEnabled(n_success > 0)
+        self.__apply_button_state()
+
+    def __apply_button_state(self) -> None:
+        """Set enabled state of all three action buttons.
+
+        All buttons are disabled while import is running.  Once import
+        finishes, Close and Abandon are always enabled; Commit is enabled
+        only when at least one successful result exists.
+        """
+        if self._importing:
+            self.view.buttonCloseResults.setEnabled(False)
+            self.view.buttonAbandonBatch.setEnabled(False)
+            self.view.buttonCommitBatch.setEnabled(False)
+        else:
+            self.view.buttonCloseResults.setEnabled(True)
+            self.view.buttonAbandonBatch.setEnabled(True)
+            self.view.buttonCommitBatch.setEnabled(self.success_model.row_count > 0)
 
     def __clear_memory_models_silently(self) -> None:
         """Clear in-memory models without triggering model_updated signals.
@@ -583,4 +646,8 @@ class StatementResultPresenter(QObject):
         tabs.setTabVisible(self.view.TAB_FAILURE, False)
         tabs.setVisible(False)
         self.view.progressBar.setValue(0)
+        # Clearing always means we are no longer in an importing state
+        self._importing = False
+        self.view.buttonCloseResults.setEnabled(True)
+        self.view.buttonAbandonBatch.setEnabled(True)
         self.view.buttonCommitBatch.setEnabled(False)
