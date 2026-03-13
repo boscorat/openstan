@@ -131,7 +131,9 @@ class StanForm(QFormLayout):
 class StanFrame(QFrame):
     def __init__(self) -> None:
         super().__init__()
-        self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Sunken | QFrame.Shape.Panel)
+        self.setFrameStyle(
+            QFrame.Shape.StyledPanel | QFrame.Shadow.Sunken | QFrame.Shape.Panel
+        )
         self.setAutoFillBackground(True)
 
 

@@ -166,9 +166,11 @@ class Stan(QMainWindow):
             view=self.statement_result_view,
         )
         self.admin_presenter = AdminPresenter(
-            model=self.project_model, view=self.admin_view, stan=self
+            model=self.project_model,
+            view=self.admin_view,
+            stan=self,  # type: ignore[arg-type]
         )
-        self.stan_presenter = StanPresenter(stan=self)
+        self.stan_presenter = StanPresenter(stan=self)  # type: ignore[arg-type]
 
         # ── Layout ────────────────────────────────────────────────────────
         # VBox: title → project selector → [queue block | result block] → footer

@@ -22,8 +22,12 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "pyrefly>=0.50.0",
+    "pytest>=9.0.0",
     "ruff>=0.14.14",
 ]
 
 [tool.uv.sources]
-uk-bank-statement-parser = { path = "../bank_statement_parser", editable = true }
+uk-bank-statement-parser = { git = "https://github.com/boscorat/bank_statement_parser", tag = "v0.2.1a4" }
+
+[tool.pyrefly]
+search-path = ["."]

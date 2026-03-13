@@ -285,7 +285,7 @@ class StatementQueuePresenter(QObject):
                     raw_path = child_index.data(Qt.ItemDataRole.UserRole)
                     if raw_path:
                         expanded.add(str(raw_path))
-        return expanded, tree.verticalScrollBar().value()
+        return expanded, tree.verticalScrollBar().value()  # type: ignore[union-attr]
 
     def __restore_tree_state(self, expanded_paths: set[str], scroll_pos: int) -> None:
         """Re-expand nodes whose raw path is in *expanded_paths* and restore scroll.
@@ -303,7 +303,7 @@ class StatementQueuePresenter(QObject):
                 raw_path = child_index.data(Qt.ItemDataRole.UserRole)
                 if raw_path and str(raw_path) in expanded_paths:
                     tree.expand(child_index)
-        tree.verticalScrollBar().setValue(scroll_pos)
+        tree.verticalScrollBar().setValue(scroll_pos)  # type: ignore[union-attr]
 
     # ---------------------------------------------------------------------------
     # View refresh & lock-state restoration
