@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import bank_statement_parser as bsp
-from PyQt6.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject, QRunnable, Qt, pyqtSignal, pyqtSlot
 
 if TYPE_CHECKING:
     from PyQt6.QtCore import QThreadPool
@@ -153,7 +153,7 @@ class StatementQueuePresenter(QObject):
         print(f"Running statement import — batch_id: {batch_id}")
 
         # Lock every queue row for this project
-        success, msg = self.model.set_batch_id(self.projectID, batch_id)
+        success, msg = self.model.set_batch_id(batch_id)
         if not success:
             print(f"ERROR: Could not lock queue: {msg}", flush=True)
             return
@@ -221,12 +221,14 @@ class StatementQueuePresenter(QObject):
         if self.view.file_dialog.exec():
             selected_files: list[str] = self.view.file_dialog.selectedFiles()
             print("Selected files:", selected_files)
+            expanded_paths, scroll_pos = self.__save_tree_state()
             for file in selected_files:
                 file_id = uuid4().hex
                 self.add_record(
                     queue_id=file_id, parent_id=file_id, path=Path(file), is_folder=0
                 )
             self.update_view()
+            self.__restore_tree_state(expanded_paths, scroll_pos)
 
     @pyqtSlot()
     def remove_selected_items(self) -> None:
@@ -236,8 +238,10 @@ class StatementQueuePresenter(QObject):
         selected_ids: list[str] = [
             str(index.data()) for index in selected_indexes if index.column() == 1
         ]
+        expanded_paths, scroll_pos = self.__save_tree_state()
         self.model.delete_records(queue_ids=selected_ids)
         self.update_view()
+        self.__restore_tree_state(expanded_paths, scroll_pos)
 
     @pyqtSlot()
     def clear_all_items(self) -> None:
@@ -249,7 +253,6 @@ class StatementQueuePresenter(QObject):
         result: tuple[bool, str, str] = self.model.add_record(
             queue_id=queue_id,
             parent_id=parent_id,
-            project_id=self.projectID,
             session_id=self.sessionID,
             status_id=0,
             path=path,
@@ -261,14 +264,55 @@ class StatementQueuePresenter(QObject):
             print(f"Record added successfully: {queue_id}")
 
     # ---------------------------------------------------------------------------
+    # Tree state helpers
+    # ---------------------------------------------------------------------------
+
+    def __save_tree_state(self) -> tuple[set[str], int]:
+        """Return the set of expanded node raw paths and the current scroll position.
+
+        Walks depth-1 nodes (folder/file rows directly under the root "Folders"
+        and "Files" items) and records the raw path stored in UserRole for each
+        that is currently expanded.
+        """
+        tree = self.view.tree
+        model = self.tree_model
+        expanded: set[str] = set()
+        for root_row in range(model.rowCount()):
+            root_index = model.index(root_row, 0)
+            for child_row in range(model.rowCount(root_index)):
+                child_index = model.index(child_row, 0, root_index)
+                if tree.isExpanded(child_index):
+                    raw_path = child_index.data(Qt.ItemDataRole.UserRole)
+                    if raw_path:
+                        expanded.add(str(raw_path))
+        return expanded, tree.verticalScrollBar().value()
+
+    def __restore_tree_state(self, expanded_paths: set[str], scroll_pos: int) -> None:
+        """Re-expand nodes whose raw path is in *expanded_paths* and restore scroll.
+
+        Called after ``update_view()`` has rebuilt the tree model.  Matches nodes
+        by their UserRole raw path, which is unaffected by display-text mutations
+        such as the " (N pdf files)" suffix.
+        """
+        tree = self.view.tree
+        model = self.tree_model
+        for root_row in range(model.rowCount()):
+            root_index = model.index(root_row, 0)
+            for child_row in range(model.rowCount(root_index)):
+                child_index = model.index(child_row, 0, root_index)
+                raw_path = child_index.data(Qt.ItemDataRole.UserRole)
+                if raw_path and str(raw_path) in expanded_paths:
+                    tree.expand(child_index)
+        tree.verticalScrollBar().setValue(scroll_pos)
+
+    # ---------------------------------------------------------------------------
     # View refresh & lock-state restoration
     # ---------------------------------------------------------------------------
 
     def update_view(self) -> None:
         """Refresh the tree and restore the correct lock state."""
         if self.projectID is not None:
-            self.model.setFilter(f"project_id = '{self.projectID}'")
-            self.model.select()
+            self.model.set_project(self.projectID)
             self.tree_model.update_model(self.projectID)
             self.view.tree.expandToDepth(0)
             self._restore_lock_state()
@@ -282,7 +326,7 @@ class StatementQueuePresenter(QObject):
         a fresh session on a project with a pending batch) always shows the right
         state without requiring extra signals.
         """
-        batch_id = self.model.get_batch_id(self.projectID)
+        batch_id = self.model.get_batch_id()
         if batch_id:
             self._current_batch_id = batch_id
             # Import may already have finished — show View Results immediately

@@ -126,9 +126,7 @@ class StanPresenter(QObject):
         self.hide_results()
 
         # Session restore: check for a locked batch on this project
-        batch_id = self.statement_queue_presenter.model.get_batch_id(
-            self.stan.current_project_id
-        )
+        batch_id = self.statement_queue_presenter.model.get_batch_id()
         if batch_id:
             # Stale-lock detection: if the queue is locked but no results were
             # persisted (e.g. app closed mid-batch), treat it as abandoned and
@@ -141,9 +139,7 @@ class StanPresenter(QObject):
                     f"Stale lock detected for batch {batch_id} — no persisted results. "
                     "Clearing batch_id automatically."
                 )
-                self.stan.statement_queue_model.clear_batch_id(
-                    self.stan.current_project_id
-                )
+                self.stan.statement_queue_model.clear_batch_id()
                 # Also remove any orphaned batch duration record
                 self.stan.batch_model.delete_batch(batch_id)
                 self.statement_queue_presenter.update_view()

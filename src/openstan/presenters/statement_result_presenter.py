@@ -377,7 +377,7 @@ class StatementResultPresenter(QObject):
 
             # 5. Clear batch_id on queue rows → unlock the queue
             if project_id:
-                ok, msg = self.queue_model.clear_batch_id(project_id)
+                ok, msg = self.queue_model.clear_batch_id()
                 if not ok:
                     print(
                         f"ERROR: Could not clear batch_id on queue: {msg}",
@@ -528,7 +528,7 @@ class StatementResultPresenter(QObject):
                     file=sys.stderr,
                 )
             if project_id:
-                ok, msg = self.queue_model.clear_batch_id(project_id)
+                ok, msg = self.queue_model.clear_batch_id()
                 if not ok:
                     print(
                         f"ERROR: Could not clear batch_id after commit: {msg}",
