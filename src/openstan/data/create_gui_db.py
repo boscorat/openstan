@@ -120,6 +120,15 @@ CREATE TABLE IF NOT EXISTS "statement_result_payload" (
     PRIMARY KEY("result_id"),
     FOREIGN KEY("result_id") REFERENCES "statement_result"("result_id")
 );
+
+CREATE TABLE IF NOT EXISTS "batch" (
+    "batch_id"      TEXT,
+    "project_id"    TEXT NOT NULL,
+    "duration_secs" REAL NOT NULL DEFAULT 0,
+    "created"       TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY("batch_id"),
+    FOREIGN KEY("project_id") REFERENCES "project"("project_id")
+);
 """
 
 # ---------------------------------------------------------------------------

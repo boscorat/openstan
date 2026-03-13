@@ -22,6 +22,7 @@ Signals emitted (consumed by StanPresenter)
 * ``view_results_requested()``                  — user pressed View Results.
 """
 
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -105,7 +106,8 @@ class StatementQueuePresenter(QObject):
     statement_imported = pyqtSignal(
         Path, bsp.PdfResult, int, str
     )  # file, result, progress%, queue_id
-    import_finished = pyqtSignal()
+    import_started = pyqtSignal()
+    import_finished = pyqtSignal(float)  # duration_secs
     view_results_requested = pyqtSignal()
 
     def __init__(
@@ -121,6 +123,9 @@ class StatementQueuePresenter(QObject):
         self.projectID: str = "<<NO PROJECT ID>>"  # set by StanPresenter
         self.projectPath: Path = Path("<<NO PROJECT PATH>>")  # set by StanPresenter
         self._current_batch_id: str | None = None
+        self._batch_start_time: float = (
+            0.0  # set by run_import, read by __on_worker_finished
+        )
 
         self.model: "StatementQueueModel" = model
         self.view: "StatementQueueView" = view
@@ -154,12 +159,14 @@ class StatementQueuePresenter(QObject):
             return
 
         self._current_batch_id = batch_id
+        self._batch_start_time = time.monotonic()
         self.__set_queue_locked(importing=True)
 
         worker = SQWorker(presenter=self, model=self.model, batch_id=batch_id)
         worker.signals.progress.connect(self.__on_worker_progress)
         worker.signals.finished.connect(self.__on_worker_finished)
         self.threadpool.start(worker)
+        self.import_started.emit()
 
     @pyqtSlot(Path, int, bsp.PdfResult, str)
     def __on_worker_progress(
@@ -178,9 +185,10 @@ class StatementQueuePresenter(QObject):
     @pyqtSlot()
     def __on_worker_finished(self) -> None:
         """Import worker is done: show View Results button, emit import_finished."""
+        duration_secs: float = time.monotonic() - self._batch_start_time
         self.view.buttonViewResults.setVisible(True)
-        self.import_finished.emit()
-        print("Import finished.")
+        self.import_finished.emit(duration_secs)
+        print(f"Import finished. Duration: {duration_secs:.2f}s")
 
     @pyqtSlot()
     def __on_view_results_clicked(self) -> None:

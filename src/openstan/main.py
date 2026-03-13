@@ -16,6 +16,7 @@ from openstan.components import (  # mostly widget subclasses
 )
 from openstan.data.create_gui_db import create_gui_db
 from openstan.models import (
+    BatchModel,
     FailureResultModel,
     ProjectModel,
     ReviewResultModel,
@@ -112,6 +113,7 @@ class Stan(QMainWindow):
         self.failure_result_model = FailureResultModel()
         self.statement_result_model = StatementResultModel(db=gui_db)
         self.statement_result_payload_model = StatementResultPayloadModel(db=gui_db)
+        self.batch_model = BatchModel(db=gui_db)
 
         # ── Views ─────────────────────────────────────────────────────────
         self.stan = QWidget()
@@ -160,6 +162,7 @@ class Stan(QMainWindow):
             result_model=self.statement_result_model,
             payload_model=self.statement_result_payload_model,
             queue_model=self.statement_queue_model,
+            batch_model=self.batch_model,
             view=self.statement_result_view,
         )
         self.admin_presenter = AdminPresenter(

@@ -67,8 +67,8 @@ class StanTableView(QTableView):
         self.setShowGrid(False)
         self.setMinimumHeight(200)
         self.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
-        self.horizontalHeader().setStretchLastSection(True)
-        self.verticalHeader().setVisible(False)
+        self.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
+        self.verticalHeader().setVisible(False)  # type: ignore[union-attr]
 
 
 class StanTreeView(QTreeView):
