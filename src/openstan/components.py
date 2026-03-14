@@ -33,7 +33,7 @@ class StanPolarsModel(QAbstractTableModel):
     def columnCount(self, parent=None):
         return self.df.width
 
-    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole) -> object:
         if role == Qt.ItemDataRole.DisplayRole:
             return str(self.df.item(index.row(), index.column()))
         return None

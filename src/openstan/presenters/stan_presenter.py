@@ -24,6 +24,7 @@ class StanPresenter(QObject):
         self.session_presenter = self.stan.session_presenter
         self.statement_queue_presenter = self.stan.statement_queue_presenter
         self.statement_result_presenter = self.stan.statement_result_presenter
+        self.category_presenter = self.stan.category_presenter
 
         # views
         self.footer_view = self.stan.footer_view
@@ -43,6 +44,10 @@ class StanPresenter(QObject):
         self.statement_result_presenter.batch_abandoned.connect(self.on_batch_abandoned)
         self.statement_result_presenter.batch_committed.connect(self.on_batch_committed)
         self.footer_view.admin_requested.connect(self.open_admin_dialog)
+        self.stan.statement_queue_view.buttonViewCategories.clicked.connect(
+            self.show_categories
+        )
+        self.stan.category_view.button_back.clicked.connect(self.hide_categories)
 
         # add a new user to the database if not exists
         self.stan.userID = self.stan.user_model.user_id_from_username(
@@ -123,6 +128,11 @@ class StanPresenter(QObject):
         # Clear any stale summary while the background worker fetches fresh counts.
         self.stan.project_view.summary_label.setText("")
         self.__refresh_project_summary()
+
+        # Notify the category presenter of the new project path.
+        self.category_presenter.set_project(self.stan.current_project_paths.root)
+        # Show the "View Categories" button whenever a valid project is selected.
+        self.stan.statement_queue_view.buttonViewCategories.setVisible(True)
 
         # Always reset to the queue view on project change and clear any
         # in-memory results from the previous project.  The session-restore
@@ -263,6 +273,17 @@ class StanPresenter(QObject):
     def hide_results(self) -> None:
         """Switch the content area back to the main project view."""
         self.stan.statement_result_block.setVisible(False)
+        self.stan.statement_queue_block.setVisible(True)
+
+    def show_categories(self) -> None:
+        """Switch the content area to the transaction categories panel."""
+        self.stan.statement_queue_block.setVisible(False)
+        self.stan.statement_result_block.setVisible(False)
+        self.stan.category_block.setVisible(True)
+
+    def hide_categories(self) -> None:
+        """Switch the content area back to the queue panel."""
+        self.stan.category_block.setVisible(False)
         self.stan.statement_queue_block.setVisible(True)
 
     # ---------------------------------------------------------------------------

@@ -98,4 +98,11 @@ class StatementQueueView(StanWidget):
             self.buttonViewResults, 4, 0, alignment=Qt.AlignmentFlag.AlignLeft
         )
 
+        self.buttonViewCategories = StanButton("View Transaction Categories")
+        self.buttonViewCategories.setIcon(QIcon(Paths.icon("tick.svg")))
+        self.buttonViewCategories.setVisible(False)
+        layout.addWidget(
+            self.buttonViewCategories, 5, 0, alignment=Qt.AlignmentFlag.AlignLeft
+        )
+
         self.setLayout(layout)

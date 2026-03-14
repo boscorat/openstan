@@ -31,6 +31,7 @@ from openstan.models import (
 from openstan.paths import Paths
 from openstan.presenters import (
     AdminPresenter,
+    CategoryPresenter,
     ProjectPresenter,
     SessionPresenter,
     StanPresenter,
@@ -40,6 +41,7 @@ from openstan.presenters import (
 )
 from openstan.views import (
     AdminView,
+    CategoryView,
     ContentFrameView,
     FooterView,
     ProjectView,
@@ -124,6 +126,7 @@ class Stan(QMainWindow):
 
         self.statement_queue_view = StatementQueueView()
         self.statement_result_view = StatementResultView()
+        self.category_view = CategoryView()
 
         # stretch_content=True lets the inner tree / tab widget grow vertically
         self.statement_queue_block = ContentFrameView(
@@ -142,6 +145,15 @@ class Stan(QMainWindow):
             stretch_content=True,
         )
         self.statement_result_block.setVisible(False)  # hide initially
+
+        self.category_block = ContentFrameView(
+            widgets=[
+                (StanLabel(self.category_view.header), 0, 0),
+                (self.category_view, 1, 0),
+            ],
+            stretch_content=True,
+        )
+        self.category_block.setVisible(False)  # hide initially
 
         # ── Presenters ────────────────────────────────────────────────────
         self.user_presenter = UserPresenter(model=self.user_model, view=None)
@@ -170,6 +182,10 @@ class Stan(QMainWindow):
             view=self.admin_view,
             stan=self,  # type: ignore[arg-type]
         )
+        self.category_presenter = CategoryPresenter(
+            view=self.category_view,
+            threadpool=self.threadpool,
+        )
         self.stan_presenter = StanPresenter(stan=self)  # type: ignore[arg-type]
 
         # ── Layout ────────────────────────────────────────────────────────
@@ -187,6 +203,7 @@ class Stan(QMainWindow):
         )
         layout.addWidget(self.statement_queue_block, stretch=1)
         layout.addWidget(self.statement_result_block, stretch=1)
+        layout.addWidget(self.category_block, stretch=1)
         layout.addWidget(self.footer_view, stretch=0)
 
         self.stan.setLayout(layout)

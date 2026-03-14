@@ -319,3 +319,56 @@ beyond any OS-level path handling already provided by Python's `pathlib`.
 The application must display a title/branding bar containing the application name and logo.
 A copyright notice must appear in the footer. These elements are cosmetic and must not
 contain interactive controls or business logic.
+
+---
+
+## 8. Transaction Categorisation
+
+Users must be able to automatically classify bank transactions into spending categories using
+a locally-running Ollama language model, and manually override any AI assignment.
+
+> **See D005.** The `TransactionAnnotation` table is managed by a temporary shim in
+> `openstan` until `bank_statement_parser` exposes a native annotations API.
+
+### User Stories
+
+- **TC-1** As a user, I want to run AI categorisation against all uncategorised transactions
+  in my project with one button press, so that I can quickly label large transaction sets
+  without manual effort.
+- **TC-2** As a user, I want to manually override the AI-assigned category for any individual
+  transaction via a dropdown in the table, so that I can correct mistakes.
+- **TC-3** As a user, I want manual overrides to be preserved when I re-run AI categorisation,
+  so that my corrections are not silently lost.
+- **TC-4** As a user, I want to filter the category table by category and by source (AI /
+  manual / uncategorised), so that I can focus on specific subsets.
+- **TC-5** As a user, I want to configure the Ollama host, model, system prompt, and category
+  list per project, with the configuration saved to a TOML file in the project folder, so
+  that different projects can use different settings.
+- **TC-6** As a user, I want a live Ollama health indicator in the panel, so that I know
+  whether the local model server is reachable before starting a run.
+
+### Acceptance Criteria
+
+- (TC-1) Categorisation runs on a `QThreadPool` worker; the UI is never blocked.
+- (TC-1) Progress is reported via a progress bar; each row is written to the database
+  immediately after classification so partial progress survives an application close.
+- (TC-1) The run button is disabled while a worker is running and while Ollama is unreachable.
+- (TC-2) The Category column is editable via a double-click; the editor presents a dropdown
+  containing the project's configured category list.
+- (TC-2) Pending edits are not persisted until the user clicks "Save Manual Edits".
+- (TC-3) When "Re-run all" is unchecked (default), only rows with `source='llm'` or no
+  annotation are re-categorised; rows with `source='manual'` are untouched.
+- (TC-3) When "Re-run all" is checked, all rows are re-categorised except manual overrides.
+- (TC-4) Category and source filters are applied client-side to the in-memory DataFrame;
+  no additional DB query is required.
+- (TC-5) Configuration is stored in `<project>/config/llm_categories.toml`. New projects
+  receive a default copy via the bsp scaffold. Older projects without the file fall back to
+  hard-coded defaults silently.
+- (TC-6) The Ollama status label polls every 5 seconds and shows host + model name when
+  reachable, or "not running" when unreachable.
+- Annotations are stored in the `TransactionAnnotation` table in `project.db` via
+  `shim_annotations.py` (D005 exception). The table is created with `CREATE TABLE IF NOT
+  EXISTS` and is never dropped by `build_datamart`.
+- The category panel is accessible via a "View Transaction Categories" button on the queue
+  view; a "Back to Queue" button returns to the queue.
+

@@ -151,3 +151,55 @@ throughout the GUI.
 - `duck.py` can be deleted when convenient; it contains no active code.
 - If analytical query performance becomes a bottleneck, the fix belongs in
   `bank_statement_parser`, not in `openstan`.
+
+---
+
+## D005 — Temporary direct-SQLite shim for TransactionAnnotation
+
+**Status:** Accepted
+**Applies to:** Transaction Categorisation feature (Section 8 of REQUIREMENTS.md)
+
+### Context
+
+The Transaction Categorisation feature (TC-1 – TC-6) stores per-transaction category
+assignments in a `TransactionAnnotation` table inside `project.db`. D001 prohibits
+`openstan` from writing raw SQL against `project.db`, requiring all such writes to go via
+`bank_statement_parser` (bsp). However, bsp does not yet expose a native annotations API
+(`bsp.write_transaction_annotations` / `bsp.db.TransactionAnnotation`).
+
+Deferring the feature until bsp is updated would block meaningful progress. The annotation
+table also has a unique property that `build_datamart` must never drop it — so it cannot
+simply be added to the existing mart schema without a bsp change regardless.
+
+### Decision
+
+A temporary shim module `openstan/shim_annotations.py` is permitted to write directly to
+`project.db` via `sqlite3` for the `TransactionAnnotation` table only. The following
+constraints apply:
+
+1. **Scope:** Only `shim_annotations.py` may connect to `project.db` directly. No other
+   `openstan` module may do so.
+2. **Table isolation:** The shim creates `TransactionAnnotation` with
+   `CREATE TABLE IF NOT EXISTS` — it never touches any mart table owned by bsp
+   (`FactTransaction`, `DimStatement`, `DimAccount`, `DimTime`, `FactBalance`).
+3. **Clearly marked:** Every function in the shim carries a `# TODO: move to bsp` comment
+   explaining the migration path.
+4. **Migration target:** Once bsp exposes `bsp.write_transaction_annotations(annotations,
+   project_path)` and `bsp.db.TransactionAnnotation(project_path)`, all callers of
+   `shim_annotations` must be updated and the shim deleted.
+
+### Exception to D001 in-memory join pattern
+
+`CategoryPresenter.refresh()` performs a left-join between `bsp.db.FactTransaction` (read
+via the bsp API) and `read_annotations` (shim read) entirely in Polars memory. No raw SQL
+cross-database join is executed. This is consistent with D001's spirit — `openstan` does
+not query `project.db` directly for mart data; it uses the bsp API for mart reads and the
+shim only for annotation reads/writes.
+
+### Consequences
+
+- `shim_annotations.py` is an explicitly documented, bounded exception to D001.
+- Contributors must not extend the shim to cover any table other than
+  `TransactionAnnotation`.
+- A bsp issue should be raised to track the migration of this shim into bsp proper.
+
