@@ -164,9 +164,18 @@ class StanPresenter(QObject):
         worker.signals.summary_ready.connect(self.update_project_summary)
         self.stan.threadpool.start(worker)
 
-    @pyqtSlot(str)
-    def update_project_summary(self, text: str) -> None:
-        """Receive the computed summary string from the background worker."""
+    @pyqtSlot(Path, str)
+    def update_project_summary(self, project_path: Path, text: str) -> None:
+        """Receive the computed summary string from the background worker.
+
+        Discards the result if the project path no longer matches the currently
+        selected project — prevents stale workers from overwriting a fresher result.
+        """
+        if (
+            self.stan.current_project_paths is None
+            or project_path != self.stan.current_project_paths.root
+        ):
+            return
         self.stan.project_view.summary_label.setText(text)
 
     @pyqtSlot(Path, bsp.PdfResult, int, str)

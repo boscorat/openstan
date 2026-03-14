@@ -151,6 +151,22 @@ class StanLabel(QLabel):
         self.setTextFormat(Qt.TextFormat.MarkdownText)
 
 
+class StanHeaderLabel(StanLabel):
+    """A StanLabel rendered in bold — used for column/section headers."""
+
+    def __init__(self, text="Label") -> None:
+        super().__init__(text)
+        self.setStyleSheet("font-weight: bold;")
+
+
+class StanMutedLabel(StanLabel):
+    """A StanLabel rendered in a muted (grey) colour — used for placeholder/absent cells."""
+
+    def __init__(self, text="Label") -> None:
+        super().__init__(text)
+        self.setStyleSheet("color: grey;")
+
+
 class StanButton(QPushButton):
     def __init__(self, text="Button") -> None:
         super().__init__(text)
