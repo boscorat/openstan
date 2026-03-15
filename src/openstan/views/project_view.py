@@ -386,6 +386,9 @@ class ProjectView(StanWidget):
         self.button_existing = StanButton("Add Existing Project")
         self.button_existing.setIcon(QIcon(Paths.icon("folder_add.svg")))
         self.button_existing.setMinimumWidth(180)
+        self.button_balance = StanButton("View Balances")
+        self.button_balance.setMinimumWidth(140)
+        self.button_balance.setEnabled(False)  # enabled by presenter when data exists
         self.summary_label = StanLabel("")
         layout = QGridLayout()
         layout.addWidget(
@@ -422,13 +425,19 @@ class ProjectView(StanWidget):
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         )
         layout.addWidget(
+            self.button_balance,
+            0,
+            6,
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+        )
+        layout.addWidget(
             self.summary_label,
             1,
             0,
             1,
-            6,
+            7,
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         )
         layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.setLayout(layout)
-        self.setMaximumHeight(75)
+        self.setMaximumHeight(90)

@@ -24,6 +24,7 @@ class StanPresenter(QObject):
         self.session_presenter = self.stan.session_presenter
         self.statement_queue_presenter = self.stan.statement_queue_presenter
         self.statement_result_presenter = self.stan.statement_result_presenter
+        self.balance_chart_presenter = self.stan.balance_chart_presenter
 
         # views
         self.footer_view = self.stan.footer_view
@@ -43,6 +44,12 @@ class StanPresenter(QObject):
         self.statement_result_presenter.batch_abandoned.connect(self.on_batch_abandoned)
         self.statement_result_presenter.batch_committed.connect(self.on_batch_committed)
         self.footer_view.admin_requested.connect(self.open_admin_dialog)
+        # Balance chart panel signals
+        self.stan.project_view.button_balance.clicked.connect(self.show_balance_chart)
+        self.balance_chart_presenter.exit_chart.connect(self.hide_balance_chart)
+        self.balance_chart_presenter.has_data_changed.connect(
+            self._on_balance_data_changed
+        )
 
         # add a new user to the database if not exists
         self.stan.userID = self.stan.user_model.user_id_from_username(
@@ -119,6 +126,13 @@ class StanPresenter(QObject):
             self.stan.current_project_paths.root
         )
         print(current_record.value("project_location"))
+
+        # Update balance chart presenter with new project path and kick off a
+        # background check so button_balance is enabled/disabled correctly even
+        # before the user opens the chart panel.
+        self.balance_chart_presenter.project_path = self.stan.current_project_paths.root
+        self.balance_chart_presenter.clear_for_project_change()
+        self.balance_chart_presenter.refresh(probe=True)
 
         # Clear any stale summary while the background worker fetches fresh counts.
         self.stan.project_view.summary_label.setText("")
@@ -267,12 +281,31 @@ class StanPresenter(QObject):
     def show_results(self) -> None:
         """Switch the content area to the results block."""
         self.stan.statement_queue_block.setVisible(False)
+        self.stan.balance_chart_block.setVisible(False)
         self.stan.statement_result_block.setVisible(True)
 
     def hide_results(self) -> None:
         """Switch the content area back to the main project view."""
         self.stan.statement_result_block.setVisible(False)
+        self.stan.balance_chart_block.setVisible(False)
         self.stan.statement_queue_block.setVisible(True)
+
+    def show_balance_chart(self) -> None:
+        """Switch the content area to the balance chart block and load data."""
+        self.stan.statement_queue_block.setVisible(False)
+        self.stan.statement_result_block.setVisible(False)
+        self.stan.balance_chart_block.setVisible(True)
+        self.balance_chart_presenter.refresh()
+
+    def hide_balance_chart(self) -> None:
+        """Return to the statement queue block from the balance chart."""
+        self.stan.balance_chart_block.setVisible(False)
+        self.stan.statement_queue_block.setVisible(True)
+
+    @pyqtSlot(bool)
+    def _on_balance_data_changed(self, has_data: bool) -> None:
+        """Enable or disable the 'View Balances' button based on data availability."""
+        self.stan.project_view.button_balance.setEnabled(has_data)
 
     # ---------------------------------------------------------------------------
     # Batch lifecycle callbacks
@@ -295,8 +328,10 @@ class StanPresenter(QObject):
         self.hide_results()
         self.statement_queue_presenter.clear_all_items()
         self.statement_queue_presenter.update_view()
-        # build_datamart ran as part of the commit — refresh the summary counts.
+        # build_datamart ran as part of the commit — refresh the summary counts
+        # and trigger a background balance data refresh (enables button if data exists).
         self.__refresh_project_summary()
+        self.balance_chart_presenter.refresh()
 
     @pyqtSlot()
     def open_admin_dialog(self) -> None:

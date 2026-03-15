@@ -31,6 +31,7 @@ from openstan.models import (
 from openstan.paths import Paths
 from openstan.presenters import (
     AdminPresenter,
+    BalanceChartPresenter,
     ProjectPresenter,
     SessionPresenter,
     StanPresenter,
@@ -40,6 +41,7 @@ from openstan.presenters import (
 )
 from openstan.views import (
     AdminView,
+    BalanceChartView,
     ContentFrameView,
     FooterView,
     ProjectView,
@@ -124,6 +126,7 @@ class Stan(QMainWindow):
 
         self.statement_queue_view = StatementQueueView()
         self.statement_result_view = StatementResultView()
+        self.balance_chart_view = BalanceChartView()
 
         # stretch_content=True lets the inner tree / tab widget grow vertically
         self.statement_queue_block = ContentFrameView(
@@ -142,6 +145,15 @@ class Stan(QMainWindow):
             stretch_content=True,
         )
         self.statement_result_block.setVisible(False)  # hide initially
+
+        self.balance_chart_block = ContentFrameView(
+            widgets=[
+                (StanLabel(self.balance_chart_view.header), 0, 0),
+                (self.balance_chart_view, 1, 0),
+            ],
+            stretch_content=True,
+        )
+        self.balance_chart_block.setVisible(False)  # hide initially
 
         # ── Presenters ────────────────────────────────────────────────────
         self.user_presenter = UserPresenter(model=self.user_model, view=None)
@@ -170,6 +182,10 @@ class Stan(QMainWindow):
             view=self.admin_view,
             stan=self,  # type: ignore[arg-type]
         )
+        self.balance_chart_presenter = BalanceChartPresenter(
+            view=self.balance_chart_view,
+            threadpool=self.threadpool,
+        )
         self.stan_presenter = StanPresenter(stan=self)  # type: ignore[arg-type]
 
         # ── Layout ────────────────────────────────────────────────────────
@@ -187,6 +203,7 @@ class Stan(QMainWindow):
         )
         layout.addWidget(self.statement_queue_block, stretch=1)
         layout.addWidget(self.statement_result_block, stretch=1)
+        layout.addWidget(self.balance_chart_block, stretch=1)
         layout.addWidget(self.footer_view, stretch=0)
 
         self.stan.setLayout(layout)

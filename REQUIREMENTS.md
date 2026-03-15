@@ -300,6 +300,71 @@ without requiring authentication today.
 
 ---
 
+## 8. Balance Chart
+
+Users must be able to view a panel showing account closing balances over time, drawn from the
+project data mart's `FactBalance` table, organised by company and account.
+
+> **See D001.** The balance data query (join of `FactBalance` and `DimAccount`, filter on
+> `outside_date = 0`, month-end aggregation) is performed in `openstan` as a temporary shim
+> marked `# TODO: move to bsp`. When bsp exposes a dedicated query for this, the shim must
+> be removed and the bsp API consumed instead.
+
+### User Stories
+
+- **BC-1** As a user, I want to open a balance chart panel from the project selection strip,
+  so that I can see account balance trends without leaving the application.
+- **BC-2** As a user, I want to see each account displayed as a time-series line chart with a
+  shared time axis across all charts, so that I can compare balance movements across accounts
+  at a glance.
+- **BC-3** As a user, I want accounts grouped by company in a tree on the left, with a
+  corresponding chart for each account on the right, so that I can identify which institution
+  holds each account.
+- **BC-4** As a user, I want a company-level summary chart (stacked area) for each company
+  that has more than one account, so that I can see the combined balance position per
+  institution. Credit-card (negative) balances stack below zero; positive balances stack above.
+- **BC-5** As a user, I want an all-accounts summary chart when there is more than one company,
+  so that I can see the total balance across all institutions.
+- **BC-6** As a user, I want to click an account row in the left-hand tree to highlight the
+  corresponding chart series, so that I can visually trace a specific account through the chart
+  area.
+- **BC-7** As a user, I want the chart to use month-end closing balances so the display is
+  readable across multi-year histories without being overwhelmed by daily data points.
+- **BC-8** As a user, I want the balance chart panel to be loaded in the background so the
+  UI is never blocked while data is fetched from the project database.
+
+### Acceptance Criteria
+
+- The balance chart panel is a third swappable content block alongside the existing statement
+  queue and statement results blocks. Only one block is visible at a time.
+- The `"View Balances"` button in the project selection strip opens the balance chart block.
+  The button is enabled only when the selected project has at least one account with balance
+  data in `FactBalance`.
+- A `"← Back"` button in the balance chart panel returns the user to the statement queue
+  block.
+- Balance data is fetched in a background `QRunnable` worker (`BalanceChartWorker`).
+  The chart area shows a loading indicator while the fetch is in progress.
+- The data source is `FactBalance` (filtered `outside_date = 0`) joined to `DimAccount`,
+  aggregated to the last calendar day of each month per `(company, id_account)` combination.
+  `closing_balance` is used directly — it is not summed.
+- The left panel is a read-only `StanTreeView` with a custom `BalanceAccountModel` that
+  groups accounts under their company. Clicking a leaf row highlights the corresponding
+  line series in the chart area.
+- The right panel contains one `QLineSeries` chart per account plus one stacked-area summary
+  chart per company (only if that company has more than one account) plus one stacked-area
+  all-companies chart (only if there is more than one company).
+- All charts in the panel share a single time axis so balance changes can be visually aligned.
+  The shared axis supports interactive pan and zoom.
+- Stacked-area summary charts render positive balances above zero and negative balances
+  (credit cards and similar) below zero.
+- The chart panel refreshes automatically when the selected project changes and after a batch
+  is committed to the data mart.
+- If the data mart has not yet been built for the project (or `FactBalance` is empty after
+  filtering), the chart area shows a "No balance data available" placeholder and the
+  `"View Balances"` button is disabled.
+
+---
+
 ## Non-Functional Requirements
 
 ### NFR-1 — Separation of concerns (see D001)

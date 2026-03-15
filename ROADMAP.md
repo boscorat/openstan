@@ -107,6 +107,39 @@ over scope (full data vs. latest batch).
 
 ---
 
+## Milestone 5 — Balance Chart
+
+**Theme:** Users can open an in-app balance chart panel showing account closing balances over
+time, grouped by company, with a shared time axis, stacked-area summaries, and interactive
+pan/zoom.
+
+**Status:** In progress
+
+### Included
+
+| ID | Story | Notes |
+|----|-------|-------|
+| BC-1 | Open balance chart panel from project strip | Third swappable content block |
+| BC-2 | Per-account time-series line charts with shared axis | Month-end closing balances |
+| BC-3 | Accounts grouped by company in left-hand tree | `BalanceAccountModel` |
+| BC-4 | Company-level stacked-area summary chart | Positive above zero; negative below |
+| BC-5 | All-companies summary chart | Only shown when > 1 company |
+| BC-6 | Click account in tree to highlight chart series | |
+| BC-7 | Month-end granularity for readable multi-year history | |
+| BC-8 | Background data fetch; UI never blocked | `BalanceChartWorker` + `QRunnable` |
+
+### Definition of Done
+
+- Balance chart panel opens and closes without error for a project with data.
+- All charts share a single time axis; pan/zoom moves all charts in sync.
+- Stacked-area summaries render correctly for mixed positive/negative balances.
+- Background worker never blocks the UI thread.
+- `"View Balances"` button is disabled when no balance data exists.
+- Panel refreshes automatically on project switch and after batch commit.
+- All listed acceptance criteria in REQUIREMENTS.md are met.
+
+---
+
 ## Milestone 4 — Multi-user Desktop
 
 **Theme:** A small team sharing one machine (or a shared network path) can each use the
@@ -156,7 +189,6 @@ entry before implementation begins.
 | Item | Notes |
 |------|-------|
 | User management UI (`UserView`) | Currently disabled; low priority for single-user target |
-| Charting / visualisation | In-app charts fed by data mart; rendering in `openstan`, queries in `bank_statement_parser` (D001) |
 | DuckDB analytics layer | `duck.py` experiments suggest interest; requires ADR before proceeding |
 | Packaging & distribution | Installable `.app` / `.exe` / `.deb`; no timeline yet |
 | CLI passthrough for power users | Out of scope for `openstan`; belongs in `bank_statement_parser` directly |
