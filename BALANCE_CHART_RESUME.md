@@ -88,15 +88,15 @@
 ### Display
 - The legend can become crowded when there are many accounts — consider making it
   scrollable or moving it to the left panel (replace or augment the tree).
-- X-axis tick labels may overlap at `tickCount(13)` when the chart is narrow — could
-  make tick count dynamic based on the pixel width of the chart view.
-- The chart title "Account Balances" is static — could reflect the project name.
+- X-axis tick count is now dynamic (``_ResponsiveChartView.resizeEvent``), so labels
+  should not overlap.  If labels still crowd on very narrow layouts, reduce
+  ``_X_LABEL_PX`` or switch to a shorter date format for small widths.
 
 ### Interaction
-- Clicking a **company node** in the tree currently does nothing (only leaf account nodes
-  have an `account_key`). Could highlight all accounts belonging to that company.
-- No way to deselect / reset highlight without clicking another account. A "clear
-  selection" button or clicking the same account again could reset all pens to base width.
+- Clicking a **company node** now highlights all series for that company; clicking the
+  same node again clears the highlight (toggle).
+- Clicking a **leaf account node** highlights just that account; clicking the same node
+  again clears the highlight (toggle).
 - Rubber-band zoom resets on next `refresh()` call (e.g. after a new batch is committed);
   could preserve the viewport if the project has not changed.
 
@@ -106,8 +106,6 @@
   last day, the closing balance is not summed — it takes whichever row sorts last.  For
   the re-issued-card case this is usually correct (same physical account), but a more
   explicit sum may be safer.  # TODO: move to bsp
-- No handling for accounts where `company` or `account_type` is `NULL` in `DimAccount` —
-  these would show as `"None"` in the label. Add a coalesce in the worker.
 - `BalanceChartWorker` catches `sqlite3.OperationalError` and `bsp.StatementError` only;
   a `polars.exceptions.ColumnNotFoundError` (e.g. if `DimAccount` schema changes) would
   fall through to the bare `Exception` handler and print to stderr. Consider adding it

@@ -49,7 +49,7 @@ from PyQt6.QtCore import (
     pyqtSignal,
     pyqtSlot,
 )
-from PyQt6.QtGui import QColor, QPen
+from PyQt6.QtGui import QColor, QPen, QResizeEvent
 
 if TYPE_CHECKING:
     from openstan.views.balance_chart_view import BalanceChartView
@@ -76,6 +76,43 @@ _SERIES_COLOURS: list[str] = [
 
 def _colour(index: int) -> QColor:
     return QColor(_SERIES_COLOURS[index % len(_SERIES_COLOURS)])
+
+
+# ---------------------------------------------------------------------------
+# Responsive chart view — adjusts x-axis tick count on resize
+# ---------------------------------------------------------------------------
+
+#: Approximate pixel width of one "MMM yyyy" label (at standard font size).
+_X_LABEL_PX: int = 70
+_X_TICK_MIN: int = 2
+_X_TICK_MAX: int = 24
+
+
+class _ResponsiveChartView(QChartView):
+    """``QChartView`` subclass that keeps x-axis tick density legible on resize.
+
+    When the widget is resized the tick count is recalculated as
+    ``clamp(floor(width / _X_LABEL_PX), _X_TICK_MIN, _X_TICK_MAX)`` so labels
+    never overlap and the axis is not excessively sparse on wide displays.
+
+    The view stores a reference to the ``QDateTimeAxis`` it manages; pass it
+    after construction via ``set_x_axis()``.
+    """
+
+    def __init__(self, chart: QChart) -> None:
+        super().__init__(chart)
+        self._x_axis: QDateTimeAxis | None = None
+
+    def set_x_axis(self, axis: QDateTimeAxis) -> None:
+        """Register the axis whose tick count this view manages."""
+        self._x_axis = axis
+
+    def resizeEvent(self, event: QResizeEvent) -> None:  # type: ignore[override]
+        super().resizeEvent(event)
+        if self._x_axis is not None:
+            width = event.size().width()
+            ticks = max(_X_TICK_MIN, min(_X_TICK_MAX, width // _X_LABEL_PX))
+            self._x_axis.setTickCount(ticks)
 
 
 # ---------------------------------------------------------------------------
@@ -151,6 +188,17 @@ class BalanceChartWorker(QRunnable):
             if joined.is_empty():
                 self.signals.data_ready.emit(self._project_path, None)
                 return
+
+            # -- Coalesce NULL dimension strings --------------------------
+            # DimAccount rows with a NULL company, account_type, or
+            # account_holder would produce Python "None" in labels.
+            # TODO: move to bsp — ideally these coalesces live in the
+            # DimAccount query so every consumer benefits.
+            joined = joined.with_columns(
+                pl.col("company").fill_null("(unknown)"),
+                pl.col("account_type").fill_null("(unknown)"),
+                pl.col("account_holder").fill_null("(unknown)"),
+            )
 
             # -- Build display_label: account_type, suffixed with
             #    account_holder only when a company/account_type pair has
@@ -378,6 +426,7 @@ class BalanceChartPresenter(QObject):
         self._view: "BalanceChartView" = view
         self._threadpool = threadpool
         self._project_path: Path | None = None
+        self._project_name: str = "Account Balances"
         self._df: pl.DataFrame | None = None
         self._account_model: BalanceAccountModel = BalanceAccountModel(self)
 
@@ -388,6 +437,16 @@ class BalanceChartPresenter(QObject):
         # Store base pen (colour + width 2) per display_label so we can
         # always reset to exactly two states: normal (2px) or selected (4px).
         self._base_pens: dict[str, QPen] = {}
+
+        # Map company name → sorted list of display_labels for that company.
+        # Used to highlight all series when a company node is clicked.
+        self._company_labels: dict[str, list[str]] = {}
+
+        # Key that is currently highlighted.
+        #   - A display_label string means a leaf account is selected.
+        #   - A "__company:<name>" string means a company node is selected.
+        #   - None means nothing is highlighted.
+        self._selected_key: str | None = None
 
         # Wire view signals
         self._view.back_button.clicked.connect(self._on_back)
@@ -405,6 +464,14 @@ class BalanceChartPresenter(QObject):
     @project_path.setter
     def project_path(self, value: Path | None) -> None:
         self._project_path = value
+
+    @property
+    def project_name(self) -> str:
+        return self._project_name
+
+    @project_name.setter
+    def project_name(self, value: str) -> None:
+        self._project_name = value if value else "Account Balances"
 
     def refresh(self, *, probe: bool = False) -> None:
         """Start a background worker to fetch / re-fetch balance data.
@@ -430,6 +497,8 @@ class BalanceChartPresenter(QObject):
         self._df = None
         self._series_map.clear()
         self._base_pens.clear()
+        self._company_labels.clear()
+        self._selected_key = None
         self._account_model.load(pl.DataFrame())
         self._view.clear_charts()
         self._view.set_status("No balance data available for this project.")
@@ -494,6 +563,8 @@ class BalanceChartPresenter(QObject):
         self._view.clear_charts()
         self._series_map.clear()
         self._base_pens.clear()
+        self._company_labels.clear()
+        self._selected_key = None
 
         # Populate account tree
         self._account_model.load(df)
@@ -507,16 +578,20 @@ class BalanceChartPresenter(QObject):
         )
 
         # Gather all unique display_labels in stable order (by company, then label)
-        labels: list[str] = (
+        label_company_pairs: list[tuple[str, str]] = (
             df.select(["company", "display_label"])
             .unique()
             .sort(["company", "display_label"])
-            .get_column("display_label")
-            .to_list()
+            .rows()
         )
+        labels: list[str] = [lbl for _, lbl in label_company_pairs]
+
+        # Build company → [display_labels] map for company-node highlight
+        for company, lbl in label_company_pairs:
+            self._company_labels.setdefault(company, []).append(lbl)
 
         chart = QChart()
-        chart.setTitle("Account Balances")
+        chart.setTitle(self._project_name)
         chart.setMargins(QMargins(8, 8, 8, 8))
         legend = chart.legend()
         if legend is not None:
@@ -581,7 +656,8 @@ class BalanceChartPresenter(QObject):
         x_axis = QDateTimeAxis()
         x_axis.setFormat("MMM yyyy")
         x_axis.setTitleText("")
-        x_axis.setTickCount(13)  # ~doubled from Qt default of 7
+        # Tick count starts at the Qt default (7); _ResponsiveChartView
+        # recalculates it dynamically on every resize event.
         y_axis = QValueAxis()
         y_axis.setLabelFormat("£%.0f")
         y_axis.setTickCount(11)  # ~doubled from Qt default of 5
@@ -633,7 +709,8 @@ class BalanceChartPresenter(QObject):
                 if not marker.label():
                     marker.setVisible(False)
 
-        chart_view = QChartView(chart)
+        chart_view = _ResponsiveChartView(chart)
+        chart_view.set_x_axis(x_axis)
         chart_view.setMinimumHeight(800)
         chart_view.setRubberBand(QChartView.RubberBand.HorizontalRubberBand)
         self._view.add_chart_view(chart_view)
@@ -673,22 +750,73 @@ class BalanceChartPresenter(QObject):
     def _on_tree_selection_changed(
         self, current: QModelIndex, previous: QModelIndex
     ) -> None:
-        """Highlight the selected account's series (4px) and reset others (2px).
+        """Highlight the selected account or company series and reset others.
 
-        Every series is always set to exactly one of two widths using the
-        stored ``_base_pens`` — no alpha manipulation — so repeated clicks
-        never cause cumulative shrinking.
+        Behaviour:
+        - Leaf account node → highlight that account's series (4 px); all
+          others revert to base width.  Clicking the same leaf a second time
+          clears the highlight (toggle off).
+        - Company node → highlight all series belonging to that company (4 px);
+          all others revert to base width.  Clicking the same company again
+          clears the highlight.
+        - Invalid index → clear all highlights.
+
+        Every series is always set using the stored ``_base_pens`` — no alpha
+        manipulation — so repeated clicks never cause cumulative drift.
         """
         selected_node = self._account_model._node(current)  # type: ignore[attr-defined]
-        selected_acc = selected_node.account_key if current.isValid() else None
 
+        if not current.isValid():
+            # Selection cleared externally — reset everything
+            self._selected_key = None
+            self._apply_highlight(selected_keys=set())
+            return
+
+        if selected_node.account_key is not None:
+            # Leaf account node
+            new_key = selected_node.account_key
+            if self._selected_key == new_key:
+                # Toggle off — deselect by clearing the tree selection
+                self._selected_key = None
+                self._view.account_tree.clearSelection()
+                self._apply_highlight(selected_keys=set())
+            else:
+                self._selected_key = new_key
+                self._apply_highlight(selected_keys={new_key})
+        elif selected_node.company is not None:
+            # Company node — highlight all accounts for that company
+            company_key = f"__company:{selected_node.company}"
+            if self._selected_key == company_key:
+                # Toggle off
+                self._selected_key = None
+                self._view.account_tree.clearSelection()
+                self._apply_highlight(selected_keys=set())
+            else:
+                self._selected_key = company_key
+                keys = set(self._company_labels.get(selected_node.company, []))
+                self._apply_highlight(selected_keys=keys)
+
+    def _apply_highlight(self, selected_keys: set[str]) -> None:
+        """Set all series pens: 4 px for keys in *selected_keys*, base for others.
+
+        Args:
+            selected_keys: Set of ``display_label`` strings to highlight.
+                Pass an empty set to clear all highlights.
+        """
         for acc_key, series_list in self._series_map.items():
+            if acc_key == "__net_total__":
+                # Net total is never highlighted — always stays at its base width
+                base_pen = self._base_pens.get(acc_key)
+                if base_pen is None:
+                    continue
+                for series in series_list:
+                    series.setPen(QPen(base_pen))
+                continue
             base_pen = self._base_pens.get(acc_key)
             if base_pen is None:
                 continue
             for series in series_list:
-                pen = QPen(base_pen)  # always start from the clean base
-                if selected_acc is not None and acc_key == selected_acc:
+                pen = QPen(base_pen)
+                if selected_keys and acc_key in selected_keys:
                     pen.setWidth(4)
-                # else: pen keeps base width (2, or 3 for net total)
                 series.setPen(pen)

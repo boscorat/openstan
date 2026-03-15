@@ -131,6 +131,9 @@ class StanPresenter(QObject):
         # background check so button_balance is enabled/disabled correctly even
         # before the user opens the chart panel.
         self.balance_chart_presenter.project_path = self.stan.current_project_paths.root
+        self.balance_chart_presenter.project_name = str(
+            self.stan.current_project_name or ""
+        )
         self.balance_chart_presenter.clear_for_project_change()
         self.balance_chart_presenter.refresh(probe=True)
 
