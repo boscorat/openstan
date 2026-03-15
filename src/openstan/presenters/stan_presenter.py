@@ -6,6 +6,7 @@ from bank_statement_parser import ProjectPaths
 from PyQt6.QtCore import QObject, pyqtSlot
 
 from openstan.models.statement_result_model import ResultRow
+from openstan.presenters.project_presenter import ProjectSummaryWorker
 
 if TYPE_CHECKING:
     from PyQt6.QtSql import QSqlRecord
@@ -119,6 +120,10 @@ class StanPresenter(QObject):
         )
         print(current_record.value("project_location"))
 
+        # Clear any stale summary while the background worker fetches fresh counts.
+        self.stan.project_view.summary_label.setText("")
+        self.__refresh_project_summary()
+
         # Always reset to the queue view on project change and clear any
         # in-memory results from the previous project.  The session-restore
         # block below will repopulate if this project has a locked batch.
@@ -150,6 +155,28 @@ class StanPresenter(QObject):
                 self.statement_result_presenter.load_results_from_db(
                     batch_id, self.stan.current_project_id
                 )
+
+    def __refresh_project_summary(self) -> None:
+        """Submit a background worker to update the project summary label."""
+        if self.stan.current_project_paths is None:
+            return
+        worker = ProjectSummaryWorker(self.stan.current_project_paths.root)
+        worker.signals.summary_ready.connect(self.update_project_summary)
+        self.stan.threadpool.start(worker)
+
+    @pyqtSlot(Path, str)
+    def update_project_summary(self, project_path: Path, text: str) -> None:
+        """Receive the computed summary string from the background worker.
+
+        Discards the result if the project path no longer matches the currently
+        selected project — prevents stale workers from overwriting a fresher result.
+        """
+        if (
+            self.stan.current_project_paths is None
+            or project_path != self.stan.current_project_paths.root
+        ):
+            return
+        self.stan.project_view.summary_label.setText(text)
 
     @pyqtSlot(Path, bsp.PdfResult, int, str)
     def statement_imported(
@@ -268,6 +295,8 @@ class StanPresenter(QObject):
         self.hide_results()
         self.statement_queue_presenter.clear_all_items()
         self.statement_queue_presenter.update_view()
+        # build_datamart ran as part of the commit — refresh the summary counts.
+        self.__refresh_project_summary()
 
     @pyqtSlot()
     def open_admin_dialog(self) -> None:
