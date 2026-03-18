@@ -10,7 +10,7 @@ from uuid import uuid4
 import bank_statement_parser as bsp
 import polars as pl
 import tomli_w
-from PyQt6.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 if TYPE_CHECKING:
     from openstan.models.project_model import ProjectModel
@@ -132,65 +132,36 @@ def _apply_config_selections(
                 merged_sources.add(source_config_dir)
 
 
-class ProjectSummarySignals(QObject):
-    """Cross-thread signals for ProjectSummaryWorker."""
+def get_project_summary(project_path: Path) -> str:
+    """Query project.db mart tables and return a human-readable summary string.
 
-    # Carries (project_path, summary_text) so the receiver can discard stale results.
-    summary_ready: pyqtSignal = pyqtSignal(Path, str)
-
-
-class ProjectSummaryWorker(QRunnable):
-    """Background worker that queries project.db mart tables and emits a summary string.
-
-    Emits an empty string when the mart has not yet been built or all counts are zero.
-    Any exception is printed to stderr and an empty string is emitted so the UI is
-    never left in a broken state.
+    Returns an empty string when the mart has not yet been built, all counts are
+    zero, or any error occurs — so the caller never receives a broken value.
     """
-
-    def __init__(self, project_path: Path) -> None:
-        super().__init__()
-        self._project_path: Path = project_path
-        self.signals: ProjectSummarySignals = ProjectSummarySignals()
-
-    @pyqtSlot()
-    def run(self) -> None:
-        try:
-            tx_count: int = (
-                bsp.db.FactTransaction(self._project_path)
-                .all.select(pl.len())
-                .collect()
-                .item()
-            )
-            stmt_count: int = (
-                bsp.db.DimStatement(self._project_path)
-                .all.select(pl.len())
-                .collect()
-                .item()
-            )
-            acc_count: int = (
-                bsp.db.DimAccount(self._project_path)
-                .all.select(pl.len())
-                .collect()
-                .item()
-            )
-        except sqlite3.OperationalError, bsp.StatementError:
-            # Mart tables not yet built, or project.db missing — show nothing.
-            self.signals.summary_ready.emit(self._project_path, "")
-            return
-        except Exception:
-            traceback.print_exc(file=sys.stderr)
-            self.signals.summary_ready.emit(self._project_path, "")
-            return
-
-        if tx_count == 0 and stmt_count == 0 and acc_count == 0:
-            self.signals.summary_ready.emit(self._project_path, "")
-            return
-
-        text = (
-            f"{tx_count:,} transactions in {stmt_count:,} statements"
-            f" across {acc_count:,} {'account' if acc_count == 1 else 'accounts'}"
+    try:
+        tx_count: int = (
+            bsp.db.FactTransaction(project_path).all.select(pl.len()).collect().item()
         )
-        self.signals.summary_ready.emit(self._project_path, text)
+        stmt_count: int = (
+            bsp.db.DimStatement(project_path).all.select(pl.len()).collect().item()
+        )
+        acc_count: int = (
+            bsp.db.DimAccount(project_path).all.select(pl.len()).collect().item()
+        )
+    except sqlite3.OperationalError, bsp.StatementError:
+        # Mart tables not yet built, or project.db missing — show nothing.
+        return ""
+    except Exception:
+        traceback.print_exc(file=sys.stderr)
+        return ""
+
+    if tx_count == 0 and stmt_count == 0 and acc_count == 0:
+        return ""
+
+    return (
+        f"{tx_count:,} transactions in {stmt_count:,} statements"
+        f" across {acc_count:,} {'account' if acc_count == 1 else 'accounts'}"
+    )
 
 
 class ProjectPresenter(QObject):

@@ -6,7 +6,7 @@ from bank_statement_parser import ProjectPaths
 from PyQt6.QtCore import QObject, pyqtSlot
 
 from openstan.models.statement_result_model import ResultRow
-from openstan.presenters.project_presenter import ProjectSummaryWorker
+from openstan.presenters.project_presenter import get_project_summary
 
 if TYPE_CHECKING:
     from PyQt6.QtSql import QSqlRecord
@@ -120,9 +120,9 @@ class StanPresenter(QObject):
         )
         print(current_record.value("project_location"))
 
-        # Clear any stale summary while the background worker fetches fresh counts.
-        self.stan.project_view.summary_label.setText("")
-        self.__refresh_project_summary()
+        self.stan.project_view.summary_label.setText(
+            get_project_summary(self.stan.current_project_paths.root)
+        )
 
         # Always reset to the queue view on project change and clear any
         # in-memory results from the previous project.  The session-restore
@@ -157,26 +157,12 @@ class StanPresenter(QObject):
                 )
 
     def __refresh_project_summary(self) -> None:
-        """Submit a background worker to update the project summary label."""
+        """Update the project summary label synchronously from project.db."""
         if self.stan.current_project_paths is None:
             return
-        worker = ProjectSummaryWorker(self.stan.current_project_paths.root)
-        worker.signals.summary_ready.connect(self.update_project_summary)
-        self.stan.threadpool.start(worker)
-
-    @pyqtSlot(Path, str)
-    def update_project_summary(self, project_path: Path, text: str) -> None:
-        """Receive the computed summary string from the background worker.
-
-        Discards the result if the project path no longer matches the currently
-        selected project — prevents stale workers from overwriting a fresher result.
-        """
-        if (
-            self.stan.current_project_paths is None
-            or project_path != self.stan.current_project_paths.root
-        ):
-            return
-        self.stan.project_view.summary_label.setText(text)
+        self.stan.project_view.summary_label.setText(
+            get_project_summary(self.stan.current_project_paths.root)
+        )
 
     @pyqtSlot(Path, bsp.PdfResult, int, str)
     def statement_imported(
