@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import bank_statement_parser as bsp
-from PyQt6.QtCore import QStandardPaths, pyqtSignal
+from PyQt6.QtCore import QSize, QStandardPaths, pyqtSignal
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QButtonGroup,
@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLineEdit,
     QScrollArea,
+    QSizePolicy,
     QWidget,
     QWizard,
     QWizardPage,
@@ -386,7 +387,6 @@ class ProjectView(StanWidget):
         self.button_existing = StanButton("Add Existing Project")
         self.button_existing.setIcon(QIcon(Paths.icon("folder_add.svg")))
         self.button_existing.setMinimumWidth(180)
-        self.summary_label = StanLabel("")
         layout = QGridLayout()
         layout.addWidget(
             self.label, 0, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
@@ -421,14 +421,68 @@ class ProjectView(StanWidget):
             5,
             Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
         )
-        layout.addWidget(
-            self.summary_label,
-            1,
-            0,
-            1,
-            6,
-            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
-        )
         layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.setLayout(layout)
-        self.setMaximumHeight(75)
+        self.setMaximumHeight(55)
+
+
+# ---------------------------------------------------------------------------
+# Navigation bar
+# ---------------------------------------------------------------------------
+
+_NAV_ICON_SIZE: QSize = QSize(16, 16)
+
+
+class ProjectNavView(StanWidget):
+    """Full-width horizontal action bar with four checkable nav buttons.
+
+    Button visibility is controlled externally by the presenter:
+    - ``button_import`` is always visible.
+    - ``button_info``, ``button_export``, ``button_reports`` are shown only
+      when the current project has summary data.
+
+    The active panel is indicated by the checked state of the corresponding
+    button.  Buttons are mutually exclusive via a ``QButtonGroup``.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.button_info = self.__make_button("Project Info", Paths.icon("project.svg"))
+        self.button_import = self.__make_button(
+            "Import Statements", Paths.icon("file_add.svg")
+        )
+        self.button_export = self.__make_button("Export Data", Paths.icon("export.svg"))
+        self.button_reports = self.__make_button("Run Reports", Paths.icon("run.svg"))
+
+        # Mutually exclusive checked state
+        self._group = QButtonGroup(self)
+        self._group.setExclusive(True)
+        self._group.addButton(self.button_info)
+        self._group.addButton(self.button_import)
+        self._group.addButton(self.button_export)
+        self._group.addButton(self.button_reports)
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setSpacing(4)
+        layout.addWidget(self.button_info)
+        layout.addWidget(self.button_import)
+        layout.addWidget(self.button_export)
+        layout.addWidget(self.button_reports)
+        self.setLayout(layout)
+        self.setMaximumHeight(44)
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def __make_button(text: str, icon_path: str) -> StanButton:
+        btn = StanButton(text)
+        btn.setIcon(QIcon(icon_path))
+        btn.setIconSize(_NAV_ICON_SIZE)
+        btn.setCheckable(True)
+        btn.setMinimumWidth(0)  # override StanButton default 200px minimum
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        return btn
