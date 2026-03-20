@@ -31,8 +31,6 @@ shown without re-running the import.
 """
 
 import pickle
-
-from PyQt6.QtCore import QByteArray
 import sys
 import traceback
 from dataclasses import dataclass, field
@@ -41,9 +39,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal
+from PyQt6.QtCore import QByteArray, QModelIndex, Qt, pyqtSignal
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
-from PyQt6.QtSql import QSqlRecord, QSqlTableModel
+from PyQt6.QtSql import QSqlQuery, QSqlRecord, QSqlTableModel
 
 if TYPE_CHECKING:
     from bank_statement_parser import PdfResult
@@ -76,6 +74,8 @@ class ResultRow:
     payments_out: float | None
     error_type: str | None
     message: str | None
+    debug_json_path: Path | None = field(default=None)
+    debug_status: str | None = field(default=None)
     pdf_result: "PdfResult | None" = field(default=None)
 
 
@@ -191,7 +191,10 @@ class StatementResultModel(QSqlTableModel):
     COL_PAYMENTS_OUT = 9
     COL_ERROR_TYPE = 10
     COL_MESSAGE = 11
-    COL_CREATED = 12
+    COL_DEBUG_JSON_PATH = 12
+    COL_DEBUG_STATUS = 13
+    COL_DELETED = 14
+    COL_CREATED = 15
 
     def __init__(self, db) -> None:
         super().__init__(None, db)
@@ -231,6 +234,9 @@ class StatementResultModel(QSqlTableModel):
         record.setValue("payments_out", payments_out)
         record.setValue("error_type", error_type)
         record.setValue("message", message)
+        record.setValue("debug_json_path", None)
+        record.setValue("debug_status", None)
+        record.setValue("deleted", 0)
         # QSqlTableModel sets all unset columns to NULL — including 'created'
         # which is NOT NULL.  The SQLite DEFAULT only fires when the column is
         # omitted from the INSERT entirely, so we must supply the value here.
@@ -245,9 +251,66 @@ class StatementResultModel(QSqlTableModel):
         print(f"ERROR: StatementResultModel.add_result failed: {err}", file=sys.stderr)
         return (False, "", err)
 
+    def update_debug_info(
+        self,
+        result_id: str,
+        status: str,
+        debug_json_path: Path | None,
+    ) -> tuple[bool, str]:
+        """Update debug_status and debug_json_path for a single result row."""
+        query = QSqlQuery(self.database())
+        query.prepare(
+            "UPDATE statement_result "
+            "SET debug_status = :status, debug_json_path = :path "
+            "WHERE result_id = :result_id"
+        )
+        query.bindValue(":status", status)
+        query.bindValue(":path", str(debug_json_path) if debug_json_path else None)
+        query.bindValue(":result_id", result_id)
+        if query.exec():
+            self.select()
+            return (True, "")
+        return (False, query.lastError().text())
+
+    def soft_delete_batch(self, batch_id: str) -> tuple[bool, str]:
+        """Mark all result rows for *batch_id* as deleted=1 (soft delete).
+
+        Called after a successful commit so the results panel clears
+        immediately while the debug worker may still be writing files.
+        """
+        query = QSqlQuery(self.database())
+        query.prepare(
+            "UPDATE statement_result SET deleted = 1 WHERE batch_id = :batch_id"
+        )
+        query.bindValue(":batch_id", batch_id)
+        if query.exec():
+            self.select()
+            return (True, "")
+        return (False, query.lastError().text())
+
+    def hard_delete_soft_deleted(self, batch_id: str) -> tuple[bool, str]:
+        """Permanently delete all soft-deleted rows for *batch_id*.
+
+        Called once the debug worker finishes (or is confirmed cancelled)
+        after a commit, so no orphan rows remain in gui.db.
+        """
+        query = QSqlQuery(self.database())
+        query.prepare(
+            "DELETE FROM statement_result WHERE batch_id = :batch_id AND deleted = 1"
+        )
+        query.bindValue(":batch_id", batch_id)
+        if query.exec():
+            self.select()
+            return (True, "")
+        return (False, query.lastError().text())
+
     def delete_results_for_batch(self, batch_id: str) -> tuple[bool, str]:
-        """Delete all result rows for *batch_id*.  Returns (success, message)."""
-        self.setFilter(f"batch_id = '{batch_id}'")
+        """Hard-delete all non-soft-deleted result rows for *batch_id*.
+
+        Used by the abandon path.  Soft-deleted rows (deleted=1) are left
+        for ``hard_delete_soft_deleted`` to clean up after the debug worker.
+        """
+        self.setFilter(f"batch_id = '{batch_id}' AND deleted = 0")
         self.select()
         for row in range(self.rowCount() - 1, -1, -1):
             self.removeRow(row)
@@ -263,18 +326,19 @@ class StatementResultModel(QSqlTableModel):
     # ---------------------------------------------------------------------------
 
     def get_rows_for_batch(self, batch_id: str) -> list[ResultRow]:
-        """Return all result rows for *batch_id* as ``ResultRow`` objects.
+        """Return all live (not soft-deleted) result rows for *batch_id*.
 
         ``pdf_result`` is left as ``None`` — payloads are not needed for
         display on session restore.
         """
-        self.setFilter(f"batch_id = '{batch_id}'")
+        self.setFilter(f"batch_id = '{batch_id}' AND deleted = 0")
         self.select()
         rows: list[ResultRow] = []
         for i in range(self.rowCount()):
             rec = self.record(i)
             pin = rec.value("payments_in")
             pout = rec.value("payments_out")
+            djp = rec.value("debug_json_path")
             rows.append(
                 ResultRow(
                     result_id=str(rec.value("result_id")),
@@ -289,7 +353,8 @@ class StatementResultModel(QSqlTableModel):
                     payments_out=float(pout) if pout not in (None, "") else None,
                     error_type=rec.value("error_type") or None,
                     message=rec.value("message") or None,
-                    pdf_result=None,
+                    debug_json_path=Path(str(djp)) if djp else None,
+                    debug_status=rec.value("debug_status") or None,
                 )
             )
         self.setFilter("")
@@ -297,8 +362,8 @@ class StatementResultModel(QSqlTableModel):
         return rows
 
     def get_result_ids_for_batch(self, batch_id: str) -> list[str]:
-        """Return all result_id values for a given batch (for payload lookup)."""
-        self.setFilter(f"batch_id = '{batch_id}'")
+        """Return result_id values for all live rows in *batch_id*."""
+        self.setFilter(f"batch_id = '{batch_id}' AND deleted = 0")
         self.select()
         ids: list[str] = [
             str(self.record(row).value("result_id")) for row in range(self.rowCount())

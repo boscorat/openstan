@@ -20,11 +20,13 @@ class StatementResultView(StanWidget):
     shown as soon as the first row arrives, so the widget stays uncluttered
     during sparse batches.
 
-    Three action buttons:
-    * ``buttonCloseResults``  — navigate back to the queue view; queue stays locked.
-    * ``buttonAbandonBatch``  — delete all results and unlock the queue.
-    * ``buttonCommitBatch``   — commit successful results (stub); enabled only when
-                                n_success > 0.
+    Action buttons:
+    * ``buttonCloseResults``    — navigate back to the queue view; queue stays locked.
+    * ``buttonAbandonBatch``    — delete all results and unlock the queue.
+    * ``buttonViewDebugInfo``   — open the Debug Information modal; enabled when any
+                                  non-success rows exist.
+    * ``buttonCommitBatch``     — commit results to the project database; enabled only
+                                  when n_success > 0.
     """
 
     header = "#### Statement Import Results"
@@ -84,6 +86,12 @@ class StatementResultView(StanWidget):
         self.buttonAbandonBatch = StanButton("Abandon Batch")
         self.buttonAbandonBatch.setIcon(QIcon(Paths.icon("bin.svg")))
 
+        self.buttonViewDebugInfo = StanButton("View Debug Info")
+        self.buttonViewDebugInfo.setIcon(QIcon(Paths.icon("bug.svg")))
+        self.buttonViewDebugInfo.setEnabled(
+            False
+        )  # enabled by presenter when non-success rows exist
+
         self.buttonCommitBatch = StanButton("Commit Batch")
         self.buttonCommitBatch.setIcon(QIcon(Paths.icon("tick.svg")))
         self.buttonCommitBatch.setEnabled(
@@ -97,7 +105,10 @@ class StatementResultView(StanWidget):
             self.buttonAbandonBatch, 0, 1, alignment=Qt.AlignmentFlag.AlignRight
         )
         action_buttons.addWidget(
-            self.buttonCommitBatch, 0, 2, alignment=Qt.AlignmentFlag.AlignRight
+            self.buttonViewDebugInfo, 0, 2, alignment=Qt.AlignmentFlag.AlignRight
+        )
+        action_buttons.addWidget(
+            self.buttonCommitBatch, 0, 3, alignment=Qt.AlignmentFlag.AlignRight
         )
 
         outer_layout.addLayout(action_buttons)

@@ -1,5 +1,6 @@
 from openstan.views.admin_view import AdminView
 from openstan.views.content_view import ContentFrameView
+from openstan.views.debug_info_dialog import DebugInfoDialog
 from openstan.views.footer_view import FooterView
 from openstan.views.project_info_view import ProjectInfoView as ProjectInfoView
 from openstan.views.project_view import ProjectNavView as ProjectNavView
@@ -14,6 +15,7 @@ __all__: list[str] = [
     "ProjectView",
     "ProjectNavView",
     "ProjectInfoView",
+    "DebugInfoDialog",
     "ExportDataView",
     "RunReportsView",
     "StatementQueueView",
