@@ -124,6 +124,62 @@ dependency of this project and must not be added. The `StanPolarsModel` Qt model
 
 ---
 
+## D005 — Main window navigation: horizontal action bar (Option A)
+
+**Status:** Accepted
+**Applies to:** Main window navigation, panel layout
+
+### Context
+
+The application has four distinct panels: Project Info, Import Statements, Export Data, and
+Run Reports. A navigation mechanism is needed to switch between them. Three layout options
+were evaluated:
+
+- **Option A — Horizontal action bar:** A full-width row of four checkable buttons spanning
+  the width of the window, placed between the project selector and the content area. Simple,
+  fits within a 1080p display with ~800 px remaining for content.
+- **Option B — Vertical sidebar:** A fixed-width left sidebar (~120 px) with vertically
+  stacked icon+label buttons, and the content area occupying the remaining horizontal space.
+  More familiar on wider displays; requires a `QSplitter`-based horizontal layout split in
+  `main.py`.
+- **Option C — Switchable A↔B:** Both layouts implemented simultaneously with a user
+  preference toggle persisted to `gui.db` or a config file. Nav buttons are re-parented
+  between a horizontal and vertical container at runtime via `setParent()`.
+
+### Decision
+
+**Option A** is implemented. The nav bar is built as a self-contained `ProjectNavView`
+widget so the layout contract between navigation and content is clean and explicit.
+
+Buttons that are only meaningful for projects with existing data (Project Info, Export Data,
+Run Reports) are **hidden** when no summary data is available, keeping the UI uncluttered
+for new or empty projects. The active panel's button is rendered in a checked/pressed state.
+
+### Future options if revisiting
+
+If Option B or C is desired later, the key design questions to resolve first are:
+
+1. **Toggle trigger:** Right-click context menu on the button bar, or a small dedicated
+   layout-toggle button (e.g. in the title or footer row). The context menu approach is
+   more discoverable; the dedicated button is simpler to implement.
+2. **State persistence:** A new `layout_mode` column on the `session` or `user` table in
+   `gui.db`, or a `settings.toml` alongside `gui.db`. The `gui.db` column approach keeps
+   all GUI state in one place and is consistent with D004; `settings.toml` is simpler but
+   introduces a second persistence mechanism.
+3. **Implementation note:** Qt does not allow the same widget instance to live in two
+   layouts simultaneously. The practical approach for C is to build both layout containers
+   and toggle their visibility, avoiding `setParent()` re-parenting complexity at the cost
+   of slightly more memory.
+
+### Consequences
+
+- `ProjectNavView` must not contain logic — button state (visible/hidden, checked) is
+  managed by `StanPresenter`.
+- Adding Option B later is additive, not a rewrite, given the self-contained nav widget
+  design.
+
+---
+
 ## D004 — SQLite for persistence; no DuckDB in production paths
 
 **Status:** Accepted

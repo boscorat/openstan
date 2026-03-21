@@ -6,7 +6,7 @@ from uuid import uuid4
 from bank_statement_parser import ProjectPaths
 from PyQt6.QtCore import QSysInfo, QThreadPool, qDebug
 from PyQt6.QtSql import QSqlDatabase
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QVBoxLayout
 
 from openstan.components import (  # mostly widget subclasses
     Qt,
@@ -41,8 +41,12 @@ from openstan.presenters import (
 from openstan.views import (
     AdminView,
     ContentFrameView,
+    ExportDataView,
     FooterView,
+    ProjectInfoView,
+    ProjectNavView,
     ProjectView,
+    RunReportsView,
     StatementQueueView,
     StatementResultView,
     TitleView,
@@ -119,13 +123,25 @@ class Stan(QMainWindow):
         self.stan = QWidget()
         self.title_view = TitleView()
         self.project_view = ProjectView()
+        self.project_nav_view = ProjectNavView()
         self.footer_view = FooterView()
         self.admin_view = AdminView(parent=self)
 
+        self.project_info_view = ProjectInfoView()
         self.statement_queue_view = StatementQueueView()
+        self.export_data_view = ExportDataView()
+        self.run_reports_view = RunReportsView()
         self.statement_result_view = StatementResultView()
 
-        # stretch_content=True lets the inner tree / tab widget grow vertically
+        # Each panel is wrapped in a ContentFrameView (header label + content).
+        # Index constants mirror the order panels are added to the stacked widget.
+        self.project_info_block = ContentFrameView(
+            widgets=[
+                (StanLabel(self.project_info_view.header), 0, 0),
+                (self.project_info_view, 1, 0),
+            ],
+            stretch_content=True,
+        )
         self.statement_queue_block = ContentFrameView(
             widgets=[
                 (StanLabel(self.statement_queue_view.header), 0, 0),
@@ -133,7 +149,20 @@ class Stan(QMainWindow):
             ],
             stretch_content=True,
         )
-
+        self.export_data_block = ContentFrameView(
+            widgets=[
+                (StanLabel(self.export_data_view.header), 0, 0),
+                (self.export_data_view, 1, 0),
+            ],
+            stretch_content=True,
+        )
+        self.run_reports_block = ContentFrameView(
+            widgets=[
+                (StanLabel(self.run_reports_view.header), 0, 0),
+                (self.run_reports_view, 1, 0),
+            ],
+            stretch_content=True,
+        )
         self.statement_result_block = ContentFrameView(
             widgets=[
                 (StanLabel(self.statement_result_view.header), 0, 0),
@@ -141,7 +170,19 @@ class Stan(QMainWindow):
             ],
             stretch_content=True,
         )
-        self.statement_result_block.setVisible(False)  # hide initially
+
+        # Stacked widget — one slot per panel.
+        # nav_idx_* constants are used by StanPresenter to switch panels.
+        self.content_stack = QStackedWidget()
+        self.nav_idx_info: int = self.content_stack.addWidget(self.project_info_block)
+        self.nav_idx_import: int = self.content_stack.addWidget(
+            self.statement_queue_block
+        )
+        self.nav_idx_export: int = self.content_stack.addWidget(self.export_data_block)
+        self.nav_idx_reports: int = self.content_stack.addWidget(self.run_reports_block)
+        self.nav_idx_results: int = self.content_stack.addWidget(
+            self.statement_result_block
+        )
 
         # ── Presenters ────────────────────────────────────────────────────
         self.user_presenter = UserPresenter(model=self.user_model, view=None)
@@ -173,8 +214,8 @@ class Stan(QMainWindow):
         self.stan_presenter = StanPresenter(stan=self)  # type: ignore[arg-type]
 
         # ── Layout ────────────────────────────────────────────────────────
-        # VBox: title → project selector → [queue block | result block] → footer
-        # The queue/result block row has stretch=1 so it absorbs all extra
+        # VBox: title → project selector → nav bar → stacked content → footer
+        # The stacked content row has stretch=1 so it absorbs all extra
         # vertical space when the window is resized.  Footer has stretch=0
         # so it stays pinned to the bottom.
         layout = QVBoxLayout()
@@ -185,8 +226,8 @@ class Stan(QMainWindow):
         layout.addWidget(
             self.project_view, stretch=0, alignment=Qt.AlignmentFlag.AlignTop
         )
-        layout.addWidget(self.statement_queue_block, stretch=1)
-        layout.addWidget(self.statement_result_block, stretch=1)
+        layout.addWidget(self.project_nav_view, stretch=0)
+        layout.addWidget(self.content_stack, stretch=1)
         layout.addWidget(self.footer_view, stretch=0)
 
         self.stan.setLayout(layout)

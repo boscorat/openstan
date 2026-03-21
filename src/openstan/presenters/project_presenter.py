@@ -3,6 +3,8 @@ import sqlite3
 import sys
 import tomllib
 import traceback
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -10,7 +12,7 @@ from uuid import uuid4
 import bank_statement_parser as bsp
 import polars as pl
 import tomli_w
-from PyQt6.QtCore import QObject, QRunnable, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 if TYPE_CHECKING:
     from openstan.models.project_model import ProjectModel
@@ -132,65 +134,170 @@ def _apply_config_selections(
                 merged_sources.add(source_config_dir)
 
 
-class ProjectSummarySignals(QObject):
-    """Cross-thread signals for ProjectSummaryWorker."""
+def _fmt_date(s: str) -> str:
+    """Convert an ISO date string (YYYY-MM-DD) to DD/MM/YYYY, or return '' on failure."""
+    if not s:
+        return ""
+    try:
+        return datetime.strptime(s, "%Y-%m-%d").strftime("%d/%m/%Y")
+    except ValueError:
+        return s
 
-    # Carries (project_path, summary_text) so the receiver can discard stale results.
-    summary_ready: pyqtSignal = pyqtSignal(Path, str)
 
+@dataclass(frozen=True, slots=True)
+class ProjectInfo:
+    """Snapshot of project-level datamart summary data.
 
-class ProjectSummaryWorker(QRunnable):
-    """Background worker that queries project.db mart tables and emits a summary string.
-
-    Emits an empty string when the mart has not yet been built or all counts are zero.
-    Any exception is printed to stderr and an empty string is emitted so the UI is
-    never left in a broken state.
+    All date strings are formatted as DD/MM/YYYY; empty string means no data.
+    Monetary amounts are stored as whole integers.
+    # TODO: include currency symbol/code in datamart (bsp) — see project info panel
     """
 
-    def __init__(self, project_path: Path) -> None:
-        super().__init__()
-        self._project_path: Path = project_path
-        self.signals: ProjectSummarySignals = ProjectSummarySignals()
+    tx_count: int
+    stmt_count: int
+    acc_count: int
+    earliest_date: str
+    latest_date: str
+    account_rows: pl.DataFrame
+    gap_count: int
+    gap_rows: pl.DataFrame
 
-    @pyqtSlot()
-    def run(self) -> None:
-        try:
-            tx_count: int = (
-                bsp.db.FactTransaction(self._project_path)
-                .all.select(pl.len())
-                .collect()
-                .item()
-            )
-            stmt_count: int = (
-                bsp.db.DimStatement(self._project_path)
-                .all.select(pl.len())
-                .collect()
-                .item()
-            )
-            acc_count: int = (
-                bsp.db.DimAccount(self._project_path)
-                .all.select(pl.len())
-                .collect()
-                .item()
-            )
-        except sqlite3.OperationalError, bsp.StatementError:
-            # Mart tables not yet built, or project.db missing — show nothing.
-            self.signals.summary_ready.emit(self._project_path, "")
-            return
-        except Exception:
-            traceback.print_exc(file=sys.stderr)
-            self.signals.summary_ready.emit(self._project_path, "")
-            return
 
-        if tx_count == 0 and stmt_count == 0 and acc_count == 0:
-            self.signals.summary_ready.emit(self._project_path, "")
-            return
+def get_project_info(project_path: Path) -> "ProjectInfo | None":
+    """Query project.db mart tables and return a structured :class:`ProjectInfo`.
 
-        text = (
-            f"{tx_count:,} transactions in {stmt_count:,} statements"
-            f" across {acc_count:,} {'account' if acc_count == 1 else 'accounts'}"
+    Returns ``None`` when the mart has not yet been built, all counts are zero,
+    or any exception occurs — so the caller never receives a broken value.
+    """
+    try:
+        tx_count: int = (
+            bsp.db.FactTransaction(project_path).all.select(pl.len()).collect().item()
         )
-        self.signals.summary_ready.emit(self._project_path, text)
+        stmt_count: int = (
+            bsp.db.DimStatement(project_path).all.select(pl.len()).collect().item()
+        )
+        acc_count: int = (
+            bsp.db.DimAccount(project_path).all.select(pl.len()).collect().item()
+        )
+    except sqlite3.OperationalError, bsp.StatementError:
+        # Mart tables not yet built, or project.db missing — return nothing.
+        return None
+    except Exception:
+        traceback.print_exc(file=sys.stderr)
+        return None
+
+    if tx_count == 0 and stmt_count == 0 and acc_count == 0:
+        return None
+
+    try:
+        # ── Date range (from DimStatement) ────────────────────────────────────
+        date_agg = (
+            bsp.db.DimStatement(project_path)
+            .all.select(
+                [
+                    pl.col("statement_date").min().alias("earliest"),
+                    pl.col("statement_date").max().alias("latest"),
+                ]
+            )
+            .collect()
+        )
+        earliest_date = _fmt_date(date_agg["earliest"][0] or "")
+        latest_date = _fmt_date(date_agg["latest"][0] or "")
+
+        # ── Per-account summary ───────────────────────────────────────────────
+        stmt_agg = (
+            bsp.db.DimStatement(project_path)
+            .all.group_by("account_number", "account_holder", "account_type")
+            .agg(
+                [
+                    pl.len().alias("statements"),
+                    pl.col("statement_date").min().alias("from_date"),
+                    pl.col("statement_date").max().alias("to_date"),
+                    pl.col("payments_in").sum().alias("total_in"),
+                    pl.col("payments_out").sum().alias("total_out"),
+                ]
+            )
+        )
+        dim_acc = bsp.db.DimAccount(project_path).all.select(
+            ["id_account", "account_number", "account_holder", "account_type"]
+        )
+        latest_bal = (
+            bsp.db.FactBalance(project_path)
+            .all.filter(pl.col("outside_date") == 0)
+            .sort("id_date", descending=True)
+            .group_by("id_account")
+            .agg(pl.col("closing_balance").first().alias("latest_balance"))
+        )
+        account_rows = (
+            stmt_agg.join(
+                dim_acc,
+                on=["account_number", "account_holder", "account_type"],
+                how="left",
+            )
+            .join(latest_bal, on="id_account", how="left")
+            .select(
+                [
+                    pl.col("id_account").alias("account"),
+                    pl.col("account_holder").alias("holder"),
+                    pl.col("statements"),
+                    pl.col("from_date").map_elements(_fmt_date, return_dtype=pl.String),
+                    pl.col("to_date").map_elements(_fmt_date, return_dtype=pl.String),
+                    # TODO: include currency symbol/code in datamart (bsp) — see project info panel
+                    pl.col("total_in").cast(pl.Int64),
+                    pl.col("total_out").cast(pl.Int64),
+                    pl.col("latest_balance"),
+                ]
+            )
+            .sort("account")
+            .collect()
+        )
+
+        # ── Gap report ────────────────────────────────────────────────────────
+        # Compute prev_statement_date by shifting within each account group so
+        # the view can show "missing between <prev> and <current>" per gap row.
+        gr = bsp.db.GapReport(project_path)
+        gap_rows = (
+            gr.all.sort(["account_type", "account_number", "statement_date"])
+            .with_columns(
+                pl.col("statement_date")
+                .shift(1)
+                .over(["account_type", "account_number"])
+                .alias("prev_statement_date")
+            )
+            .filter(pl.col("gap_flag") == "GAP")
+            .select(
+                [
+                    pl.col("account_type"),
+                    pl.col("account_number"),
+                    pl.col("account_holder"),
+                    pl.col("prev_statement_date").map_elements(
+                        _fmt_date, return_dtype=pl.String
+                    ),
+                    pl.col("statement_date").map_elements(
+                        _fmt_date, return_dtype=pl.String
+                    ),
+                    pl.col("opening_balance"),
+                    pl.col("closing_balance"),
+                ]
+            )
+            .collect()
+        )
+        gap_count = gap_rows.height
+
+    except Exception:
+        traceback.print_exc(file=sys.stderr)
+        return None
+
+    return ProjectInfo(
+        tx_count=tx_count,
+        stmt_count=stmt_count,
+        acc_count=acc_count,
+        earliest_date=earliest_date,
+        latest_date=latest_date,
+        account_rows=account_rows,
+        gap_count=gap_count,
+        gap_rows=gap_rows,
+    )
 
 
 class ProjectPresenter(QObject):

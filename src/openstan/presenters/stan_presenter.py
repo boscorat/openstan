@@ -6,7 +6,7 @@ from bank_statement_parser import ProjectPaths
 from PyQt6.QtCore import QObject, pyqtSlot
 
 from openstan.models.statement_result_model import ResultRow
-from openstan.presenters.project_presenter import ProjectSummaryWorker
+from openstan.presenters.project_presenter import get_project_info
 
 if TYPE_CHECKING:
     from PyQt6.QtSql import QSqlRecord
@@ -27,8 +27,9 @@ class StanPresenter(QObject):
 
         # views
         self.footer_view = self.stan.footer_view
+        self.nav_view = self.stan.project_nav_view
 
-        # signals
+        # ── Signal wiring ──────────────────────────────────────────────────────
         self.project_presenter.view.selection.currentIndexChanged.connect(
             self.project_selection_changed
         )
@@ -44,12 +45,19 @@ class StanPresenter(QObject):
         self.statement_result_presenter.batch_committed.connect(self.on_batch_committed)
         self.footer_view.admin_requested.connect(self.open_admin_dialog)
 
-        # add a new user to the database if not exists
+        # Nav button clicks
+        self.nav_view.button_info.clicked.connect(self.__nav_to_info)
+        self.nav_view.button_import.clicked.connect(self.__nav_to_import)
+        self.nav_view.button_export.clicked.connect(self.__nav_to_export)
+        self.nav_view.button_reports.clicked.connect(self.__nav_to_reports)
+
+        # ── Bootstrap ──────────────────────────────────────────────────────────
+        # Add a new user to the database if not exists
         self.stan.userID = self.stan.user_model.user_id_from_username(
             self.stan.username
         )
         if not self.stan.userID:
-            success: bool = bool(False)
+            success: bool = False
             msg: str = ""
             success, self.stan.userID, msg = self.stan.user_presenter.create_new_user(
                 self.stan.username, self.stan.sessionID
@@ -58,10 +66,10 @@ class StanPresenter(QObject):
                 self.stan.error_db_lock.showMessage(
                     f"{msg}\nThe application will close shortly."
                 )
-        # start a new session
+        # Start a new session
         if self.stan.userID:
-            success: bool = bool(False)
-            msg: str = ""
+            success = False
+            msg = ""
             success, self.stan.sessionID, msg = self.stan.session_presenter.new_session(
                 self.stan.userID
             )
@@ -70,21 +78,25 @@ class StanPresenter(QObject):
                     f"{msg}\nThe application will close shortly."
                 )
 
-        # update footer label with username and sessionID
+        # Update footer label with username and sessionID
         self.footer_view.labelUser.setText(
             f"##### User: {self.stan.username} | Session: {self.stan.sessionID}"
         )
 
-        # pass sessionID to other presenters
+        # Pass sessionID to other presenters
         self.project_presenter.sessionID = self.stan.sessionID
         self.statement_queue_presenter.sessionID = self.stan.sessionID
         self.statement_result_presenter.session_id = self.stan.sessionID
         self.statement_result_presenter.username = self.stan.username
 
-        # update current project info
+        # Update current project info (sets nav state + panel)
         self.update_current_project_info(
             self.project_presenter.view.selection.currentIndex()
         )
+
+    # ---------------------------------------------------------------------------
+    # DB lock
+    # ---------------------------------------------------------------------------
 
     @pyqtSlot()
     def db_lock_handler(self) -> None:
@@ -92,16 +104,22 @@ class StanPresenter(QObject):
             "Database is locked! Another active session may exist.\nThe application will close shortly."
         )
 
+    # ---------------------------------------------------------------------------
+    # Project selection
+    # ---------------------------------------------------------------------------
+
     @pyqtSlot(int)
     def project_selection_changed(self, index: int) -> None:
         self.update_current_project_info(index)
 
     def cleanup_before_exit(self) -> None:
+        # Cancel any in-progress debug worker so it stops at its next iteration
+        self.statement_result_presenter.cancel_debug_worker()
         self.session_presenter.end_active_sessions()
         print("CLEANUP: StanPresenter.cleanup_before_exit: Session ended.")
 
     def update_current_project_info(self, index: int) -> None:
-        current_record: QSqlRecord = self.project_presenter.model.record(index)
+        current_record: "QSqlRecord" = self.project_presenter.model.record(index)
         self.stan.current_project_name = current_record.value("project_name")
         self.stan.current_project_id = current_record.value("project_ID")
         self.statement_queue_presenter.projectID = self.stan.current_project_id
@@ -120,17 +138,13 @@ class StanPresenter(QObject):
         )
         print(current_record.value("project_location"))
 
-        # Clear any stale summary while the background worker fetches fresh counts.
-        self.stan.project_view.summary_label.setText("")
-        self.__refresh_project_summary()
+        # Refresh project info panel and update nav button visibility.
+        self.__refresh_project_info()
 
-        # Always reset to the queue view on project change and clear any
-        # in-memory results from the previous project.  The session-restore
-        # block below will repopulate if this project has a locked batch.
+        # Clear any in-memory results from the previous project.
         self.statement_result_presenter.clear_for_project_change()
-        self.hide_results()
 
-        # Session restore: check for a locked batch on this project
+        # Session restore: check for a locked batch on this project.
         batch_id = self.statement_queue_presenter.model.get_batch_id()
         if batch_id:
             # Stale-lock detection: if the queue is locked but no results were
@@ -156,27 +170,77 @@ class StanPresenter(QObject):
                     batch_id, self.stan.current_project_id
                 )
 
-    def __refresh_project_summary(self) -> None:
-        """Submit a background worker to update the project summary label."""
+    # ---------------------------------------------------------------------------
+    # Navigation helpers
+    # ---------------------------------------------------------------------------
+
+    def __refresh_project_info(self) -> None:
+        """Query project.db and push the result into the Project Info panel.
+
+        Also updates nav button visibility based on whether data exists.
+        """
         if self.stan.current_project_paths is None:
             return
-        worker = ProjectSummaryWorker(self.stan.current_project_paths.root)
-        worker.signals.summary_ready.connect(self.update_project_summary)
-        self.stan.threadpool.start(worker)
+        info = get_project_info(self.stan.current_project_paths.root)
+        self.stan.project_info_view.update(info)
+        self.__update_nav_for_project(has_data=info is not None)
 
-    @pyqtSlot(Path, str)
-    def update_project_summary(self, project_path: Path, text: str) -> None:
-        """Receive the computed summary string from the background worker.
+    def __update_nav_for_project(self, *, has_data: bool) -> None:
+        """Show/hide data-dependent buttons and navigate to the default panel.
 
-        Discards the result if the project path no longer matches the currently
-        selected project — prevents stale workers from overwriting a fresher result.
+        Projects with data default to Project Info; new/empty projects default
+        to Import Statements (the only always-available panel).
         """
-        if (
-            self.stan.current_project_paths is None
-            or project_path != self.stan.current_project_paths.root
-        ):
-            return
-        self.stan.project_view.summary_label.setText(text)
+        self.nav_view.button_info.setVisible(has_data)
+        self.nav_view.button_export.setVisible(has_data)
+        self.nav_view.button_reports.setVisible(has_data)
+
+        if has_data:
+            self.__nav_to_info()
+        else:
+            self.__nav_to_import()
+
+    def __set_panel(self, idx: int) -> None:
+        """Switch the stacked content widget to the given index."""
+        self.stan.content_stack.setCurrentIndex(idx)
+
+    @pyqtSlot()
+    def __nav_to_info(self) -> None:
+        self.nav_view.button_info.setChecked(True)
+        self.__set_panel(self.stan.nav_idx_info)
+
+    @pyqtSlot()
+    def __nav_to_import(self) -> None:
+        self.nav_view.button_import.setChecked(True)
+        self.__set_panel(self.stan.nav_idx_import)
+
+    @pyqtSlot()
+    def __nav_to_export(self) -> None:
+        self.nav_view.button_export.setChecked(True)
+        self.__set_panel(self.stan.nav_idx_export)
+
+    @pyqtSlot()
+    def __nav_to_reports(self) -> None:
+        self.nav_view.button_reports.setChecked(True)
+        self.__set_panel(self.stan.nav_idx_reports)
+
+    # ---------------------------------------------------------------------------
+    # Results panel (import flow — overlays import panel)
+    # ---------------------------------------------------------------------------
+
+    def show_results(self) -> None:
+        """Switch the content area to the results block."""
+        self.__set_panel(self.stan.nav_idx_results)
+        # Uncheck all nav buttons — results is not a user-navigable panel
+        self.nav_view.clear_checks()
+
+    def hide_results(self) -> None:
+        """Return from the results block to the import panel."""
+        self.__nav_to_import()
+
+    # ---------------------------------------------------------------------------
+    # Statement import callbacks
+    # ---------------------------------------------------------------------------
 
     @pyqtSlot(Path, bsp.PdfResult, int, str)
     def statement_imported(
@@ -218,7 +282,7 @@ class StanPresenter(QObject):
             error_type = stmt.payload.error_type  # type: ignore[union-attr]
             message = stmt.payload.message  # type: ignore[union-attr]
 
-        batch_id = self.statement_queue_presenter._current_batch_id or ""
+        batch_id = self.statement_queue_presenter._current_batch_id or ""  # noqa: SLF001
 
         row = ResultRow(
             result_id="",  # assigned at persist time
@@ -245,7 +309,7 @@ class StanPresenter(QObject):
     @pyqtSlot(float)
     def on_import_finished(self, duration_secs: float) -> None:
         """Worker thread finished: persist batch record and all in-memory results."""
-        batch_id = self.statement_queue_presenter._current_batch_id
+        batch_id = self.statement_queue_presenter._current_batch_id  # noqa: SLF001
         if batch_id:
             ok, msg = self.stan.batch_model.create_batch(
                 batch_id=batch_id,
@@ -259,20 +323,6 @@ class StanPresenter(QObject):
             print("WARNING: on_import_finished called with no current batch_id.")
         # Re-enable action buttons now that import is complete
         self.statement_result_presenter.set_importing(False)
-
-    # ---------------------------------------------------------------------------
-    # Show / hide results panel
-    # ---------------------------------------------------------------------------
-
-    def show_results(self) -> None:
-        """Switch the content area to the results block."""
-        self.stan.statement_queue_block.setVisible(False)
-        self.stan.statement_result_block.setVisible(True)
-
-    def hide_results(self) -> None:
-        """Switch the content area back to the main project view."""
-        self.stan.statement_result_block.setVisible(False)
-        self.stan.statement_queue_block.setVisible(True)
 
     # ---------------------------------------------------------------------------
     # Batch lifecycle callbacks
@@ -290,13 +340,18 @@ class StanPresenter(QObject):
         """Called after a batch is successfully committed to project.db.
 
         Hides the results panel, clears the queue, and resets all queue
-        buttons so the user is ready to start a new import.
+        buttons so the user is ready to start a new import.  Also refreshes
+        the project summary and nav button visibility, since build_datamart ran
+        as part of the commit and the project now has data.
         """
-        self.hide_results()
         self.statement_queue_presenter.clear_all_items()
         self.statement_queue_presenter.update_view()
-        # build_datamart ran as part of the commit — refresh the summary counts.
-        self.__refresh_project_summary()
+        # Refresh project info — the project may now have data for the first time.
+        self.__refresh_project_info()
+
+    # ---------------------------------------------------------------------------
+    # Admin
+    # ---------------------------------------------------------------------------
 
     @pyqtSlot()
     def open_admin_dialog(self) -> None:
