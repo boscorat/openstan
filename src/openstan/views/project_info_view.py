@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 import polars as pl
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
-from PyQt6.QtWidgets import QDialogButtonBox, QHBoxLayout, QVBoxLayout
+from PyQt6.QtWidgets import QDialogButtonBox, QHBoxLayout, QPushButton, QVBoxLayout
 
 from openstan.components import (
     Qt,
@@ -97,10 +97,12 @@ class ProjectInfoView(StanWidget):
     """Project Information panel.
 
     Layout (top-to-bottom):
-    1. Section header
-    2. Headline summary strip — tx / stmt / account counts and date range
-    3. Per-account ``StanTableView``
-    4. Gap indicator button (hidden when gap_count == 0)
+    1. Headline summary strip — tx / stmt / account counts and date range
+    2. Per-account ``StanTableView``
+    3. Gap indicator button (hidden when gap_count == 0)
+
+    The header label is supplied externally by ``ContentFrameView`` in
+    ``main.py`` — consistent with all other panel views.
 
     The single public entry point is :meth:`update`.
     """
@@ -112,9 +114,6 @@ class ProjectInfoView(StanWidget):
 
     def __init__(self) -> None:
         super().__init__()
-
-        # ── Header ────────────────────────────────────────────────────────────
-        header_label = StanLabel(self.header)
 
         # ── Summary strip ─────────────────────────────────────────────────────
         self._lbl_tx = StanLabel("")
@@ -139,8 +138,9 @@ class ProjectInfoView(StanWidget):
         self._acc_table.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
 
         # ── Gap indicator ─────────────────────────────────────────────────────
-        from PyQt6.QtWidgets import QPushButton  # local import to keep top clean
-
+        # A specialised flat warning-link button — not using StanButton because
+        # it requires a custom stylesheet (red colour, underline hover, no border)
+        # that is incompatible with the standard StanButton appearance.
         self._gap_button = QPushButton()
         self._gap_button.setFlat(True)
         self._gap_button.setStyleSheet(
@@ -152,7 +152,10 @@ class ProjectInfoView(StanWidget):
         self._gap_button.hide()
 
         # ── Gap detail dialog ─────────────────────────────────────────────────
-        self.gap_dialog = GapDetailDialog(self)
+        self._gap_dialog = GapDetailDialog(self)
+        # Connect the gap_clicked signal directly so the view owns the dialog
+        # lifecycle — the presenter need only emit the signal.
+        self.gap_clicked.connect(self._gap_dialog.exec)
 
         # ── Empty-state label (shown when info is None) ───────────────────────
         self._empty_label = StanMutedLabel(
@@ -164,7 +167,6 @@ class ProjectInfoView(StanWidget):
         # ── Main layout ───────────────────────────────────────────────────────
         layout = QVBoxLayout()
         layout.setSpacing(12)
-        layout.addWidget(header_label)
         layout.addLayout(summary_row)
         layout.addWidget(self._acc_table_header)
         layout.addWidget(self._acc_table)
@@ -206,7 +208,7 @@ class ProjectInfoView(StanWidget):
             self._gap_button.setText(
                 f"Warning: {info.gap_count} statement {gap_word} detected — click to review"
             )
-            self.gap_dialog.load(info.gap_rows)
+            self._gap_dialog.load(info.gap_rows)
             self._gap_button.show()
         else:
             self._gap_button.hide()

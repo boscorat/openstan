@@ -27,13 +27,13 @@ class StanPolarsModel(QAbstractTableModel):
         super().__init__()
         self.df = df
 
-    def rowCount(self, parent=None):
+    def rowCount(self, parent=None) -> int:
         return self.df.height
 
-    def columnCount(self, parent=None):
+    def columnCount(self, parent=None) -> int:
         return self.df.width
 
-    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole) -> str | None:
         if role == Qt.ItemDataRole.DisplayRole:
             return str(self.df.item(index.row(), index.column()))
         return None
@@ -43,7 +43,7 @@ class StanPolarsModel(QAbstractTableModel):
         section: int,
         orientation: Qt.Orientation,
         role=Qt.ItemDataRole.DisplayRole,
-    ):
+    ) -> str | None:
         """Override method from QAbstractTableModel
 
         Return dataframe index as vertical header data and columns as horizontal header data.
@@ -168,9 +168,9 @@ class StanMutedLabel(StanLabel):
 
 
 class StanButton(QPushButton):
-    def __init__(self, text="Button") -> None:
+    def __init__(self, text="Button", min_width: int = 200) -> None:
         super().__init__(text)
         # self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAutoFillBackground(True)
         self.setIconSize(QSize(10, 10))
-        self.setMinimumWidth(200)
+        self.setMinimumWidth(min_width)

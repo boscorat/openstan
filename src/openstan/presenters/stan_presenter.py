@@ -51,16 +51,13 @@ class StanPresenter(QObject):
         self.nav_view.button_export.clicked.connect(self.__nav_to_export)
         self.nav_view.button_reports.clicked.connect(self.__nav_to_reports)
 
-        # Gap detail dialog
-        self.stan.project_info_view.gap_clicked.connect(self.__show_gap_detail)
-
         # ── Bootstrap ──────────────────────────────────────────────────────────
-        # add a new user to the database if not exists
+        # Add a new user to the database if not exists
         self.stan.userID = self.stan.user_model.user_id_from_username(
             self.stan.username
         )
         if not self.stan.userID:
-            success: bool = bool(False)
+            success: bool = False
             msg: str = ""
             success, self.stan.userID, msg = self.stan.user_presenter.create_new_user(
                 self.stan.username, self.stan.sessionID
@@ -69,10 +66,10 @@ class StanPresenter(QObject):
                 self.stan.error_db_lock.showMessage(
                     f"{msg}\nThe application will close shortly."
                 )
-        # start a new session
+        # Start a new session
         if self.stan.userID:
-            success: bool = bool(False)
-            msg: str = ""
+            success = False
+            msg = ""
             success, self.stan.sessionID, msg = self.stan.session_presenter.new_session(
                 self.stan.userID
             )
@@ -81,18 +78,18 @@ class StanPresenter(QObject):
                     f"{msg}\nThe application will close shortly."
                 )
 
-        # update footer label with username and sessionID
+        # Update footer label with username and sessionID
         self.footer_view.labelUser.setText(
             f"##### User: {self.stan.username} | Session: {self.stan.sessionID}"
         )
 
-        # pass sessionID to other presenters
+        # Pass sessionID to other presenters
         self.project_presenter.sessionID = self.stan.sessionID
         self.statement_queue_presenter.sessionID = self.stan.sessionID
         self.statement_result_presenter.session_id = self.stan.sessionID
         self.statement_result_presenter.username = self.stan.username
 
-        # update current project info (sets nav state + panel)
+        # Update current project info (sets nav state + panel)
         self.update_current_project_info(
             self.project_presenter.view.selection.currentIndex()
         )
@@ -117,9 +114,7 @@ class StanPresenter(QObject):
 
     def cleanup_before_exit(self) -> None:
         # Cancel any in-progress debug worker so it stops at its next iteration
-        cancel = self.statement_result_presenter._debug_cancel  # noqa: SLF001
-        if cancel is not None:
-            cancel.set()
+        self.statement_result_presenter.cancel_debug_worker()
         self.session_presenter.end_active_sessions()
         print("CLEANUP: StanPresenter.cleanup_before_exit: Session ended.")
 
@@ -212,38 +207,32 @@ class StanPresenter(QObject):
     @pyqtSlot()
     def __nav_to_info(self) -> None:
         self.nav_view.button_info.setChecked(True)
-        self.__set_panel(self.stan.NAV_IDX_INFO)
+        self.__set_panel(self.stan.nav_idx_info)
 
     @pyqtSlot()
     def __nav_to_import(self) -> None:
         self.nav_view.button_import.setChecked(True)
-        self.__set_panel(self.stan.NAV_IDX_IMPORT)
+        self.__set_panel(self.stan.nav_idx_import)
 
     @pyqtSlot()
     def __nav_to_export(self) -> None:
         self.nav_view.button_export.setChecked(True)
-        self.__set_panel(self.stan.NAV_IDX_EXPORT)
+        self.__set_panel(self.stan.nav_idx_export)
 
     @pyqtSlot()
     def __nav_to_reports(self) -> None:
         self.nav_view.button_reports.setChecked(True)
-        self.__set_panel(self.stan.NAV_IDX_REPORTS)
+        self.__set_panel(self.stan.nav_idx_reports)
 
     # ---------------------------------------------------------------------------
     # Results panel (import flow — overlays import panel)
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
-    def __show_gap_detail(self) -> None:
-        """Open the gap detail dialog from the Project Info panel."""
-        self.stan.project_info_view.gap_dialog.exec()
-
     def show_results(self) -> None:
         """Switch the content area to the results block."""
-        self.__set_panel(self.stan.NAV_IDX_RESULTS)
+        self.__set_panel(self.stan.nav_idx_results)
         # Uncheck all nav buttons — results is not a user-navigable panel
-        for btn in self.nav_view._group.buttons():  # noqa: SLF001
-            btn.setChecked(False)
+        self.nav_view.clear_checks()
 
     def hide_results(self) -> None:
         """Return from the results block to the import panel."""
@@ -293,7 +282,7 @@ class StanPresenter(QObject):
             error_type = stmt.payload.error_type  # type: ignore[union-attr]
             message = stmt.payload.message  # type: ignore[union-attr]
 
-        batch_id = self.statement_queue_presenter._current_batch_id or ""
+        batch_id = self.statement_queue_presenter._current_batch_id or ""  # noqa: SLF001
 
         row = ResultRow(
             result_id="",  # assigned at persist time
@@ -320,7 +309,7 @@ class StanPresenter(QObject):
     @pyqtSlot(float)
     def on_import_finished(self, duration_secs: float) -> None:
         """Worker thread finished: persist batch record and all in-memory results."""
-        batch_id = self.statement_queue_presenter._current_batch_id
+        batch_id = self.statement_queue_presenter._current_batch_id  # noqa: SLF001
         if batch_id:
             ok, msg = self.stan.batch_model.create_batch(
                 batch_id=batch_id,

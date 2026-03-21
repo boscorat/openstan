@@ -464,6 +464,16 @@ class StatementResultPresenter(QObject):
         self._importing = importing
         self.__apply_button_state()
 
+    def cancel_debug_worker(self) -> None:
+        """Signal the background debug worker to stop at its next iteration.
+
+        Safe to call even if no worker is running (no-op when ``_debug_cancel``
+        is ``None``).  Called by ``StanPresenter`` during project change and
+        application exit.
+        """
+        if self._debug_cancel is not None:
+            self._debug_cancel.set()
+
     # ---------------------------------------------------------------------------
     # Button slots
     # ---------------------------------------------------------------------------

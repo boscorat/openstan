@@ -474,6 +474,15 @@ class ProjectNavView(StanWidget):
         self.setMaximumHeight(44)
 
     # ------------------------------------------------------------------
+    # Public interface — called by the presenter
+    # ------------------------------------------------------------------
+
+    def clear_checks(self) -> None:
+        """Uncheck all nav buttons (e.g. when switching project)."""
+        for btn in self._group.buttons():
+            btn.setChecked(False)
+
+    # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
 

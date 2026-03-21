@@ -16,20 +16,19 @@ Each row shows:
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
-    QDialog,
     QDialogButtonBox,
     QHeaderView,
-    QLabel,
-    QPushButton,
     QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
+
+from openstan.components import StanButton, StanDialog, StanLabel
 
 if TYPE_CHECKING:
     from openstan.models.statement_result_model import ResultRow
@@ -45,7 +44,7 @@ _COL_MESSAGE = 5
 _HEADERS = ["Statement", "Type", "Debug Status", "Debug JSON", "PDF", "Message"]
 
 
-class DebugInfoDialog(QDialog):
+class DebugInfoDialog(StanDialog):
     """Modal dialog displaying the debug progress for all non-success statements.
 
     Can be opened while the debug worker is still running — rows update
@@ -56,7 +55,6 @@ class DebugInfoDialog(QDialog):
     def __init__(self, rows: "list[ResultRow]", parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Debug Information")
-        self.setModal(True)
         self.setMinimumWidth(820)
         self.setMinimumHeight(400)
 
@@ -69,8 +67,11 @@ class DebugInfoDialog(QDialog):
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self._table.setAlternatingRowColors(True)
-        self._table.verticalHeader().setVisible(False)
+        v_header = self._table.verticalHeader()
+        assert v_header is not None
+        v_header.setVisible(False)
         hdr = self._table.horizontalHeader()
+        assert hdr is not None
         hdr.setSectionResizeMode(_COL_FILE, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_TYPE, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_STATUS, QHeaderView.ResizeMode.ResizeToContents)
@@ -83,8 +84,7 @@ class DebugInfoDialog(QDialog):
             self.__add_row(row)
 
         # Status label at the bottom (shows overall progress while running)
-        self._status_label = QLabel("")
-        self._status_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self._status_label = StanLabel("")
         self._status_label.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
@@ -121,7 +121,7 @@ class DebugInfoDialog(QDialog):
 
         # Update JSON button
         json_widget = self._table.cellWidget(idx, _COL_JSON)
-        if isinstance(json_widget, QPushButton):
+        if isinstance(json_widget, StanButton):
             if debug_json_path is not None and debug_json_path.exists():
                 json_widget.setEnabled(True)
                 json_widget.setProperty("_path", str(debug_json_path))
@@ -133,7 +133,7 @@ class DebugInfoDialog(QDialog):
 
     def set_all_done(self) -> None:
         """Mark any still-pending rows as 'unavailable' (debug did not run)."""
-        for result_id, idx in self._row_index.items():
+        for _, idx in self._row_index.items():
             item = self._table.item(idx, _COL_STATUS)
             if item is not None and item.text() in ("pending", "running", ""):
                 item.setText("unavailable")
@@ -163,7 +163,7 @@ class DebugInfoDialog(QDialog):
         self._table.setItem(table_row, _COL_STATUS, QTableWidgetItem(status_text))
 
         # Open JSON button
-        json_btn = QPushButton("Open JSON")
+        json_btn = StanButton("Open JSON", min_width=0)
         json_btn.setEnabled(False)
         json_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         if row.debug_json_path is not None and row.debug_json_path.exists():
@@ -175,7 +175,7 @@ class DebugInfoDialog(QDialog):
         self._table.setCellWidget(table_row, _COL_JSON, json_btn)
 
         # Open PDF button
-        pdf_btn = QPushButton("Open PDF")
+        pdf_btn = StanButton("Open PDF", min_width=0)
         pdf_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         pdf_path = str(row.file_path)
         pdf_btn.clicked.connect(lambda _checked, p=pdf_path: self.__open_file(p))

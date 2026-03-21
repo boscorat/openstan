@@ -7,29 +7,28 @@ they will be replaced by functional implementations in future milestones.
 
 from PyQt6.QtWidgets import QVBoxLayout
 
-from openstan.components import Qt, StanLabel, StanMutedLabel, StanWidget
+from openstan.components import Qt, StanMutedLabel, StanWidget
 
 
 class _StubView(StanWidget):
     """Base class for placeholder panels.
 
-    Displays a centred header and a muted 'not yet implemented' line.
+    Displays a single centred muted description line.  The section header is
+    supplied externally by ``ContentFrameView`` in ``main.py`` — consistent
+    with all other panel views.
     """
 
-    def __init__(self, title: str, description: str) -> None:
+    def __init__(self, description: str) -> None:
         super().__init__()
-        header = StanLabel(f"### {title}")
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         body = StanMutedLabel(description)
         body.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         layout = QVBoxLayout()
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(header)
         layout.addWidget(body)
         self.setLayout(layout)
 
-    # Public attributes expected by ContentFrameView / StanPresenter
+    # Public attribute expected by ContentFrameView / StanPresenter
     header: str = ""
 
 
@@ -40,7 +39,6 @@ class ExportDataView(_StubView):
 
     def __init__(self) -> None:
         super().__init__(
-            title="Export Data",
             description="Export project transactions and reports — coming soon.",
         )
 
@@ -52,6 +50,5 @@ class RunReportsView(_StubView):
 
     def __init__(self) -> None:
         super().__init__(
-            title="Run Reports",
             description="Generate and view project reports — coming soon.",
         )

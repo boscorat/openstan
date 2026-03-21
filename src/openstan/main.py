@@ -172,15 +172,15 @@ class Stan(QMainWindow):
         )
 
         # Stacked widget — one slot per panel.
-        # NAV_IDX_* constants are used by StanPresenter to switch panels.
+        # nav_idx_* constants are used by StanPresenter to switch panels.
         self.content_stack = QStackedWidget()
-        self.NAV_IDX_INFO: int = self.content_stack.addWidget(self.project_info_block)
-        self.NAV_IDX_IMPORT: int = self.content_stack.addWidget(
+        self.nav_idx_info: int = self.content_stack.addWidget(self.project_info_block)
+        self.nav_idx_import: int = self.content_stack.addWidget(
             self.statement_queue_block
         )
-        self.NAV_IDX_EXPORT: int = self.content_stack.addWidget(self.export_data_block)
-        self.NAV_IDX_REPORTS: int = self.content_stack.addWidget(self.run_reports_block)
-        self.NAV_IDX_RESULTS: int = self.content_stack.addWidget(
+        self.nav_idx_export: int = self.content_stack.addWidget(self.export_data_block)
+        self.nav_idx_reports: int = self.content_stack.addWidget(self.run_reports_block)
+        self.nav_idx_results: int = self.content_stack.addWidget(
             self.statement_result_block
         )
 
