@@ -23,6 +23,7 @@ Signals emitted (consumed by StanPresenter)
 """
 
 import sys
+import threading
 import traceback
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,6 +45,7 @@ if TYPE_CHECKING:
         SuccessResultModel,
     )
     from openstan.models.statement_queue_model import StatementQueueModel
+    from openstan.views.debug_info_dialog import DebugInfoDialog
     from openstan.views.statement_result_view import StatementResultView
 
 
@@ -151,6 +153,97 @@ class CommitWorker(QRunnable):
         self.signals.finished.emit()
 
 
+# ---------------------------------------------------------------------------
+# Background worker for async debug file generation
+# ---------------------------------------------------------------------------
+
+
+class DebugWorkerSignals(QObject):
+    """Cross-thread signals for DebugWorker."""
+
+    # Emitted once per non-success row after debug_pdf_statement completes.
+    # Carries: (result_id, debug_json_path | None)
+    entry_done = pyqtSignal(str, object)
+    all_done = pyqtSignal()
+    error = pyqtSignal(str)
+
+
+class DebugWorker(QRunnable):
+    """Run ``bsp.debug_pdf_statement`` for each non-success row off-thread.
+
+    Handles both REVIEW and FAILURE rows — bsp.debug_statements() skips
+    REVIEW entries so we call debug_pdf_statement() directly for all of them.
+
+    Parameters
+    ----------
+    rows:
+        Ordered list of non-success ``ResultRow`` objects (REVIEW + FAILURE).
+    result_ids:
+        Ordered list of result_ids matching *rows* index-for-index.
+    batch_id:
+        The current batch identifier forwarded to ``bsp.debug_pdf_statement``.
+    project_path:
+        Resolved project root — must never be ``None``.
+    cancel_event:
+        Set this event to request cancellation before the next iteration.
+    """
+
+    def __init__(
+        self,
+        rows: list[ResultRow],
+        result_ids: list[str],
+        batch_id: str,
+        project_path: Path,
+        cancel_event: threading.Event,
+    ) -> None:
+        super().__init__()
+        self.signals = DebugWorkerSignals()
+        self._rows = rows
+        self._result_ids = result_ids
+        self._batch_id = batch_id
+        self._project_path = project_path
+        self._cancel_event = cancel_event
+
+    def run(self) -> None:
+        try:
+            for i, row in enumerate(self._rows):
+                if self._cancel_event.is_set():
+                    break
+
+                result_id = self._result_ids[i] if i < len(self._result_ids) else ""
+
+                debug_json_path: Path | None = None
+                try:
+                    debug_json_path = bsp.debug_pdf_statement(
+                        pdf=row.file_path,
+                        batch_id=self._batch_id,
+                        company_key=None,
+                        account_key=None,
+                        project_path=self._project_path,
+                    )
+                except Exception:
+                    traceback.print_exc(file=sys.stderr)
+                    print(
+                        f"WARNING: debug_pdf_statement failed for {row.file_path.name}; "
+                        "entry will have no debug JSON.",
+                        file=sys.stderr,
+                    )
+
+                self.signals.entry_done.emit(result_id, debug_json_path)
+
+        except Exception:
+            traceback.print_exc(file=sys.stderr)
+            self.signals.error.emit(
+                "An error occurred while generating debug files. "
+                "See stderr for details."
+            )
+            # still emit all_done so the presenter can clean up
+            self.signals.all_done.emit()
+            return
+
+        self.signals.all_done.emit()
+
+
 class StatementResultPresenter(QObject):
     exit_results = pyqtSignal()
     batch_abandoned = pyqtSignal()
@@ -194,14 +287,35 @@ class StatementResultPresenter(QObject):
         # Batch action buttons
         self.view.buttonCloseResults.clicked.connect(self.__on_close_results)
         self.view.buttonAbandonBatch.clicked.connect(self.__on_abandon_batch)
+        self.view.buttonViewDebugInfo.clicked.connect(self.__on_view_debug_info)
         self.view.buttonCommitBatch.clicked.connect(self.__on_commit_batch)
 
         self._current_batch_id: str | None = None
         self._current_project_id: str | None = None
 
-        # True while the background import worker is running — all three action
-        # buttons are disabled until import finishes to prevent a mid-batch commit.
+        # True while the background import worker is running — all buttons
+        # are disabled until import finishes to prevent a mid-batch commit.
         self._importing: bool = False
+
+        # Debug worker state
+        self._debug_cancel: threading.Event | None = None
+        self._debug_worker_done: bool = True  # True = not running
+        self._debug_done_count: int = 0
+        self._debug_total_count: int = 0
+
+        # Soft-delete / hard-delete lifecycle after commit
+        self._pending_batch_id: str | None = (
+            None  # set after commit, before hard-delete
+        )
+        self._pending_hard_delete: bool = False
+
+        # Counts captured at persist time for commit summary dialog
+        self._n_success: int = 0
+        self._n_review: int = 0
+        self._n_failure: int = 0
+
+        # Open debug-info dialog (may be None when closed)
+        self._debug_dialog: "DebugInfoDialog | None" = None
 
         # Set by StanPresenter.update_current_project_info so the commit worker
         # has the correct context without accessing stan directly.
@@ -274,6 +388,15 @@ class StatementResultPresenter(QObject):
                     file=sys.stderr,
                 )
         print(f"Persist complete for batch {batch_id}.")
+
+        # Capture counts for commit summary dialog
+        self._n_success = self.success_model.row_count
+        self._n_review = self.review_model.row_count
+        self._n_failure = self.failure_model.row_count
+
+        # Auto-start debug worker for all non-success rows
+        if self._n_review + self._n_failure > 0:
+            self.__start_debug_worker(batch_id)
 
     # ---------------------------------------------------------------------------
     # Public: project change — always called before session restore check
@@ -352,7 +475,11 @@ class StatementResultPresenter(QObject):
 
     @pyqtSlot()
     def __on_abandon_batch(self) -> None:
-        """Delete all DB result rows + payloads, unlock queue, go back."""
+        """Cancel any running debug worker, delete all DB rows, unlock queue."""
+        # Signal the debug worker to stop at its next iteration
+        if self._debug_cancel is not None:
+            self._debug_cancel.set()
+
         batch_id = self._current_batch_id
         project_id = self._current_project_id
 
@@ -365,7 +492,7 @@ class StatementResultPresenter(QObject):
             if not ok:
                 print(f"ERROR: Could not delete payloads: {msg}", file=sys.stderr)
 
-            # 3. Delete result rows
+            # 3. Hard-delete all result rows (including any soft-deleted ones)
             ok, msg = self.result_model.delete_results_for_batch(batch_id)
             if not ok:
                 print(f"ERROR: Could not delete results: {msg}", file=sys.stderr)
@@ -387,10 +514,137 @@ class StatementResultPresenter(QObject):
         # 6. Clear in-memory state and reset labels
         self._current_batch_id = None
         self._current_project_id = None
+        self._pending_hard_delete = False
+        self._pending_batch_id = None
         self.__clear_views()
 
         # 7. Notify StanPresenter
         self.batch_abandoned.emit()
+
+    @pyqtSlot()
+    def __on_view_debug_info(self) -> None:
+        """Open (or re-open) the DebugInfoDialog for all non-success rows."""
+        from openstan.views.debug_info_dialog import DebugInfoDialog
+
+        # Re-read from DB so debug_status / debug_json_path are always fresh,
+        # even when the dialog is opened after the debug worker has already finished.
+        if self._current_batch_id:
+            all_rows = self.result_model.get_rows_for_batch(self._current_batch_id)
+            non_success = [r for r in all_rows if r.result != "SUCCESS"]
+        else:
+            non_success = self.review_model.all_rows() + self.failure_model.all_rows()
+
+        if not non_success:
+            return
+
+        self._debug_dialog = DebugInfoDialog(rows=non_success, parent=self.view)
+        if not self._debug_worker_done:
+            self._debug_dialog.update_progress_label(
+                self._debug_done_count, self._debug_total_count
+            )
+        else:
+            self._debug_dialog.set_all_done()
+        self._debug_dialog.exec()
+        self._debug_dialog = None
+
+    # ---------------------------------------------------------------------------
+    # Debug worker — auto-started after persist, runs for all non-success rows
+    # ---------------------------------------------------------------------------
+
+    def __start_debug_worker(self, batch_id: str) -> None:
+        """Collect all non-success rows and start DebugWorker off-thread."""
+        if self.project_path is None:
+            print(
+                "WARNING: Cannot start debug worker — project path is not set.",
+                file=sys.stderr,
+            )
+            return
+
+        non_success = self.review_model.all_rows() + self.failure_model.all_rows()
+        if not non_success:
+            return
+
+        # result_ids are persisted in order: success first, then review, then failure
+        all_result_ids = self.result_model.get_result_ids_for_batch(batch_id)
+        n_success = self.success_model.row_count
+        non_success_ids = all_result_ids[n_success:]
+
+        # Mark all non-success rows as 'pending' in the DB
+        for rid in non_success_ids:
+            self.result_model.update_debug_info(rid, "pending", None)
+
+        self._debug_cancel = threading.Event()
+        self._debug_worker_done = False
+        self._debug_done_count = 0
+        self._debug_total_count = len(non_success)
+
+        self.__update_debug_button_label()
+
+        worker = DebugWorker(
+            rows=non_success,
+            result_ids=non_success_ids,
+            batch_id=batch_id,
+            project_path=self.project_path,
+            cancel_event=self._debug_cancel,
+        )
+        worker.signals.entry_done.connect(self.__on_debug_entry_done)
+        worker.signals.all_done.connect(self.__on_debug_all_done)
+        worker.signals.error.connect(self.__on_debug_error)
+
+        thread_pool = QThreadPool.globalInstance()
+        assert thread_pool is not None, "QThreadPool.globalInstance() returned None"
+        thread_pool.start(worker)
+
+    @pyqtSlot(str, object)
+    def __on_debug_entry_done(
+        self, result_id: str, debug_json_path: "Path | None"
+    ) -> None:
+        """Persist debug result for one row and update the open dialog if any."""
+        status = "done" if debug_json_path is not None else "error"
+        self.result_model.update_debug_info(result_id, status, debug_json_path)
+
+        self._debug_done_count += 1
+
+        if self._debug_dialog is not None:
+            self._debug_dialog.update_row(result_id, status, debug_json_path)
+
+        self.__update_debug_button_label()
+
+    @pyqtSlot()
+    def __on_debug_all_done(self) -> None:
+        """Worker finished (or was cancelled) — finalise state."""
+        self._debug_worker_done = True
+
+        if self._debug_dialog is not None:
+            self._debug_dialog.set_all_done()
+
+        self.__update_debug_button_label()
+
+        if self._pending_hard_delete and self._pending_batch_id:
+            ok, msg = self.result_model.hard_delete_soft_deleted(self._pending_batch_id)
+            if not ok:
+                print(f"ERROR: hard_delete_soft_deleted failed: {msg}", file=sys.stderr)
+            self._pending_hard_delete = False
+            self._pending_batch_id = None
+
+    @pyqtSlot(str)
+    def __on_debug_error(self, message: str) -> None:
+        """Worker raised an outer exception — treat as all-done."""
+        print(f"ERROR: DebugWorker: {message}", file=sys.stderr)
+        self.__on_debug_all_done()
+
+    def __update_debug_button_label(self) -> None:
+        """Refresh the View Debug Info button label with live progress."""
+        n_non_success = self.review_model.row_count + self.failure_model.row_count
+        if n_non_success == 0:
+            self.view.buttonViewDebugInfo.setText("View Debug Info")
+            return
+        if not self._debug_worker_done:
+            self.view.buttonViewDebugInfo.setText(
+                f"View Debug Info ({self._debug_done_count}/{self._debug_total_count})"
+            )
+        else:
+            self.view.buttonViewDebugInfo.setText("View Debug Info")
 
     @pyqtSlot()
     def __on_commit_batch(self) -> None:
@@ -502,12 +756,12 @@ class StatementResultPresenter(QObject):
 
     @pyqtSlot()
     def __on_commit_finished(self) -> None:
-        """All three bsp calls succeeded — notify user, clean up, and close."""
+        """All three bsp calls succeeded — soft-delete results, show summary, close."""
         batch_id = self._current_batch_id
         project_id = self._current_project_id
 
-        # Perform the same DB cleanup as abandon (data is now in project.db)
         if batch_id:
+            # Delete payloads (no longer needed — data is in project.db)
             result_ids = self.result_model.get_result_ids_for_batch(batch_id)
             ok, msg = self.payload_model.delete_payloads_for_results(result_ids)
             if not ok:
@@ -515,12 +769,16 @@ class StatementResultPresenter(QObject):
                     f"ERROR: Could not delete payloads after commit: {msg}",
                     file=sys.stderr,
                 )
-            ok, msg = self.result_model.delete_results_for_batch(batch_id)
+
+            # Soft-delete result rows so the UI clears immediately;
+            # debug worker (if still running) will hard-delete once done.
+            ok, msg = self.result_model.soft_delete_batch(batch_id)
             if not ok:
                 print(
-                    f"ERROR: Could not delete results after commit: {msg}",
+                    f"ERROR: Could not soft-delete results after commit: {msg}",
                     file=sys.stderr,
                 )
+
             ok, msg = self.batch_model.delete_batch(batch_id)
             if not ok:
                 print(
@@ -538,10 +796,43 @@ class StatementResultPresenter(QObject):
         self._current_batch_id = None
         self._current_project_id = None
 
-        # Show the success modal before clearing the view — the message would
-        # vanish immediately if we hid the results panel first.
+        # Hard-delete: if the debug worker is already done, do it now;
+        # otherwise schedule it for when the worker finishes.
+        if batch_id:
+            if self._debug_worker_done:
+                ok, msg = self.result_model.hard_delete_soft_deleted(batch_id)
+                if not ok:
+                    print(
+                        f"ERROR: hard_delete_soft_deleted failed: {msg}",
+                        file=sys.stderr,
+                    )
+            else:
+                self._pending_batch_id = batch_id
+                self._pending_hard_delete = True
+
+        # Build commit summary message
+        lines: list[str] = []
+        if self._n_success:
+            lines.append(f"{self._n_success} successful statement(s) committed.")
+        if self._n_review:
+            lines.append(
+                f"{self._n_review} review statement(s) committed but excluded from "
+                "reporting & export due to checks & balances failure."
+            )
+        if self._n_failure:
+            log_path = (
+                str(self.project_path / "log" / "debug")
+                if self.project_path is not None
+                else "project log/debug directory"
+            )
+            lines.append(
+                f"{self._n_failure} failed statement(s) abandoned — "
+                f"logs available at {log_path}"
+            )
+        summary = "\n".join(lines) if lines else "Batch committed."
+
         info = StanInfoMessage(parent=self.view)
-        info.setText("Batch committed successfully.")
+        info.setText(summary)
         info.exec()
 
         # Clear in-memory state and reset the results panel to its empty state.
@@ -594,20 +885,28 @@ class StatementResultPresenter(QObject):
         self.__apply_button_state()
 
     def __apply_button_state(self) -> None:
-        """Set enabled state of all three action buttons.
+        """Set enabled state of all four action buttons.
 
         All buttons are disabled while import is running.  Once import
-        finishes, Close and Abandon are always enabled; Commit is enabled
-        only when at least one successful result exists.
+        finishes, Close and Abandon are always enabled; View Debug Info is
+        enabled when any non-success rows exist; Commit is enabled only when
+        at least one successful result exists.
         """
         if self._importing:
-            self.view.buttonCloseResults.setEnabled(False)
-            self.view.buttonAbandonBatch.setEnabled(False)
-            self.view.buttonCommitBatch.setEnabled(False)
+            self.__set_all_buttons_enabled(False)
         else:
+            n_non_success = self.review_model.row_count + self.failure_model.row_count
             self.view.buttonCloseResults.setEnabled(True)
             self.view.buttonAbandonBatch.setEnabled(True)
+            self.view.buttonViewDebugInfo.setEnabled(n_non_success > 0)
             self.view.buttonCommitBatch.setEnabled(self.success_model.row_count > 0)
+
+    def __set_all_buttons_enabled(self, enabled: bool) -> None:
+        """Enable or disable all four action buttons at once."""
+        self.view.buttonCloseResults.setEnabled(enabled)
+        self.view.buttonAbandonBatch.setEnabled(enabled)
+        self.view.buttonViewDebugInfo.setEnabled(enabled)
+        self.view.buttonCommitBatch.setEnabled(enabled)
 
     def __clear_memory_models_silently(self) -> None:
         """Clear in-memory models without triggering model_updated signals.
@@ -650,4 +949,6 @@ class StatementResultPresenter(QObject):
         self._importing = False
         self.view.buttonCloseResults.setEnabled(True)
         self.view.buttonAbandonBatch.setEnabled(True)
+        self.view.buttonViewDebugInfo.setEnabled(False)
+        self.view.buttonViewDebugInfo.setText("View Debug Info")
         self.view.buttonCommitBatch.setEnabled(False)

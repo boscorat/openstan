@@ -133,9 +133,9 @@ each statement — commit to the data mart, discard, or send to the debug review
   mart), so that I can re-import them later with different settings.
 - **SR-5** As a user, I want to abandon failed statements (discard without writing to the mart),
   so that I can investigate and re-import them later.
-- **SR-6** As a user, I want to send failed statements to the debug review queue with detailed
-  diagnostic information, so that I can manually correct and validate them before they reach
-  the project database.
+- **SR-6** *(Implemented — M1)* As a user, I want to see debug diagnostic information for
+  all non-success statements (REVIEW and FAILURE) automatically generated after import, so
+  that I can understand what went wrong without any manual trigger.
 - **SR-7** As a user, I want to exit the results view and return to the import queue, so that I
   can start a new import batch.
 
@@ -144,67 +144,43 @@ each statement — commit to the data mart, discard, or send to the debug review
 - The results tree shows one top-level row per statement with: filename, payments-in,
   payments-out, net movement, and a success/failure indicator.
 - Expanding a row reveals the individual transaction lines for that statement.
-- Summary label shows total statements, successful count, and failed count.
-- "Add Successful" writes all successfully parsed `Statement` objects to the project data mart
-  via `bank_statement_parser` API (see D001).
-- Failed statements may **never** be written directly to the project data mart from the
-  results view; they must pass through the Debug Review Queue (see Section 4) and satisfy
-  checks & balances before being committed.
-- "Abandon" actions discard in-memory results with no write to the mart or to `gui.db`.
-- "Debug Failed" transfers failed statements — with full diagnostic detail — into the Debug
-  Review Queue in `gui.db` (see Section 4) and switches the UI to that view.
-- Action buttons are shown or hidden based on whether there are successes and/or failures in
-  the current result set.
+- Summary label shows total statements, successful count, review count, and failed count.
+- "Commit Batch" writes all successfully parsed `Statement` objects to the project data mart
+  via `bank_statement_parser` API (see D001). REVIEW statements are also committed but
+  excluded from reporting and export due to checks & balances failure.
+- Failed statements are never written directly to the project data mart.
+- On commit, a summary dialog shows:
+  - `<N> successful statement(s) committed.`
+  - `<N> review statement(s) committed but excluded from reporting & export due to checks & balances failure.`
+  - `<N> failed statement(s) abandoned — logs available at <path>`
+- "Abandon Batch" discards all in-memory results with no write to the mart or `gui.db`;
+  cancels any in-progress debug worker.
+- After import batch completes, `bsp.debug_pdf_statement()` is automatically run off-thread
+  for every non-success row (REVIEW and FAILURE). No user action required.
+- "View Debug Info" button is enabled whenever any non-success rows exist.
+  It opens a `DebugInfoDialog` showing per-statement: filename, result type, debug status,
+  and buttons to open the debug JSON and original PDF.
+  The dialog updates live while the debug worker is running.
+- Session restore: non-success rows with no `debug_json_path` show debug status as
+  "unavailable" in the dialog — debug is not re-run on restore.
+- App close while debug worker is running: the cancel flag is set in `cleanup_before_exit()`
+  so the worker stops at its next iteration; any orphaned soft-deleted rows in `gui.db` are
+  harmless and will be cleaned up on next commit.
+- If Commit is triggered while the debug worker is still running: result rows are
+  soft-deleted immediately so the UI clears; the worker continues in background; a
+  hard-delete runs once the worker emits `all_done`.
+- Action buttons are shown or hidden based on whether there are successes and/or non-success
+  rows in the current result set.
 - Exiting the results view clears the in-memory result model and returns to the queue panel.
 
 ---
 
-## 4. Debug Review Queue
+## 4. Debug Review Queue *(Deferred — future milestone)*
 
-A dedicated review view for failed statements. Statements here are held in `gui.db` — never
-in `project.db` — until the user has manually corrected them and they pass checks & balances.
-Only then may they be committed to the project data mart. This keeps `project.db` clean.
-
-### User Stories
-
-- **DQ-1** As a user, I want to see a list of failed statements with the specific error or
-  parse issue for each, so that I can understand what went wrong.
-- **DQ-2** As a user, I want to inspect the raw extracted text alongside the structured parse
-  attempt for a failed statement, so that I can diagnose mismatches between the source PDF
-  and the parsed output.
-- **DQ-3** As a user, I want to manually edit the structured data for a failed statement
-  (header fields and transaction lines), so that I can correct parse errors that automation
-  could not resolve.
-- **DQ-4** As a user, I want the corrected statement to be validated against the
-  `bank_statement_parser` checks & balances before I can commit it, so that only
-  internally-consistent data reaches the project database.
-- **DQ-5** As a user, I want to commit a corrected statement that has passed checks & balances
-  to the project data mart, so that recovered data is not permanently lost.
-- **DQ-6** As a user, I want to discard a statement from the debug queue permanently, so that
-  I can remove entries I cannot or do not wish to recover.
-
-### Acceptance Criteria
-
-- The debug queue is populated only via "Debug Failed" in the results view (SR-6); no other
-  code path adds entries to it.
-- Debug queue entries are persisted in `gui.db` across sessions so that unresolved failures
-  are never lost on application close.
-- Each entry displays: filename, error type/message, and all partial parse data available
-  (header fields and any transaction lines that were extracted).
-- The raw extracted text from the PDF is shown alongside the structured parse attempt to
-  assist diagnosis.
-- All header fields and transaction lines are editable by the user within the debug view.
-- Before a corrected statement can be committed, it must be re-validated by the
-  `bank_statement_parser` checks & balances logic (see D001); validation is triggered
-  explicitly by the user.
-- A statement that fails re-validation remains in the debug queue with the validation errors
-  surfaced; the user may continue editing.
-- A statement that passes re-validation may be committed to the project data mart via the
-  `bank_statement_parser` API (see D001); on commit the entry is removed from the debug queue.
-- Discard permanently removes the entry from `gui.db`; the user is asked to confirm before
-  deletion.
-- `project.db` is never written to directly from `openstan`; all mart commits go via the
-  `bank_statement_parser` API.
+The persistent debug queue editing UI (formerly DQ-1 through DQ-6) is deferred. Debug
+diagnostic files (`debug.json`) are written to `<project>/log/debug/` by the automatic
+SR-6 worker and serve as the durable record. No `debug_queue` table or dedicated debug
+queue panel exists in the current implementation.
 
 ---
 

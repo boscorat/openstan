@@ -116,6 +116,10 @@ class StanPresenter(QObject):
         self.update_current_project_info(index)
 
     def cleanup_before_exit(self) -> None:
+        # Cancel any in-progress debug worker so it stops at its next iteration
+        cancel = self.statement_result_presenter._debug_cancel  # noqa: SLF001
+        if cancel is not None:
+            cancel.set()
         self.session_presenter.end_active_sessions()
         print("CLEANUP: StanPresenter.cleanup_before_exit: Session ended.")
 

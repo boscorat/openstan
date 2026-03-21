@@ -434,7 +434,7 @@ _NAV_ICON_SIZE: QSize = QSize(16, 16)
 
 
 class ProjectNavView(StanWidget):
-    """Full-width horizontal action bar with four checkable nav buttons.
+    """Full-width horizontal action bar with checkable nav buttons.
 
     Button visibility is controlled externally by the presenter:
     - ``button_import`` is always visible.
