@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS "statement_result" (
 
 CREATE TABLE IF NOT EXISTS "statement_result_payload" (
     "result_id" TEXT,
-    "payload"   BLOB NOT NULL,
+    "payload"   TEXT NOT NULL,
     PRIMARY KEY("result_id"),
     FOREIGN KEY("result_id") REFERENCES "statement_result"("result_id")
 );
