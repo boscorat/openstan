@@ -122,7 +122,7 @@ class Stan(QMainWindow):
         # ── Views ─────────────────────────────────────────────────────────
         self.stan = QWidget()
         self.title_view = TitleView()
-        self.project_view = ProjectView()
+        self.project_view = ProjectView(parent=self)
         self.project_nav_view = ProjectNavView()
         self.footer_view = FooterView()
         self.admin_view = AdminView(parent=self)
