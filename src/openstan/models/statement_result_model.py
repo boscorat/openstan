@@ -22,29 +22,142 @@ directly to these models.
 signal).  Two ``QSqlTableModel`` subclasses back the ``statement_result`` and
 ``statement_result_payload`` tables in gui.db:
 
-* ``StatementResultModel``        — display columns only (no BLOB).
-* ``StatementResultPayloadModel`` — single BLOB column (pickle of ``PdfResult``).
+* ``StatementResultModel``        — display columns only (no payload).
+* ``StatementResultPayloadModel`` — single TEXT column (JSON of ``PdfResult``).
 
 On session restore (project switch / app restart with a locked batch) the DB layer
 is read back and the in-memory models are repopulated so the results view can be
 shown without re-running the import.
 """
 
-import pickle
+import dataclasses
+import json
 import sys
 import traceback
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from decimal import Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from PyQt6.QtCore import QByteArray, QModelIndex, Qt, pyqtSignal
+from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtSql import QSqlQuery, QSqlRecord, QSqlTableModel
 
 if TYPE_CHECKING:
     from bank_statement_parser import PdfResult
+
+
+# ---------------------------------------------------------------------------
+# JSON serialisation helpers for PdfResult
+# ---------------------------------------------------------------------------
+
+
+def _pdf_result_to_json(pdf_result: "PdfResult") -> str:
+    """Serialise a ``PdfResult`` to a JSON string.
+
+    All non-JSON-native leaf types are converted to strings:
+    * ``pathlib.Path``    → POSIX string
+    * ``decimal.Decimal`` → string (preserves exact precision)
+    * ``datetime.date``   → ISO-8601 string (``YYYY-MM-DD``)
+
+    A ``_type`` discriminator key (``"Success"``, ``"Review"``, or
+    ``"Failure"``) is embedded in the ``payload`` dict so that
+    ``_json_to_pdf_result`` can reconstruct the correct concrete class.
+    """
+
+    def _convert(obj: Any) -> Any:
+        if isinstance(obj, Path):
+            return obj.as_posix()
+        if isinstance(obj, Decimal):
+            return str(obj)
+        if isinstance(obj, date):
+            return obj.isoformat()
+        raise TypeError(
+            f"Object of type {type(obj).__name__!r} is not JSON serialisable"
+        )
+
+    raw: dict[str, Any] = dataclasses.asdict(pdf_result)
+    # Embed a discriminator so the deserialiser knows the payload type.
+    raw["payload"]["_type"] = type(pdf_result.payload).__name__
+    return json.dumps(raw, default=_convert)
+
+
+def _json_to_pdf_result(text: str) -> "PdfResult":
+    """Deserialise a JSON string produced by ``_pdf_result_to_json`` back to
+    a ``PdfResult`` instance.
+
+    Raises ``ValueError`` if the JSON is missing required keys or contains an
+    unrecognised ``_type`` discriminator.  Any such error aborts the call so
+    the caller can skip the corrupt row gracefully.
+    """
+    from bank_statement_parser import PdfResult
+    from bank_statement_parser.modules.data import (
+        Failure,
+        ParquetFiles,
+        Review,
+        StatementInfo,
+        Success,
+    )
+
+    data: dict[str, Any] = json.loads(text)
+
+    def _path_or_none(value: str | None) -> Path | None:
+        return Path(value) if value is not None else None
+
+    # Reconstruct StatementInfo (shared by Success and Review payloads).
+    def _statement_info(d: dict[str, Any]) -> StatementInfo:
+        return StatementInfo(
+            id_statement=d["id_statement"],
+            id_account=d["id_account"],
+            account=d["account"],
+            statement_date=date.fromisoformat(d["statement_date"]),
+            payments_in=Decimal(d["payments_in"]),
+            payments_out=Decimal(d["payments_out"]),
+            opening_balance=Decimal(d["opening_balance"]),
+            closing_balance=Decimal(d["closing_balance"]),
+            filename_new=d["filename_new"],
+        )
+
+    # Reconstruct ParquetFiles (shared by Success and Review payloads).
+    def _parquet_files(d: dict[str, Any]) -> ParquetFiles:
+        return ParquetFiles(
+            statement_heads=_path_or_none(d["statement_heads"]),
+            statement_lines=_path_or_none(d["statement_lines"]),
+        )
+
+    payload_data = data["payload"]
+    discriminator: str = payload_data["_type"]
+
+    if discriminator == "Success":
+        payload: Success | Review | Failure = Success(
+            statement_info=_statement_info(payload_data["statement_info"]),
+            parquet_files=_parquet_files(payload_data["parquet_files"]),
+        )
+    elif discriminator == "Review":
+        payload = Review(
+            statement_info=_statement_info(payload_data["statement_info"]),
+            parquet_files=_parquet_files(payload_data["parquet_files"]),
+            message=payload_data["message"],
+            message_detail=payload_data.get("message_detail", ""),
+        )
+    elif discriminator == "Failure":
+        payload = Failure(
+            message=payload_data["message"],
+            error_type=payload_data["error_type"],
+            message_detail=payload_data.get("message_detail", ""),
+        )
+    else:
+        raise ValueError(f"Unknown PdfResult payload type: {discriminator!r}")
+
+    return PdfResult(
+        result=data["result"],
+        outcome=data["outcome"],
+        batch_lines=Path(data["batch_lines"]),
+        checks_and_balances=_path_or_none(data["checks_and_balances"]),
+        payload=payload,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -379,13 +492,13 @@ class StatementResultModel(QSqlTableModel):
 
 
 class StatementResultPayloadModel(QSqlTableModel):
-    """Persistence model for pickled PdfResult payloads.
+    """Persistence model for JSON-serialised PdfResult payloads.
 
     Only touched during:
     * ``add_payload`` — once per imported statement at batch-end persist.
     * ``load_payloads_for_batch`` — once on session restore (read path).
 
-    The BLOB is never fetched during normal display operations.
+    The TEXT payload is never fetched during normal display operations.
     """
 
     def __init__(self, db) -> None:
@@ -394,17 +507,15 @@ class StatementResultPayloadModel(QSqlTableModel):
         self.select()
 
     def add_payload(self, result_id: str, pdf_result: "PdfResult") -> tuple[bool, str]:
-        """Pickle *pdf_result* and persist it linked to *result_id*."""
+        """Serialise *pdf_result* to JSON and persist it linked to *result_id*."""
         try:
-            blob: bytes = pickle.dumps(pdf_result)
+            text: str = _pdf_result_to_json(pdf_result)
         except Exception:
             traceback.print_exc(file=sys.stderr)
-            return (False, "Failed to pickle PdfResult")
+            return (False, "Failed to serialise PdfResult to JSON")
         record: QSqlRecord = self.record()
         record.setValue("result_id", result_id)
-        # Wrap in QByteArray so Qt stores a true BLOB rather than a string
-        # representation of bytes — required for pickle.loads to work on read.
-        record.setValue("payload", QByteArray(blob))
+        record.setValue("payload", text)
         if self.insertRecord(-1, record) and self.submitAll():
             return (True, f"Payload for {result_id} stored")
         err = self.lastError().text()
@@ -430,10 +541,10 @@ class StatementResultPayloadModel(QSqlTableModel):
         return (False, self.lastError().text())
 
     def load_payloads_for_batch(self, result_ids: list[str]) -> "dict[str, PdfResult]":
-        """Unpickle and return a {result_id: PdfResult} mapping for *result_ids*.
+        """Deserialise JSON and return a {result_id: PdfResult} mapping for *result_ids*.
 
-        Failed unpickle attempts are logged to stderr and skipped gracefully so
-        a single corrupt/stale pickle does not abort session restore.
+        Failed deserialisation attempts are logged to stderr and skipped
+        gracefully so a single corrupt row does not abort session restore.
         """
         if not result_ids:
             return {}
@@ -444,23 +555,13 @@ class StatementResultPayloadModel(QSqlTableModel):
         for row in range(self.rowCount()):
             record: QSqlRecord = self.record(row)
             rid = str(record.value("result_id"))
-            blob = record.value("payload")
+            text = record.value("payload")
             try:
-                # QSqlTableModel returns BLOB columns as QByteArray; convert to
-                # bytes before unpickling.  bytes() works on both QByteArray and
-                # bytearray; fall back to the raw value for any unexpected type.
-                # QByteArray is not recognised by pyrefly's stubs as Buffer/iterable,
-                # but at runtime it is iterable over ints, so bytearray(blob) works.
-                raw: bytes = (
-                    bytes(bytearray(blob))  # type: ignore[call-overload]
-                    if isinstance(blob, (QByteArray, bytearray))
-                    else blob
-                )
-                obj = pickle.loads(raw)  # noqa: S301 — intentional, bsp-internal only
+                obj = _json_to_pdf_result(str(text))
                 results[rid] = obj
             except Exception:
                 print(
-                    f"WARNING: Could not unpickle payload for result_id={rid} — skipping.",
+                    f"WARNING: Could not deserialise payload for result_id={rid} — skipping.",
                     file=sys.stderr,
                 )
                 traceback.print_exc(file=sys.stderr)
