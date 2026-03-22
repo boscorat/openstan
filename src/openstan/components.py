@@ -13,6 +13,8 @@ from PyQt6.QtWidgets import (
     QTableView,
     QTreeView,
     QWidget,
+    QWizard,
+    QWizardPage,
 )
 
 
@@ -174,3 +176,17 @@ class StanButton(QPushButton):
         self.setAutoFillBackground(True)
         self.setIconSize(QSize(10, 10))
         self.setMinimumWidth(min_width)
+
+
+class StanWizardPage(QWizardPage):
+    def __init__(self) -> None:
+        super().__init__()
+        self.setAutoFillBackground(True)
+
+
+class StanWizard(QWizard):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setAutoFillBackground(True)
+        self.setModal(True)
+        self.setWindowModality(Qt.WindowModality.WindowModal)

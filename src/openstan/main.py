@@ -91,9 +91,7 @@ class Stan(QMainWindow):
     def __init__(self, gui_db, sessionID, username) -> None:
         super().__init__()
         self.threadpool = QThreadPool()
-        print(
-            "Multithreading with maximum %d threads" % self.threadpool.maxThreadCount()
-        )
+        print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
         self.gui_db = gui_db
         self.userID = None
         self.sessionID = sessionID
@@ -122,7 +120,7 @@ class Stan(QMainWindow):
         # ── Views ─────────────────────────────────────────────────────────
         self.stan = QWidget()
         self.title_view = TitleView()
-        self.project_view = ProjectView()
+        self.project_view = ProjectView(parent=self)
         self.project_nav_view = ProjectNavView()
         self.footer_view = FooterView()
         self.admin_view = AdminView(parent=self)
@@ -175,21 +173,15 @@ class Stan(QMainWindow):
         # nav_idx_* constants are used by StanPresenter to switch panels.
         self.content_stack = QStackedWidget()
         self.nav_idx_info: int = self.content_stack.addWidget(self.project_info_block)
-        self.nav_idx_import: int = self.content_stack.addWidget(
-            self.statement_queue_block
-        )
+        self.nav_idx_import: int = self.content_stack.addWidget(self.statement_queue_block)
         self.nav_idx_export: int = self.content_stack.addWidget(self.export_data_block)
         self.nav_idx_reports: int = self.content_stack.addWidget(self.run_reports_block)
-        self.nav_idx_results: int = self.content_stack.addWidget(
-            self.statement_result_block
-        )
+        self.nav_idx_results: int = self.content_stack.addWidget(self.statement_result_block)
 
         # ── Presenters ────────────────────────────────────────────────────
         self.user_presenter = UserPresenter(model=self.user_model, view=None)
         self.session_presenter = SessionPresenter(model=self.session_model, view=None)
-        self.project_presenter = ProjectPresenter(
-            model=self.project_model, view=self.project_view
-        )
+        self.project_presenter = ProjectPresenter(model=self.project_model, view=self.project_view)
         self.statement_queue_presenter = StatementQueuePresenter(
             model=self.statement_queue_model,
             view=self.statement_queue_view,
@@ -223,9 +215,7 @@ class Stan(QMainWindow):
         layout.setSpacing(0)
 
         layout.addWidget(self.title_view, stretch=0)
-        layout.addWidget(
-            self.project_view, stretch=0, alignment=Qt.AlignmentFlag.AlignTop
-        )
+        layout.addWidget(self.project_view, stretch=0, alignment=Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self.project_nav_view, stretch=0)
         layout.addWidget(self.content_stack, stretch=1)
         layout.addWidget(self.footer_view, stretch=0)

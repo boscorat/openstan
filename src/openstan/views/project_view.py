@@ -13,8 +13,6 @@ from PyQt6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QWidget,
-    QWizard,
-    QWizardPage,
 )
 
 from openstan.components import (
@@ -28,6 +26,8 @@ from openstan.components import (
     StanMutedLabel,
     StanRadioButton,
     StanWidget,
+    StanWizard,
+    StanWizardPage,
 )
 from openstan.paths import Paths
 
@@ -62,7 +62,7 @@ class FolderSelectionDialog(QFileDialog):
         self.setFileMode(QFileDialog.FileMode.Directory)
 
 
-class ProjectPageBasic(QWizardPage):
+class ProjectPageBasic(StanWizardPage):
     def __init__(self, mode: str = "new") -> None:
         super().__init__()
         self.mode: str = mode
@@ -127,7 +127,7 @@ class ProjectPageBasic(QWizardPage):
             self.registerField("projectLocation*", self.location_label)
 
 
-class ProjectPageConfig(QWizardPage):
+class ProjectPageConfig(StanWizardPage):
     """Second page of the New Project Wizard — bank config subfolder selection.
 
     Displays a grid of radio buttons.  Each row is a config subfolder name;
@@ -307,13 +307,12 @@ class ProjectPageConfig(QWizardPage):
         self.__button_groups = {}
 
 
-class ProjectWizard(QWizard):
+class ProjectWizard(StanWizard):
     new_project_required: pyqtSignal = pyqtSignal()
 
-    def __init__(self, mode: str = "new") -> None:
-        super().__init__()
+    def __init__(self, mode: str = "new", parent=None) -> None:
+        super().__init__(parent)
         self.mode: str = mode
-        self.setAutoFillBackground(True)
 
         if mode == "existing":
             self.setWindowTitle("Add Existing Project")
@@ -369,10 +368,10 @@ class ProjectWizard(QWizard):
 class ProjectView(StanWidget):
     header = "##### Project Selection"
 
-    def __init__(self) -> None:
+    def __init__(self, parent=None) -> None:
         super().__init__()
-        self.wizard = ProjectWizard(mode="new")
-        self.wizard_existing = ProjectWizard(mode="existing")
+        self.wizard = ProjectWizard(mode="new", parent=parent)
+        self.wizard_existing = ProjectWizard(mode="existing", parent=parent)
         self.label = StanLabel("Select an existing project:")
         self.label.setMaximumWidth(180)
         self.selection = QComboBox()  # model details set in ProjectPresenter
