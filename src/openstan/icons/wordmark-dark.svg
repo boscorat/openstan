@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" width="200" height="40" role="img" aria-label="openstan wordmark (dark mode)">
+  <title>openstan</title>
+
+  <text
+    x="0"
+    y="30"
+    font-family="'Inter', 'Helvetica Neue', 'Arial', sans-serif"
+    font-size="28"
+    font-weight="600"
+    letter-spacing="-0.5"
+    fill="#F0F0F0"
+  >open<tspan fill="#F97316">stan</tspan></text>
+
+</svg>

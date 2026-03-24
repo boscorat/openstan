@@ -56,10 +56,10 @@ class StatementQueueView(StanWidget):
         self.buttonAddFiles = StanButton("Add Individual Statement Files")
         self.buttonRemove = StanButton("Remove Selected")
         self.buttonClear = StanButton("Clear All Statements")
-        self.buttonAddFolders.setIcon(QIcon(Paths.icon("folder_add.svg")))
-        self.buttonAddFiles.setIcon(QIcon(Paths.icon("file_add.svg")))
-        self.buttonRemove.setIcon(QIcon(Paths.icon("file_remove.svg")))
-        self.buttonClear.setIcon(QIcon(Paths.icon("folder_remove.svg")))
+        self.buttonAddFolders.setIcon(QIcon(Paths.themed_icon("folder_add.svg")))
+        self.buttonAddFiles.setIcon(QIcon(Paths.themed_icon("file_add.svg")))
+        self.buttonRemove.setIcon(QIcon(Paths.themed_icon("file_remove.svg")))
+        self.buttonClear.setIcon(QIcon(Paths.themed_icon("folder_remove.svg")))
         layout.addWidget(
             self.buttonAddFolders, 0, 0, alignment=Qt.AlignmentFlag.AlignBottom
         )
@@ -85,14 +85,14 @@ class StatementQueueView(StanWidget):
 
         # ── Run Import / View Results buttons ──────────────────────────────
         self.buttonRunImport = StanButton("Run Statement Import")
-        self.buttonRunImport.setIcon(QIcon(Paths.icon("run.svg")))
+        self.buttonRunImport.setIcon(QIcon(Paths.themed_icon("run.svg")))
         self.buttonRunImport.setDisabled(True)
         layout.addWidget(
             self.buttonRunImport, 4, 1, alignment=Qt.AlignmentFlag.AlignRight
         )
 
         self.buttonViewResults = StanButton("View Statement Results")
-        self.buttonViewResults.setIcon(QIcon(Paths.icon("download.svg")))
+        self.buttonViewResults.setIcon(QIcon(Paths.themed_icon("download.svg")))
         self.buttonViewResults.setVisible(False)
         layout.addWidget(
             self.buttonViewResults, 4, 0, alignment=Qt.AlignmentFlag.AlignLeft
