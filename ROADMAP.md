@@ -35,6 +35,7 @@ import, and see the results. This is the end-to-end happy path for the primary u
 | SU-2 | Create a new session on launch | |
 | SU-3 | Terminate sessions on close | |
 | SU-4 | Display user and session in footer | |
+| AB-1 | About dialog with logo, version, and external links | |
 
 ### Definition of Done
 

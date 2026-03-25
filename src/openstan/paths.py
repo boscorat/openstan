@@ -5,6 +5,7 @@ class Paths:
     base: str = os.path.dirname(__file__)
     icons: str = os.path.join(base, "icons")
     data: str = os.path.join(base, "data")
+    fonts: str = os.path.join(data, "fonts")
 
     # ------------------------------------------------------------------ #
     # Internal helpers                                                     #
@@ -60,3 +61,12 @@ class Paths:
     @classmethod
     def databases(cls, filename: str) -> str:
         return os.path.join(cls.data, filename)
+
+    # ------------------------------------------------------------------ #
+    # Font resolver                                                        #
+    # ------------------------------------------------------------------ #
+
+    @classmethod
+    def font(cls, filename: str) -> str:
+        """Resolve a path to a bundled font file in data/fonts/."""
+        return os.path.join(cls.fonts, filename)

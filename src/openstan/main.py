@@ -1,18 +1,15 @@
 import os
 import sys
-import time
 from pathlib import Path
 from uuid import uuid4
 
 from bank_statement_parser import ProjectPaths
 from PyQt6.QtCore import QSysInfo, QThreadPool, qDebug
-from PyQt6.QtGui import QIcon, QPainter, QPalette, QPixmap
+from PyQt6.QtGui import QFontDatabase, QIcon
 from PyQt6.QtSql import QSqlDatabase
-from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
-    QSplashScreen,
     QStackedWidget,
     QVBoxLayout,
 )
@@ -48,6 +45,7 @@ from openstan.presenters import (
     UserPresenter,
 )
 from openstan.views import (
+    AboutDialog,
     AdminView,
     ContentFrameView,
     ExportDataView,
@@ -63,7 +61,7 @@ from openstan.views import (
 
 
 def main() -> None:
-    qDebug("Starting StanCafe GUI application...")
+    qDebug("Starting openstan GUI application...")
     app: QApplication = QApplication(sys.argv)
 
     # set application style based on OS
@@ -77,53 +75,26 @@ def main() -> None:
     # ── Application / window icon ─────────────────────────────────────────
     app.setWindowIcon(QIcon(Paths.icon("icon-square.svg")))
 
-    # ── Splash screen ─────────────────────────────────────────────────────
-    # Render the theme-appropriate full logo SVG to a QPixmap at 2× the SVG
-    # viewBox size (600×144) for a crisp appearance on HiDPI displays.
-    # The background is taken from the application palette so it matches the
-    # user's current light/dark theme.
-    _SPLASH_W, _SPLASH_H = 600, 144
-    splash_bg = app.palette().color(QPalette.ColorRole.Window)
-    splash_pixmap = QPixmap(_SPLASH_W, _SPLASH_H)
-    splash_pixmap.fill(splash_bg)
-    renderer = QSvgRenderer(Paths.logo(with_tagline=True))
-    painter = QPainter(splash_pixmap)
-    renderer.render(painter)
-    painter.end()
+    # ── Bundled fonts ─────────────────────────────────────────────────────
+    # Register Inter (OFL 1.1) so Qt's SVG renderer can find it by name.
+    # Without this, Qt treats the whole CSS font-family stack as a single
+    # unknown family name and emits a slow alias-lookup warning on startup.
+    QFontDatabase.addApplicationFont(Paths.font("Inter-Regular.ttf"))
+    QFontDatabase.addApplicationFont(Paths.font("Inter-SemiBold.ttf"))
 
-    splash = QSplashScreen(splash_pixmap)
-    splash.show()
-    app.processEvents()
-    splash_start: float = time.monotonic()
-
-    # bootstrap: create gui.db if it doesn't exist (e.g. fresh clone / install)
+    # ── Bootstrap ─────────────────────────────────────────────────────────
     gui_db_path = Path(Paths.databases("gui.db"))
     if not gui_db_path.exists():
         create_gui_db(gui_db_path)
 
-    # database connections
     gui_db: QSqlDatabase = QSqlDatabase("QSQLITE")
     gui_db.setDatabaseName(Paths.databases("gui.db"))
     gui_db.open()
 
-    # user and session details
     username: str = os.path.expanduser("~").split(os.sep)[-1]
     sessionID: str = uuid4().hex
 
     window: Stan = Stan(gui_db=gui_db, sessionID=sessionID, username=username)
-
-    # Ensure the splash is visible for at least 2 seconds.  We busy-wait here
-    # (still processing events so the splash paints) before showing the main
-    # window, so the splash is never obscured by the window on Linux/X11.
-    _SPLASH_MIN_MS: int = 2000
-    while True:
-        elapsed_ms = int((time.monotonic() - splash_start) * 1000)
-        if elapsed_ms >= _SPLASH_MIN_MS:
-            break
-        app.processEvents()
-        time.sleep(0.01)
-
-    splash.finish(window)  # closes splash and raises main window atomically
     window.show()
 
     app.exec()
@@ -256,6 +227,11 @@ class Stan(QMainWindow):
             stan=self,  # type: ignore[arg-type]
         )
         self.stan_presenter = StanPresenter(stan=self)  # type: ignore[arg-type]
+
+        # ── About dialog ──────────────────────────────────────────────────
+        # Pure display — no presenter needed.  Wired here rather than in
+        # StanPresenter because it carries no business logic or model access.
+        self.title_view.about_requested.connect(lambda: AboutDialog(self).exec())
 
         # ── Layout ────────────────────────────────────────────────────────
         # VBox: title → project selector → nav bar → stacked content → footer
