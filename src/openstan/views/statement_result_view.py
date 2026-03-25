@@ -81,19 +81,19 @@ class StatementResultView(StanWidget):
         action_buttons = QGridLayout()
 
         self.buttonCloseResults = StanButton("Close Results")
-        self.buttonCloseResults.setIcon(QIcon(Paths.icon("exit.svg")))
+        self.buttonCloseResults.setIcon(QIcon(Paths.themed_icon("exit.svg")))
 
         self.buttonAbandonBatch = StanButton("Abandon Batch")
-        self.buttonAbandonBatch.setIcon(QIcon(Paths.icon("bin.svg")))
+        self.buttonAbandonBatch.setIcon(QIcon(Paths.themed_icon("bin.svg")))
 
         self.buttonViewDebugInfo = StanButton("View Debug Info")
-        self.buttonViewDebugInfo.setIcon(QIcon(Paths.icon("bug.svg")))
+        self.buttonViewDebugInfo.setIcon(QIcon(Paths.themed_icon("bug.svg")))
         self.buttonViewDebugInfo.setEnabled(
             False
         )  # enabled by presenter when non-success rows exist
 
         self.buttonCommitBatch = StanButton("Commit Batch")
-        self.buttonCommitBatch.setIcon(QIcon(Paths.icon("tick.svg")))
+        self.buttonCommitBatch.setIcon(QIcon(Paths.themed_icon("tick.svg")))
         self.buttonCommitBatch.setEnabled(
             False
         )  # enabled by presenter when n_success > 0

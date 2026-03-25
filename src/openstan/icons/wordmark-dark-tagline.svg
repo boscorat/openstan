@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 56" width="200" height="56" role="img" aria-label="openstan wordmark with tagline (dark mode)">
+  <title>openstan — secure statement analysis</title>
+
+  <!-- Wordmark -->
+  <text
+    x="0"
+    y="28"
+    font-family="'Inter', 'Helvetica Neue', 'Arial', sans-serif"
+    font-size="28"
+    font-weight="600"
+    letter-spacing="-0.5"
+    fill="#F0F0F0"
+  >open<tspan fill="#F97316">stan</tspan></text>
+
+  <!-- Tagline -->
+  <text
+    x="1"
+    y="45"
+    font-family="'Inter', 'Helvetica Neue', 'Arial', sans-serif"
+    font-size="11"
+    font-weight="400"
+    letter-spacing="0.8"
+    fill="#9CA3AF"
+  >secure statement analysis</text>
+
+</svg>

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=openstan
+GenericName=Bank Statement Analyser
+Comment=Secure statement analysis — configurable, accurate, flexible & extendable
+Exec=openstan
+Icon=/usr/local/share/icons/hicolor/scalable/apps/openstan.svg
+Categories=Office;Finance;
+Keywords=bank;statement;pdf;analysis;finance;
+StartupNotify=true
+StartupWMClass=openstan

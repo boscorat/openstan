@@ -111,7 +111,7 @@ class ProjectPageBasic(StanWizardPage):
             self.location_button = StanButton("Select Existing Project Folder")
         else:
             self.location_button = StanButton("Select Project Folder Location")
-        self.location_button.setIcon(QIcon(Paths.icon("folder_add.svg")))
+        self.location_button.setIcon(QIcon(Paths.themed_icon("folder_add.svg")))
         self.location_label = QLineEdit()
         self.location_label.setReadOnly(True)
         self.location_label.setFixedWidth(300)
@@ -380,11 +380,11 @@ class ProjectView(StanWidget):
         self.label2.setMaximumWidth(60)
         self.label2.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.button_new = StanButton("Create New Project")
-        self.button_new.setIcon(QIcon(Paths.icon("project.svg")))
+        self.button_new.setIcon(QIcon(Paths.themed_icon("project.svg")))
         self.button_new.setMinimumWidth(180)
         self.label3 = StanLabel("or")
         self.button_existing = StanButton("Add Existing Project")
-        self.button_existing.setIcon(QIcon(Paths.icon("folder_add.svg")))
+        self.button_existing.setIcon(QIcon(Paths.themed_icon("folder_add.svg")))
         self.button_existing.setMinimumWidth(180)
         layout = QGridLayout()
         layout.addWidget(
@@ -447,12 +447,18 @@ class ProjectNavView(StanWidget):
     def __init__(self) -> None:
         super().__init__()
 
-        self.button_info = self.__make_button("Project Info", Paths.icon("project.svg"))
-        self.button_import = self.__make_button(
-            "Import Statements", Paths.icon("file_add.svg")
+        self.button_info = self.__make_button(
+            "Project Info", Paths.themed_icon("project.svg")
         )
-        self.button_export = self.__make_button("Export Data", Paths.icon("export.svg"))
-        self.button_reports = self.__make_button("Run Reports", Paths.icon("run.svg"))
+        self.button_import = self.__make_button(
+            "Import Statements", Paths.themed_icon("file_add.svg")
+        )
+        self.button_export = self.__make_button(
+            "Export Data", Paths.themed_icon("export.svg")
+        )
+        self.button_reports = self.__make_button(
+            "Run Reports", Paths.themed_icon("run.svg")
+        )
 
         # Mutually exclusive checked state
         self._group = QButtonGroup(self)
