@@ -13,6 +13,10 @@ dependencies = [
     "uk-bank-statement-parser",
 ]
 
+[project.urls]
+Homepage = "https://openstan.org"
+Repository = "https://github.com/boscorat/openstan"
+
 [project.scripts]
 openstan = "openstan:main"
 

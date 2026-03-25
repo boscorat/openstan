@@ -325,3 +325,32 @@ beyond any OS-level path handling already provided by Python's `pathlib`.
 The application must display a title/branding bar containing the application name and logo.
 A copyright notice must appear in the footer. These elements are cosmetic and must not
 contain interactive controls or business logic.
+
+---
+
+## 8. About
+
+Users must be able to identify the software version and access external resources.
+
+### User Stories
+
+- **AB-1** As a user, I want to open an About dialog that shows the application logo,
+  version, website link, and GitHub repository link, so that I can identify the software
+  version and access documentation or support.
+
+### Acceptance Criteria
+
+- The About dialog is opened by an "About" button in the title bar, right-aligned alongside
+  the wordmark.
+- The dialog displays the full theme-aware logo with tagline
+  (`logo-light/dark-tagline.svg`) at its natural 1× size (300×84 px).
+- The dialog displays the application version string sourced from
+  `importlib.metadata.version("openstan")`.
+- The dialog displays a clickable hyperlink to `https://openstan.org` that opens in the
+  system browser.
+- The dialog displays a clickable hyperlink to the GitHub repository that opens in the
+  system browser.
+- Links open via Qt's built-in `setOpenExternalLinks(True)` mechanism; no network calls
+  are made by the application itself (NFR-5 compliant).
+- The dialog is modal, non-resizable, and dismisses via a Close button.
+- No business logic or database access occurs within the dialog; no presenter is required.
