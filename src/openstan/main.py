@@ -37,6 +37,7 @@ from openstan.models import (
 from openstan.paths import Paths
 from openstan.presenters import (
     AdminPresenter,
+    ExportDataPresenter,
     ProjectPresenter,
     SessionPresenter,
     StanPresenter,
@@ -225,6 +226,10 @@ class Stan(QMainWindow):
             model=self.project_model,
             view=self.admin_view,
             stan=self,  # type: ignore[arg-type]
+        )
+        self.export_data_presenter = ExportDataPresenter(
+            view=self.export_data_view,
+            threadpool=self.threadpool,
         )
         self.stan_presenter = StanPresenter(stan=self)  # type: ignore[arg-type]
 
