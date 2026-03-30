@@ -24,6 +24,7 @@ class StanPresenter(QObject):
         self.session_presenter = self.stan.session_presenter
         self.statement_queue_presenter = self.stan.statement_queue_presenter
         self.statement_result_presenter = self.stan.statement_result_presenter
+        self.export_data_presenter = self.stan.export_data_presenter
 
         # views
         self.footer_view = self.stan.footer_view
@@ -136,6 +137,7 @@ class StanPresenter(QObject):
         self.statement_result_presenter.project_path = (
             self.stan.current_project_paths.root
         )
+        self.export_data_presenter.project_path = self.stan.current_project_paths.root
         print(current_record.value("project_location"))
 
         # Refresh project info panel and update nav button visibility.

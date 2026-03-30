@@ -32,17 +32,6 @@ class _StubView(StanWidget):
     header: str = ""
 
 
-class ExportDataView(_StubView):
-    """Placeholder for the Export Data panel (not yet implemented)."""
-
-    header = "##### Export Data"
-
-    def __init__(self) -> None:
-        super().__init__(
-            description="Export project transactions and reports — coming soon.",
-        )
-
-
 class RunReportsView(_StubView):
     """Placeholder for the Run Reports panel (not yet implemented)."""
 
