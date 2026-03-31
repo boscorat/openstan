@@ -170,8 +170,8 @@ class ExportDataPresenter(QObject):
             return
         output_folder = project_path / "export" / "csv"
         worker = self._make_worker(
-            fn=lambda: bsp.db.export_csv(type="simple", project_path=project_path),
-            description="CSV (Simple)",
+            fn=lambda: bsp.db.export_csv(type="single", project_path=project_path),
+            description="CSV (Single)",
             output_folder=output_folder,
         )
         self._start_export(worker)
@@ -183,8 +183,8 @@ class ExportDataPresenter(QObject):
             return
         output_folder = project_path / "export" / "csv"
         worker = self._make_worker(
-            fn=lambda: bsp.db.export_csv(type="full", project_path=project_path),
-            description="CSV (Full)",
+            fn=lambda: bsp.db.export_csv(type="multi", project_path=project_path),
+            description="CSV (Multi)",
             output_folder=output_folder,
         )
         self._start_export(worker)
@@ -196,8 +196,8 @@ class ExportDataPresenter(QObject):
             return
         output_folder = project_path / "export" / "excel"
         worker = self._make_worker(
-            fn=lambda: bsp.db.export_excel(type="simple", project_path=project_path),
-            description="Excel (Simple)",
+            fn=lambda: bsp.db.export_excel(type="single", project_path=project_path),
+            description="Excel (Single)",
             output_folder=output_folder,
         )
         self._start_export(worker)
@@ -209,8 +209,8 @@ class ExportDataPresenter(QObject):
             return
         output_folder = project_path / "export" / "excel"
         worker = self._make_worker(
-            fn=lambda: bsp.db.export_excel(type="full", project_path=project_path),
-            description="Excel (Full)",
+            fn=lambda: bsp.db.export_excel(type="multi", project_path=project_path),
+            description="Excel (Multi)",
             output_folder=output_folder,
         )
         self._start_export(worker)
@@ -222,8 +222,8 @@ class ExportDataPresenter(QObject):
             return
         output_folder = project_path / "export" / "json"
         worker = self._make_worker(
-            fn=lambda: bsp.db.export_json(type="simple", project_path=project_path),
-            description="JSON (Simple)",
+            fn=lambda: bsp.db.export_json(type="single", project_path=project_path),
+            description="JSON (Single)",
             output_folder=output_folder,
         )
         self._start_export(worker)
@@ -235,8 +235,8 @@ class ExportDataPresenter(QObject):
             return
         output_folder = project_path / "export" / "json"
         worker = self._make_worker(
-            fn=lambda: bsp.db.export_json(type="full", project_path=project_path),
-            description="JSON (Full)",
+            fn=lambda: bsp.db.export_json(type="multi", project_path=project_path),
+            description="JSON (Multi)",
             output_folder=output_folder,
         )
         self._start_export(worker)

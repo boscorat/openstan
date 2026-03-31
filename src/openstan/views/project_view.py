@@ -36,8 +36,8 @@ _SKIP_SENTINEL: str = "__skip__"
 
 
 def _default_config_dir() -> Path:
-    """Return the BSP bundled default config directory."""
-    return bsp.ProjectPaths.resolve().config
+    """Return the BSP bundled default import config directory (``config/import/``)."""
+    return bsp.ProjectPaths.resolve().config_import
 
 
 def _discover_config_subfolders(config_dir: Path) -> list[str]:
