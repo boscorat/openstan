@@ -1,6 +1,6 @@
 """export_data_view.py — Export Data panel view.
 
-Presents six one-click export actions (three formats × simple/full schema).
+Presents six one-click export actions (three formats × single/multi schema).
 All button click handling and BSP calls live in ExportDataPresenter — this
 module contains only layout and widget declarations.
 """
@@ -37,21 +37,21 @@ class ExportDataView(StanWidget):
         description.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # ── Column headers ─────────────────────────────────────────────────
-        # "Simple" = single flat transactions table.
-        # "Full"   = full star schema (statement, account, calendar,
+        # "Single" = single flat transactions table.
+        # "Multi"  = full star schema (statement, account, calendar,
         #             transactions, balances, gaps).
-        label_simple = StanLabel("**Simple**")
-        label_full = StanLabel("**Full**")
+        label_simple = StanLabel("**Single**")
+        label_full = StanLabel("**Multi**")
         label_simple.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label_full.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # ── Export buttons ─────────────────────────────────────────────────
-        self.button_csv_simple = StanButton("Export CSV (Simple)")
-        self.button_csv_full = StanButton("Export CSV (Full)")
-        self.button_excel_simple = StanButton("Export Excel (Simple)")
-        self.button_excel_full = StanButton("Export Excel (Full)")
-        self.button_json_simple = StanButton("Export JSON (Simple)")
-        self.button_json_full = StanButton("Export JSON (Full)")
+        self.button_csv_simple = StanButton("Export CSV (Single)")
+        self.button_csv_full = StanButton("Export CSV (Multi)")
+        self.button_excel_simple = StanButton("Export Excel (Single)")
+        self.button_excel_full = StanButton("Export Excel (Multi)")
+        self.button_json_simple = StanButton("Export JSON (Single)")
+        self.button_json_full = StanButton("Export JSON (Multi)")
 
         # ── Progress / status ──────────────────────────────────────────────
         self.progress_bar = StanProgressBar()

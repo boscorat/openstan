@@ -361,7 +361,7 @@ class ProjectPresenter(QObject):
         ordered by ``project_name``.
         """
         sources: dict[str, Path] = {
-            "default": bsp.ProjectPaths.resolve().config,
+            "default": bsp.ProjectPaths.resolve().config_import,
         }
         for row in range(self.model.rowCount()):
             record = self.model.record(row)
@@ -436,7 +436,7 @@ class ProjectPresenter(QObject):
                 _apply_config_selections(
                     new_config_dir=full_path / "config",
                     selections=selections,
-                    default_config_dir=bsp.ProjectPaths.resolve().config,
+                    default_config_dir=bsp.ProjectPaths.resolve().config_import,
                 )
             except Exception as e:
                 # Config customisation failed — the project is still valid (BSP
