@@ -230,6 +230,7 @@ class Stan(QMainWindow):
         self.export_data_presenter = ExportDataPresenter(
             view=self.export_data_view,
             threadpool=self.threadpool,
+            batch_model=self.batch_model,
         )
         self.stan_presenter = StanPresenter(stan=self)  # type: ignore[arg-type]
 

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import bank_statement_parser as bsp
-from PyQt6.QtCore import QSize, QStandardPaths, pyqtSignal
+from PyQt6.QtCore import QStandardPaths, pyqtSignal
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QButtonGroup,
@@ -429,8 +429,6 @@ class ProjectView(StanWidget):
 # Navigation bar
 # ---------------------------------------------------------------------------
 
-_NAV_ICON_SIZE: QSize = QSize(16, 16)
-
 
 class ProjectNavView(StanWidget):
     """Full-width horizontal action bar with checkable nav buttons.
@@ -495,7 +493,6 @@ class ProjectNavView(StanWidget):
     def __make_button(text: str, icon_path: str) -> StanButton:
         btn = StanButton(text)
         btn.setIcon(QIcon(icon_path))
-        btn.setIconSize(_NAV_ICON_SIZE)
         btn.setCheckable(True)
         btn.setMinimumWidth(0)  # override StanButton default 200px minimum
         btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
