@@ -44,6 +44,7 @@ class StanPresenter(QObject):
         self.statement_result_presenter.exit_results.connect(self.hide_results)
         self.statement_result_presenter.batch_abandoned.connect(self.on_batch_abandoned)
         self.statement_result_presenter.batch_committed.connect(self.on_batch_committed)
+        self.export_data_presenter.review_pending_batch.connect(self.show_results)
         self.footer_view.admin_requested.connect(self.open_admin_dialog)
 
         # Nav button clicks
@@ -138,6 +139,8 @@ class StanPresenter(QObject):
             self.stan.current_project_paths.root
         )
         self.export_data_presenter.project_path = self.stan.current_project_paths.root
+        self.export_data_presenter.project_id = self.stan.current_project_id
+        self.export_data_presenter.update_folder_display()
         print(current_record.value("project_location"))
 
         # Refresh project info panel and update nav button visibility.

@@ -128,9 +128,11 @@ CREATE TABLE IF NOT EXISTS "batch" (
     "batch_id"      TEXT,
     "project_id"    TEXT NOT NULL,
     "duration_secs" REAL NOT NULL DEFAULT 0,
+    "status"        INTEGER NOT NULL DEFAULT 0,
     "created"       TEXT NOT NULL DEFAULT (datetime('now')),
     PRIMARY KEY("batch_id"),
-    FOREIGN KEY("project_id") REFERENCES "project"("project_id")
+    FOREIGN KEY("project_id") REFERENCES "project"("project_id"),
+    FOREIGN KEY("status") REFERENCES "status"("status_id")
 );
 """
 

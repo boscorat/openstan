@@ -1,4 +1,5 @@
 from PyQt6.QtCore import QAbstractTableModel, QSize, Qt
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -11,6 +12,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QRadioButton,
     QTableView,
+    QToolTip,
     QTreeView,
     QWidget,
     QWizard,
@@ -174,7 +176,7 @@ class StanButton(QPushButton):
         super().__init__(text)
         # self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAutoFillBackground(True)
-        self.setIconSize(QSize(10, 10))
+        self.setIconSize(QSize(16, 16))
         self.setMinimumWidth(min_width)
 
 
@@ -190,3 +192,54 @@ class StanWizard(QWizard):
         self.setAutoFillBackground(True)
         self.setModal(True)
         self.setWindowModality(Qt.WindowModality.WindowModal)
+
+
+class StanHelpIcon(QLabel):
+    """A small themed info icon that shows a tooltip on hover and click.
+
+    Uses the ``info.svg`` icon from the themed icon directory (dark/light).
+    The help text is displayed via ``QToolTip`` so it works on both hover
+    and click without needing a separate popup widget.
+
+    Parameters
+    ----------
+    help_text:
+        The explanatory text shown when the user hovers over or clicks the
+        icon.
+    """
+
+    def __init__(self, help_text: str) -> None:
+        super().__init__()
+        self._help_text = help_text
+        self.setAutoFillBackground(True)
+        self.setFixedSize(16, 16)
+        self.setCursor(Qt.CursorShape.WhatsThisCursor)
+        self.setToolTip(help_text)
+        self._load_icon()
+
+    def _load_icon(self) -> None:
+        """Load the themed info.svg and set it as the label pixmap."""
+        from openstan.paths import Paths
+
+        icon_path = Paths.themed_icon("info.svg")
+        pixmap = QPixmap(icon_path)
+        if not pixmap.isNull():
+            self.setPixmap(
+                pixmap.scaled(
+                    16,
+                    16,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            )
+        else:
+            # Fallback: render a text "?" if icon not found.
+            self.setText("?")
+            self.setAlignment(
+                Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+            )
+
+    def mousePressEvent(self, ev) -> None:  # noqa: N802
+        """Show the tooltip at the cursor position on click."""
+        QToolTip.showText(self.mapToGlobal(self.rect().center()), self._help_text, self)
+        super().mousePressEvent(ev)

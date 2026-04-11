@@ -789,12 +789,16 @@ class StatementResultPresenter(QObject):
                     file=sys.stderr,
                 )
 
-            ok, msg = self.batch_model.delete_batch(batch_id)
+            # Mark batch as committed in gui.db so the export panel can
+            # identify it as a completed (non-pending) batch when resolving
+            # "Latest" batch exports.
+            ok, msg = self.batch_model.commit_batch(batch_id)
             if not ok:
                 print(
-                    f"ERROR: Could not delete batch record after commit: {msg}",
+                    f"WARNING: Could not mark batch as committed: {msg}",
                     file=sys.stderr,
                 )
+
             if project_id:
                 ok, msg = self.queue_model.clear_batch_id()
                 if not ok:
