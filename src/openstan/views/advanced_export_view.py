@@ -48,13 +48,9 @@ _HELP_STATEMENT = (
     "Select '(all statements)' to export all statements for the account."
 )
 
-_HELP_DATE_FROM = (
-    "Optional earliest transaction date (inclusive).  Tick 'No date' to leave unset, which exports from the beginning of the data."
-)
+_HELP_DATE_FROM = "Optional earliest transaction date (inclusive).  Tick 'No date' to leave unset, which exports from the beginning of the data."
 
-_HELP_DATE_TO = (
-    "Optional latest transaction date (inclusive).  Tick 'No date' to leave unset, which exports up to the most recent transaction."
-)
+_HELP_DATE_TO = "Optional latest transaction date (inclusive).  Tick 'No date' to leave unset, which exports up to the most recent transaction."
 
 
 class AdvancedExportView(StanWidget):
@@ -118,7 +114,9 @@ class AdvancedExportView(StanWidget):
         account_label_row.addStretch()
 
         self.combo_account = QComboBox()
-        self.combo_account.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.combo_account.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
 
         param_grid.addLayout(account_label_row, 0, 0)
         param_grid.addWidget(self.combo_account, 0, 1)
@@ -131,7 +129,9 @@ class AdvancedExportView(StanWidget):
         statement_label_row.addStretch()
 
         self.combo_statement = QComboBox()
-        self.combo_statement.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.combo_statement.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
 
         param_grid.addLayout(statement_label_row, 1, 0)
         param_grid.addWidget(self.combo_statement, 1, 1)
@@ -149,7 +149,9 @@ class AdvancedExportView(StanWidget):
 
         self.check_date_from_none = QCheckBox("No date")
         self.check_date_from_none.setChecked(True)
-        self.check_date_from_none.toggled.connect(lambda checked: self.date_from.setEnabled(not checked))
+        self.check_date_from_none.toggled.connect(
+            lambda checked: self.date_from.setEnabled(not checked)
+        )
 
         date_from_controls = QHBoxLayout()
         date_from_controls.setContentsMargins(0, 0, 0, 0)
@@ -173,7 +175,9 @@ class AdvancedExportView(StanWidget):
 
         self.check_date_to_none = QCheckBox("No date")
         self.check_date_to_none.setChecked(True)
-        self.check_date_to_none.toggled.connect(lambda checked: self.date_to.setEnabled(not checked))
+        self.check_date_to_none.toggled.connect(
+            lambda checked: self.date_to.setEnabled(not checked)
+        )
 
         date_to_controls = QHBoxLayout()
         date_to_controls.setContentsMargins(0, 0, 0, 0)
@@ -190,7 +194,9 @@ class AdvancedExportView(StanWidget):
         specs_label = StanLabel("**Export specs**")
 
         # ── Empty-state label (shown when no project or no .toml files) ───
-        self.label_no_specs = StanMutedLabel("No export specs found.  Add .toml spec files to <project>/config/export/ to see them here.")
+        self.label_no_specs = StanMutedLabel(
+            "No export specs found.  Add .toml spec files to <project>/config/export/ to see them here."
+        )
         self.label_no_specs.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.label_no_specs.setVisible(True)
 
@@ -209,7 +215,9 @@ class AdvancedExportView(StanWidget):
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.spec_list_widget)
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         self.scroll_area.setVisible(False)  # shown by presenter when specs are loaded
 
         # ── Progress / status ──────────────────────────────────────────────

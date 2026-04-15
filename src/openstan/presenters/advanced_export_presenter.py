@@ -48,7 +48,9 @@ if TYPE_CHECKING:
 class _DatamartLoadSignals(QObject):
     """Signals emitted by ``_DatamartLoadWorker``."""
 
-    finished = pyqtSignal(object, object)  # (accounts_df, statements_df) as pl.DataFrame
+    finished = pyqtSignal(
+        object, object
+    )  # (accounts_df, statements_df) as pl.DataFrame
     error = pyqtSignal(str)
 
 
@@ -68,12 +70,29 @@ class _DatamartLoadWorker(QRunnable):
         try:
             accounts_df: pl.DataFrame = (
                 bsp.db.DimAccount(self._project_path)
-                .all.select(["id_account", "account_int", "account_number", "account_holder", "account_type"])
+                .all.select(
+                    [
+                        "id_account",
+                        "account_int",
+                        "account_number",
+                        "account_holder",
+                        "account_type",
+                    ]
+                )
                 .collect()
             )
             statements_df: pl.DataFrame = (
                 bsp.db.DimStatement(self._project_path)
-                .all.select(["id_statement", "statement_int", "id_account", "account_int", "statement_date", "filename"])
+                .all.select(
+                    [
+                        "id_statement",
+                        "statement_int",
+                        "id_account",
+                        "account_int",
+                        "statement_date",
+                        "filename",
+                    ]
+                )
                 .collect()
             )
             self.signals.finished.emit(accounts_df, statements_df)
@@ -150,7 +169,9 @@ class AdvancedExportPresenter(QObject):
     # ---------------------------------------------------------------------------
 
     @pyqtSlot(object, object)
-    def _on_datamart_loaded(self, accounts_df: pl.DataFrame, statements_df: pl.DataFrame) -> None:
+    def _on_datamart_loaded(
+        self, accounts_df: pl.DataFrame, statements_df: pl.DataFrame
+    ) -> None:
         """Populate combos once the background datamart query completes."""
         self._all_statements = statements_df
 
@@ -199,7 +220,9 @@ class AdvancedExportPresenter(QObject):
         else:
             filtered = self._all_statements.filter(pl.col("id_account") == account_key)
 
-        for row in filtered.sort("statement_date", descending=True).iter_rows(named=True):
+        for row in filtered.sort("statement_date", descending=True).iter_rows(
+            named=True
+        ):
             label = f"{row['statement_date']}  —  {row['filename']}"
             self.view.combo_statement.addItem(label, userData=row["id_statement"])
 
@@ -225,12 +248,16 @@ class AdvancedExportPresenter(QObject):
 
         spec_dir = self.project_path / "config" / "export"
         if not spec_dir.is_dir():
-            self._show_no_specs(f"Spec directory not found: {spec_dir}\nAdd .toml spec files to <project>/config/export/ to see them here.")
+            self._show_no_specs(
+                f"Spec directory not found: {spec_dir}\nAdd .toml spec files to <project>/config/export/ to see them here."
+            )
             return
 
         toml_files = sorted(spec_dir.glob("*.toml"))
         if not toml_files:
-            self._show_no_specs("No .toml spec files found in <project>/config/export/.")
+            self._show_no_specs(
+                "No .toml spec files found in <project>/config/export/."
+            )
             return
 
         for spec_path in toml_files:
@@ -269,7 +296,9 @@ class AdvancedExportPresenter(QObject):
     def _on_spec_clicked(self, spec_path: Path) -> None:
         """Run ``export_spec`` for the selected spec file."""
         if self.project_path is None:
-            self._error_dialog.showMessage("No project is currently selected. Please select a project before exporting.")
+            self._error_dialog.showMessage(
+                "No project is currently selected. Please select a project before exporting."
+            )
             return
 
         params = self._read_params()
@@ -356,7 +385,9 @@ class AdvancedExportPresenter(QObject):
     def _on_export_finished(self, description: str, output_folder: str) -> None:
         self.view.progress_bar.setVisible(False)
         self._set_spec_buttons_enabled(True)
-        self.view.label_status.setText(f"###### Exported {description} to `{output_folder}`")
+        self.view.label_status.setText(
+            f"###### Exported {description} to `{output_folder}`"
+        )
         QDesktopServices.openUrl(QUrl.fromLocalFile(output_folder))
 
     @pyqtSlot(str)
