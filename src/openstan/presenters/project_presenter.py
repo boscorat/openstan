@@ -119,8 +119,7 @@ def _apply_config_selections(
             if not src_subfolder.is_dir():
                 # Source subfolder no longer on disk — fall back to default/skip
                 print(
-                    f"Warning: source config subfolder '{src_subfolder}' not found; "
-                    "keeping BSP default.",
+                    f"Warning: source config subfolder '{src_subfolder}' not found; keeping BSP default.",
                     file=sys.stderr,
                 )
                 continue
@@ -381,10 +380,6 @@ class ProjectPresenter(QObject):
         self.view.wizard.page_basic.id_row.setText(
             self.view.wizard.page_basic.newProjectID
         )
-        if self.view.wizard.page_config is not None:
-            self.view.wizard.page_config.prepare_config_page(
-                self._collect_config_sources()
-            )
         self.view.wizard.exec()
 
     @pyqtSlot()
@@ -427,25 +422,6 @@ class ProjectPresenter(QObject):
             print(error)
             wizard.failure_dialog.showMessage(error)
             return False
-
-        # Apply the user's config subfolder selections (PM-7).
-        # This runs after BSP scaffolding so we can remove/replace as needed.
-        if wizard.page_config is not None:
-            try:
-                selections = wizard.page_config.get_config_selections()
-                _apply_config_selections(
-                    new_config_dir=full_path / "config",
-                    selections=selections,
-                    default_config_dir=bsp.ProjectPaths.resolve().config_import,
-                )
-            except Exception as e:
-                # Config customisation failed — the project is still valid (BSP
-                # scaffolded it successfully) but warn the user.
-                print(f"Warning: config selection could not be fully applied: {e}")
-                traceback.print_exc(file=sys.stderr)
-                wizard.failure_dialog.showMessage(
-                    f"Project created but config customisation failed:\n{e}"
-                )
 
         new_pro: tuple[bool, str, str] = self.model.add_record(
             wizard.page_basic.newProjectID,

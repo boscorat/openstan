@@ -1,7 +1,9 @@
 from openstan.views.about_dialog import AboutDialog
 from openstan.views.admin_view import AdminView
+from openstan.views.advanced_export_view import AdvancedExportView
 from openstan.views.content_view import ContentFrameView
 from openstan.views.debug_info_dialog import DebugInfoDialog
+from openstan.views.export_data_view import ExportDataView
 from openstan.views.footer_view import FooterView
 from openstan.views.pending_batch_dialog import PendingBatchDialog
 from openstan.views.project_info_view import ProjectInfoView as ProjectInfoView
@@ -9,13 +11,13 @@ from openstan.views.project_view import ProjectNavView as ProjectNavView
 from openstan.views.project_view import ProjectView as ProjectView
 from openstan.views.statement_queue_view import StatementQueueView
 from openstan.views.statement_result_view import StatementResultView
-from openstan.views.export_data_view import ExportDataView
 from openstan.views.stub_views import RunReportsView
 from openstan.views.title import TitleView
 
 __all__: list[str] = [
     "AboutDialog",
     "AdminView",
+    "AdvancedExportView",
     "ProjectView",
     "ProjectNavView",
     "ProjectInfoView",

@@ -11,7 +11,7 @@ Two test classes are provided:
 ``TestDatabaseComparison``
     Compares the resulting openstan project.db against the bsp reference
     project.db built by TestHarness.  For each of the five datamart tables
-    (DimTime, DimAccount, DimStatement, FactTransaction, FactBalance) it checks
+    (DimDate, DimAccount, DimStatement, FactTransaction, FactBalance) it checks
     row counts and numeric column sums.
 
 Run with::
@@ -40,7 +40,7 @@ FLOAT_TOL = 0.005  # reused from bsp's test_datamart.py
 #   checks_and_balances           — processing artefacts, not datamart
 #   statement_heads, statement_lines — raw staging tables; focus on DIM*/FACT*
 DATAMART_TABLES = [
-    "DimTime",
+    "DimDate",
     "DimAccount",
     "DimStatement",
     "FactTransaction",
@@ -142,7 +142,7 @@ class TestDatabaseComparison:
     openstan db.
     """
 
-    # ── DimTime ──────────────────────────────────────────────────────────────
+    # ── DimDate ──────────────────────────────────────────────────────────────
 
     def test_dim_time_row_count_matches(
         self, bsp_harness: TestHarness, openstan_env: OpenStanEnv
@@ -152,10 +152,10 @@ class TestDatabaseComparison:
             str(openstan_env.project_path / "database" / "project.db")
         )
         try:
-            bsp_rows = _scalar(bsp_conn, "SELECT COUNT(*) FROM DimTime")
-            ost_rows = _scalar(ost_conn, "SELECT COUNT(*) FROM DimTime")
+            bsp_rows = _scalar(bsp_conn, "SELECT COUNT(*) FROM DimDate")
+            ost_rows = _scalar(ost_conn, "SELECT COUNT(*) FROM DimDate")
             assert ost_rows == bsp_rows, (
-                f"DimTime row count: openstan={ost_rows}, bsp={bsp_rows}"
+                f"DimDate row count: openstan={ost_rows}, bsp={bsp_rows}"
             )
         finally:
             bsp_conn.close()
@@ -169,11 +169,11 @@ class TestDatabaseComparison:
             str(openstan_env.project_path / "database" / "project.db")
         )
         try:
-            for col in _real_columns(bsp_conn, "DimTime"):
-                bsp_sum = _scalar(bsp_conn, f"SELECT SUM({col}) FROM DimTime") or 0.0
-                ost_sum = _scalar(ost_conn, f"SELECT SUM({col}) FROM DimTime") or 0.0
+            for col in _real_columns(bsp_conn, "DimDate"):
+                bsp_sum = _scalar(bsp_conn, f"SELECT SUM({col}) FROM DimDate") or 0.0
+                ost_sum = _scalar(ost_conn, f"SELECT SUM({col}) FROM DimDate") or 0.0
                 assert abs(bsp_sum - ost_sum) < FLOAT_TOL, (
-                    f"DimTime.{col} sum mismatch: openstan={ost_sum}, bsp={bsp_sum}"
+                    f"DimDate.{col} sum mismatch: openstan={ost_sum}, bsp={bsp_sum}"
                 )
         finally:
             bsp_conn.close()
@@ -368,7 +368,7 @@ class TestDatabaseComparison:
         )
         try:
             n_accounts = _scalar(ost_conn, "SELECT COUNT(*) FROM DimAccount") or 0
-            n_days = _scalar(ost_conn, "SELECT COUNT(*) FROM DimTime") or 0
+            n_days = _scalar(ost_conn, "SELECT COUNT(*) FROM DimDate") or 0
             expected = n_accounts * n_days
             actual = _scalar(ost_conn, "SELECT COUNT(*) FROM FactBalance") or 0
             assert actual == expected, (
