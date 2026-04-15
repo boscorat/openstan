@@ -11,16 +11,16 @@ the active project changes — consistent with the pattern used by
 ``StatementQueuePresenter`` and ``StatementResultPresenter``.
 """
 
-import traceback
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 import bank_statement_parser as bsp
-from PyQt6.QtCore import QObject, QRunnable, QUrl, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import QFileDialog
 
 from openstan.components import StanErrorMessage
+from openstan.presenters.workers import ExportWorker
 from openstan.views.pending_batch_dialog import PendingBatchDialog
 
 if TYPE_CHECKING:
@@ -28,55 +28,6 @@ if TYPE_CHECKING:
 
     from openstan.models.batch_model import BatchModel
     from openstan.views.export_data_view import ExportDataView
-
-
-# ---------------------------------------------------------------------------
-# Worker thread
-# ---------------------------------------------------------------------------
-
-
-class ExportWorkerSignals(QObject):
-    """Signals emitted by ``ExportWorker`` back to the main thread."""
-
-    finished = pyqtSignal(str, str)  # (human description, output folder path)
-    error = pyqtSignal(str)  # error message
-
-
-class ExportWorker(QRunnable):
-    """Runs a single BSP export function off the GUI thread.
-
-    Parameters
-    ----------
-    fn:
-        A zero-argument callable that performs the export.  The caller should
-        bind all parameters via a lambda or ``functools.partial`` before
-        passing it in.
-    description:
-        Short human-readable label shown in the status bar on success
-        (e.g. ``"CSV (Single)"``).
-    output_folder:
-        Path to the folder that will contain the exported files, used to open
-        the folder in the system file manager after a successful export.
-    """
-
-    def __init__(
-        self,
-        fn: Callable[[], None],
-        description: str,
-        output_folder: Path,
-    ) -> None:
-        super().__init__()
-        self._fn = fn
-        self._description = description
-        self._output_folder = output_folder
-        self.signals = ExportWorkerSignals()
-
-    def run(self) -> None:  # noqa: N802
-        try:
-            self._fn()
-            self.signals.finished.emit(self._description, str(self._output_folder))
-        except Exception:
-            self.signals.error.emit(traceback.format_exc())
 
 
 # ---------------------------------------------------------------------------
@@ -156,7 +107,7 @@ class ExportDataPresenter(QObject):
 
     def _make_worker(
         self,
-        fn: Callable[[], None],
+        fn: Callable[[], Any],
         description: str,
         output_folder: Path,
     ) -> ExportWorker:

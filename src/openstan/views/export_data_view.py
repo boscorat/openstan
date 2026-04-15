@@ -1,9 +1,17 @@
 """export_data_view.py — Export Data panel view.
 
-Presents a parameter panel for configuring export options (type, batch,
-file naming, output folder) and three format-specific export buttons.
-All button click handling and BSP calls live in ``ExportDataPresenter`` —
-this module contains only layout and widget declarations.
+The panel is split into two tabs via a ``QTabWidget``:
+
+* **Standard Exports** — the original parameter panel (type, batch, file
+  naming, output folder) and the three format buttons (Excel, CSV, JSON).
+  All wiring for this tab lives in ``ExportDataPresenter``.
+
+* **Advanced Exports** — the ``AdvancedExportView`` widget, which presents
+  ``export_spec`` parameters and a scrollable list of spec buttons.
+  All wiring for this tab lives in ``AdvancedExportPresenter``.
+
+Both presenters access their respective sub-widget trees through the
+public attributes exposed by this class.
 """
 
 from PyQt6.QtGui import QIcon
@@ -12,6 +20,7 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLineEdit,
+    QTabWidget,
     QVBoxLayout,
 )
 
@@ -27,6 +36,7 @@ from openstan.components import (
     StanWidget,
 )
 from openstan.paths import Paths
+from openstan.views.advanced_export_view import AdvancedExportView
 
 # ---------------------------------------------------------------------------
 # Help text — sourced from BSP export_csv docstring (reports_db.py)
@@ -60,20 +70,32 @@ _HELP_FOLDER = (
 class ExportDataView(StanWidget):
     """Export Data panel.
 
-    Exposes a parameter panel with radio-button groups for ``type``,
-    ``batch``, and ``file naming`` on a single row, a folder selector
-    on a second row, and three ``StanButton`` instances (one per format).
-    A ``StanProgressBar`` provides in-progress feedback and a ``StanLabel``
-    shows post-export status messages.  All wiring lives in
-    ``ExportDataPresenter``.
+    Contains a ``QTabWidget`` with two tabs:
+
+    * ``TAB_STANDARD`` (index 0) — the original radio-button parameter
+      panel and format export buttons.
+    * ``TAB_ADVANCED`` (index 1) — the ``AdvancedExportView`` for
+      spec-based exports.
+
+    Standard-tab widgets are exposed directly on this class so that
+    ``ExportDataPresenter`` can reference them without changes.  The
+    advanced tab's widget tree is accessible via ``self.advanced``.
     """
 
     header: str = "##### Export Data"
 
+    # Tab index constants — kept here so presenters can reference them
+    # without hard-coding magic numbers.
+    TAB_STANDARD = 0
+    TAB_ADVANCED = 1
+
     def __init__(self) -> None:
         super().__init__()
 
-        # ── Description ───────────────────────────────────────────────────
+        # ── Standard Exports tab ──────────────────────────────────────────
+        standard_tab = StanWidget()
+
+        # Description
         description = StanMutedLabel(
             "Export project transactions to your preferred format. "
             "Configure export options below, then click an export button."
@@ -237,18 +259,37 @@ class ExportDataView(StanWidget):
         self.label_status = StanLabel("")
         self.label_status.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
+        # ── Standard tab layout ────────────────────────────────────────────
+        standard_layout = QVBoxLayout()
+        standard_layout.setAlignment(
+            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
+        )
+        standard_layout.setSpacing(12)
+        standard_layout.setContentsMargins(0, 8, 0, 0)
+
+        standard_layout.addWidget(description)
+        standard_layout.addSpacing(4)
+        standard_layout.addWidget(param_frame)
+        standard_layout.addSpacing(4)
+        standard_layout.addLayout(button_row)
+        standard_layout.addSpacing(4)
+        standard_layout.addWidget(self.progress_bar)
+        standard_layout.addWidget(self.label_status)
+
+        standard_tab.setLayout(standard_layout)
+
+        # ── Advanced Exports tab ──────────────────────────────────────────
+        self.advanced = AdvancedExportView()
+
+        # ── Tab widget ─────────────────────────────────────────────────────
+        self.tabs = QTabWidget()
+        self.tabs.addTab(standard_tab, "Standard Exports")
+        self.tabs.addTab(self.advanced, "Advanced Exports")
+
         # ── Outer layout ───────────────────────────────────────────────────
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        layout.setSpacing(12)
+        outer_layout = QVBoxLayout()
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+        outer_layout.addWidget(self.tabs)
 
-        layout.addWidget(description)
-        layout.addSpacing(4)
-        layout.addWidget(param_frame)
-        layout.addSpacing(4)
-        layout.addLayout(button_row)
-        layout.addSpacing(4)
-        layout.addWidget(self.progress_bar)
-        layout.addWidget(self.label_status)
-
-        self.setLayout(layout)
+        self.setLayout(outer_layout)
