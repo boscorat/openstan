@@ -30,14 +30,3 @@ class _StubView(StanWidget):
 
     # Public attribute expected by ContentFrameView / StanPresenter
     header: str = ""
-
-
-class RunReportsView(_StubView):
-    """Placeholder for the Run Reports panel (not yet implemented)."""
-
-    header = "##### Run Reports"
-
-    def __init__(self) -> None:
-        super().__init__(
-            description="Generate and view project reports — coming soon.",
-        )
