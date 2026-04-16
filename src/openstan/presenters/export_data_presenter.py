@@ -12,7 +12,7 @@ the active project changes — consistent with the pattern used by
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Literal, cast
 
 import bank_statement_parser as bsp
 from PyQt6.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
@@ -234,77 +234,79 @@ class ExportDataPresenter(QObject):
         self.update_folder_display()
 
     # ---------------------------------------------------------------------------
-    # Export slots — one per format
+    # Export slots — delegate to shared _on_export(fmt)
     # ---------------------------------------------------------------------------
 
     @pyqtSlot()
     def _on_csv(self) -> None:
-        project_path = self._resolve_project_path()
-        if project_path is None:
-            return
-        params = self._read_export_params()
-        if params is None:
-            return
-        output_folder = self._output_folder_for_format("csv", params)
-        worker = self._make_worker(
-            fn=lambda: bsp.db.export_csv(
-                type=params["type"],
-                project_path=project_path,
-                batch_id=params["batch_id"],
-                filename_timestamp=params["filename_timestamp"],
-                folder=params["folder"],
-            ),
-            description=f"CSV ({params['type'].title()})",
-            output_folder=output_folder,
-        )
-        self._start_export(worker)
+        self._on_export("csv")
 
     @pyqtSlot()
     def _on_excel(self) -> None:
-        project_path = self._resolve_project_path()
-        if project_path is None:
-            return
-        params = self._read_export_params()
-        if params is None:
-            return
-        output_folder = self._output_folder_for_format("excel", params)
-        # export_excel takes ``path`` (a file path) rather than ``folder``.
-        # When the user has set a custom folder, construct the file path;
-        # otherwise pass None so BSP uses its own default.
-        excel_path: Path | None = None
-        if params["folder"] is not None:
-            excel_path = params["folder"] / "transactions.xlsx"
-        worker = self._make_worker(
-            fn=lambda: bsp.db.export_excel(
-                type=params["type"],
-                project_path=project_path,
-                batch_id=params["batch_id"],
-                filename_timestamp=params["filename_timestamp"],
-                path=excel_path,
-            ),
-            description=f"Excel ({params['type'].title()})",
-            output_folder=output_folder,
-        )
-        self._start_export(worker)
+        self._on_export("excel")
 
     @pyqtSlot()
     def _on_json(self) -> None:
+        self._on_export("json")
+
+    def _on_export(self, fmt: str) -> None:
+        """Resolve params, build the correct BSP worker, and start the export."""
         project_path = self._resolve_project_path()
         if project_path is None:
             return
         params = self._read_export_params()
         if params is None:
             return
-        output_folder = self._output_folder_for_format("json", params)
+        output_folder = self._output_folder_for_format(fmt, params)
+
+        # Capture narrowed locals so closures don't close over the dict | None type.
+        export_type = cast(Literal["single", "multi"], params["type"])
+        batch_id: str | None = params["batch_id"]
+        filename_timestamp: bool = params["filename_timestamp"]
+        custom_folder: Path | None = params["folder"]
+
+        if fmt == "excel":
+            # export_excel takes ``path`` (a file) rather than ``folder``.
+            excel_path: Path | None = (
+                custom_folder / "transactions.xlsx"
+                if custom_folder is not None
+                else None
+            )
+
+            def fn() -> None:
+                return bsp.db.export_excel(
+                    type=export_type,
+                    project_path=project_path,
+                    batch_id=batch_id,
+                    filename_timestamp=filename_timestamp,
+                    path=excel_path,
+                )
+
+        elif fmt == "csv":
+
+            def fn() -> None:  # type: ignore[no-redef]
+                return bsp.db.export_csv(
+                    type=export_type,
+                    project_path=project_path,
+                    batch_id=batch_id,
+                    filename_timestamp=filename_timestamp,
+                    folder=custom_folder,
+                )
+
+        else:  # json
+
+            def fn() -> None:  # type: ignore[no-redef]
+                return bsp.db.export_json(
+                    type=export_type,
+                    project_path=project_path,
+                    batch_id=batch_id,
+                    filename_timestamp=filename_timestamp,
+                    folder=custom_folder,
+                )
+
         worker = self._make_worker(
-            fn=lambda: bsp.db.export_json(
-                type=params["type"],
-                project_path=project_path,
-                batch_id=params["batch_id"],
-                filename_timestamp=params["filename_timestamp"],
-                folder=params["folder"],
-            ),
-            description=f"JSON ({params['type'].title()})",
+            fn=fn,
+            description=f"{fmt.upper()} ({export_type.title()})",
             output_folder=output_folder,
         )
         self._start_export(worker)
@@ -328,5 +330,4 @@ class ExportDataPresenter(QObject):
         self.view.progress_bar.setVisible(False)
         self._set_buttons_enabled(True)
         self.view.label_status.setText("")
-        print(f"ExportDataPresenter: export error:\n{message}", flush=True)
         self._error_dialog.showMessage(f"Export failed:\n\n{message}")

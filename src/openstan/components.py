@@ -2,16 +2,25 @@ from PyQt6.QtCore import QAbstractTableModel, QSize, Qt
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QCheckBox,
+    QComboBox,
+    QDateEdit,
     QDialog,
     QErrorMessage,
     QFormLayout,
     QFrame,
+    QGroupBox,
     QLabel,
+    QLineEdit,
+    QListWidget,
     QMessageBox,
     QProgressBar,
     QPushButton,
     QRadioButton,
+    QScrollArea,
     QTableView,
+    QTableWidget,
+    QTabWidget,
+    QToolButton,
     QToolTip,
     QTreeView,
     QWidget,
@@ -133,8 +142,8 @@ class StanForm(QFormLayout):
 
 
 class StanFrame(QFrame):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
         self.setFrameStyle(
             QFrame.Shape.StyledPanel | QFrame.Shadow.Sunken | QFrame.Shape.Panel
         )
@@ -243,3 +252,64 @@ class StanHelpIcon(QLabel):
         """Show the tooltip at the cursor position on click."""
         QToolTip.showText(self.mapToGlobal(self.rect().center()), self._help_text, self)
         super().mousePressEvent(ev)
+
+
+class StanComboBox(QComboBox):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setAutoFillBackground(True)
+
+
+class StanLineEdit(QLineEdit):
+    def __init__(self, text: str = "", parent=None) -> None:
+        super().__init__(text, parent)
+        self.setAutoFillBackground(True)
+
+
+class StanDateEdit(QDateEdit):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setAutoFillBackground(True)
+        self.setCalendarPopup(True)
+
+
+class StanTabWidget(QTabWidget):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setAutoFillBackground(True)
+
+
+class StanListWidget(QListWidget):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setAutoFillBackground(True)
+        self.setAlternatingRowColors(True)
+
+
+class StanGroupBox(QGroupBox):
+    def __init__(self, title: str = "", parent=None) -> None:
+        super().__init__(title, parent)
+        self.setAutoFillBackground(True)
+
+
+class StanToolButton(QToolButton):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setAutoFillBackground(True)
+
+
+class StanScrollArea(QScrollArea):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setAutoFillBackground(True)
+
+
+class StanTableWidget(QTableWidget):
+    def __init__(self, rows: int = 0, cols: int = 0, parent=None) -> None:
+        super().__init__(rows, cols, parent)
+        self.setAutoFillBackground(True)
+        self.setAlternatingRowColors(True)
+        self.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
+        self.verticalHeader().setVisible(False)  # type: ignore[union-attr]

@@ -57,6 +57,23 @@ class AdminPresenter(QObject):
             self.view.combo_delete.addItem(name, userData=row)
             self.view.combo_remove.addItem(name, userData=row)
 
+    def _confirm(
+        self,
+        title: str,
+        text: str,
+        icon: QMessageBox.Icon = QMessageBox.Icon.Warning,
+    ) -> bool:
+        """Show a Yes/Cancel confirmation dialog.  Returns True if Yes was clicked."""
+        dlg = StanInfoMessage(parent=self.view)
+        dlg.setWindowTitle(title)
+        dlg.setIcon(icon)
+        dlg.setText(text)
+        dlg.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
+        )
+        dlg.setDefaultButton(QMessageBox.StandardButton.Cancel)
+        return dlg.exec() == QMessageBox.StandardButton.Yes
+
     # ---------------------------------------------------------------------------
     # Slots
     # ---------------------------------------------------------------------------
@@ -78,17 +95,10 @@ class AdminPresenter(QObject):
             if delete_folder
             else ""
         )
-        confirm = StanInfoMessage(parent=self.view)
-        confirm.setWindowTitle("Confirm Delete")
-        confirm.setIcon(QMessageBox.Icon.Warning)
-        confirm.setText(
-            f"Delete project '{project_name}'?{folder_warning}\n\nThis cannot be undone."
-        )
-        confirm.setStandardButtons(
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
-        )
-        confirm.setDefaultButton(QMessageBox.StandardButton.Cancel)
-        if confirm.exec() != QMessageBox.StandardButton.Yes:
+        if not self._confirm(
+            "Confirm Delete",
+            f"Delete project '{project_name}'?{folder_warning}\n\nThis cannot be undone.",
+        ):
             return
 
         success, _, msg = self.model.delete_record_by_id(project_id)
@@ -101,14 +111,12 @@ class AdminPresenter(QObject):
         if delete_folder:
             try:
                 shutil.rmtree(Path(project_location))
-                print(f"ADMIN: Deleted project folder: {project_location}")
             except Exception:
                 traceback.print_exc()
                 StanErrorMessage(parent=self.view).showMessage(
                     f"Project record removed, but the folder could not be deleted:\n{project_location}"
                 )
 
-        print(f"ADMIN: Project '{project_name}' deleted.")
         self.refresh_combos()
 
     @pyqtSlot()
@@ -121,18 +129,11 @@ class AdminPresenter(QObject):
         project_id: str = str(record.value("project_id"))
         project_name: str = str(record.value("project_name"))
 
-        confirm = StanInfoMessage(parent=self.view)
-        confirm.setWindowTitle("Confirm Remove")
-        confirm.setIcon(QMessageBox.Icon.Warning)
-        confirm.setText(
+        if not self._confirm(
+            "Confirm Remove",
             f"Remove project '{project_name}' from the UI?\n\n"
-            "The project folder on disk will not be affected."
-        )
-        confirm.setStandardButtons(
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
-        )
-        confirm.setDefaultButton(QMessageBox.StandardButton.Cancel)
-        if confirm.exec() != QMessageBox.StandardButton.Yes:
+            "The project folder on disk will not be affected.",
+        ):
             return
 
         success, _, msg = self.model.delete_record_by_id(project_id)
@@ -142,26 +143,19 @@ class AdminPresenter(QObject):
             )
             return
 
-        print(f"ADMIN: Project '{project_name}' removed from UI.")
         self.refresh_combos()
 
     @pyqtSlot()
     def empty_gui_db(self) -> None:
         """Delete and recreate gui.db, then quit the application."""
-        confirm = StanInfoMessage(parent=self.view)
-        confirm.setWindowTitle("Confirm Reset")
-        confirm.setIcon(QMessageBox.Icon.Critical)
-        confirm.setText(
+        if not self._confirm(
+            "Confirm Reset",
             "Reset the application?\n\n"
             "This will permanently delete all projects, sessions, and users from gui.db "
             "and close the application.\n\n"
-            "This action cannot be undone."
-        )
-        confirm.setStandardButtons(
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
-        )
-        confirm.setDefaultButton(QMessageBox.StandardButton.Cancel)
-        if confirm.exec() != QMessageBox.StandardButton.Yes:
+            "This action cannot be undone.",
+            icon=QMessageBox.Icon.Critical,
+        ):
             return
 
         gui_db_path = Path(Paths.databases("gui.db"))
@@ -173,7 +167,6 @@ class AdminPresenter(QObject):
             if gui_db_path.exists():
                 gui_db_path.unlink()
             create_gui_db(gui_db_path)
-            print("ADMIN: gui.db deleted and recreated.")
         except Exception:
             traceback.print_exc()
             StanErrorMessage(parent=self.view).showMessage(

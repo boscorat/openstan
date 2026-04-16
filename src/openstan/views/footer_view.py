@@ -10,7 +10,7 @@ class FooterView(StanWidget):
 
     def __init__(self) -> None:
         super().__init__()
-        self.labelCopy = StanLabel("##### StanCafe © 2026")
+        self.labelCopy = StanLabel("##### openstan © 2026")
         self.labelUser = StanLabel("##### User: None | Session: None")
         self.labelProject = StanLabel("##### Project: None (ID: None)")
         self.labelAdmin = StanLabel("##### Double-click for admin options")

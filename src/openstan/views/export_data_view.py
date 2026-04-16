@@ -19,8 +19,6 @@ from PyQt6.QtWidgets import (
     QButtonGroup,
     QGridLayout,
     QHBoxLayout,
-    QLineEdit,
-    QTabWidget,
     QVBoxLayout,
 )
 
@@ -30,9 +28,11 @@ from openstan.components import (
     StanFrame,
     StanHelpIcon,
     StanLabel,
+    StanLineEdit,
     StanMutedLabel,
     StanProgressBar,
     StanRadioButton,
+    StanTabWidget,
     StanWidget,
 )
 from openstan.paths import Paths
@@ -65,6 +65,43 @@ _HELP_FOLDER = (
     "project\u2019s export/<format>/ directory is used and created "
     "automatically if absent."
 )
+
+
+def _make_option_group(
+    label_text: str,
+    help_text: str,
+    *radio_buttons: "StanRadioButton",
+) -> tuple["StanWidget", "QButtonGroup"]:
+    """Build a labelled radio-button group container.
+
+    Returns the container widget and the ``QButtonGroup`` so the caller can
+    store the group reference for later ``isChecked()`` queries.
+    """
+    group = QButtonGroup()
+    for btn in radio_buttons:
+        group.addButton(btn)
+
+    label_row = QHBoxLayout()
+    label_row.setContentsMargins(0, 0, 0, 0)
+    label_row.addWidget(StanLabel(label_text))
+    label_row.addWidget(StanHelpIcon(help_text))
+    label_row.addStretch()
+
+    radio_row = QHBoxLayout()
+    radio_row.setContentsMargins(0, 0, 0, 0)
+    for btn in radio_buttons:
+        radio_row.addWidget(btn)
+    radio_row.addStretch()
+
+    box = QVBoxLayout()
+    box.setContentsMargins(0, 0, 0, 0)
+    box.setSpacing(2)
+    box.addLayout(label_row)
+    box.addLayout(radio_row)
+
+    container = StanWidget()
+    container.setLayout(box)
+    return container, group
 
 
 class ExportDataView(StanWidget):
@@ -115,85 +152,25 @@ class ExportDataView(StanWidget):
         self.radio_type_single = StanRadioButton("Single")
         self.radio_type_multi = StanRadioButton("Multi")
         self.radio_type_single.setChecked(True)
-
-        self.group_type = QButtonGroup()
-        self.group_type.addButton(self.radio_type_single)
-        self.group_type.addButton(self.radio_type_multi)
-
-        type_box = QVBoxLayout()
-        type_box.setContentsMargins(0, 0, 0, 0)
-        type_box.setSpacing(2)
-        type_label_row = QHBoxLayout()
-        type_label_row.setContentsMargins(0, 0, 0, 0)
-        type_label_row.addWidget(StanLabel("**Type**"))
-        type_label_row.addWidget(StanHelpIcon(_HELP_TYPE))
-        type_label_row.addStretch()
-        type_box.addLayout(type_label_row)
-        type_radio_row = QHBoxLayout()
-        type_radio_row.setContentsMargins(0, 0, 0, 0)
-        type_radio_row.addWidget(self.radio_type_single)
-        type_radio_row.addWidget(self.radio_type_multi)
-        type_radio_row.addStretch()
-        type_box.addLayout(type_radio_row)
-
-        type_container = StanWidget()
-        type_container.setLayout(type_box)
+        type_container, self.group_type = _make_option_group(
+            "**Type**", _HELP_TYPE, self.radio_type_single, self.radio_type_multi
+        )
 
         # -- Row 0, Col 2-3: Batch ----------------------------------------
         self.radio_batch_all = StanRadioButton("All")
         self.radio_batch_latest = StanRadioButton("Latest")
         self.radio_batch_all.setChecked(True)
-
-        self.group_batch = QButtonGroup()
-        self.group_batch.addButton(self.radio_batch_all)
-        self.group_batch.addButton(self.radio_batch_latest)
-
-        batch_box = QVBoxLayout()
-        batch_box.setContentsMargins(0, 0, 0, 0)
-        batch_box.setSpacing(2)
-        batch_label_row = QHBoxLayout()
-        batch_label_row.setContentsMargins(0, 0, 0, 0)
-        batch_label_row.addWidget(StanLabel("**Batch**"))
-        batch_label_row.addWidget(StanHelpIcon(_HELP_BATCH))
-        batch_label_row.addStretch()
-        batch_box.addLayout(batch_label_row)
-        batch_radio_row = QHBoxLayout()
-        batch_radio_row.setContentsMargins(0, 0, 0, 0)
-        batch_radio_row.addWidget(self.radio_batch_all)
-        batch_radio_row.addWidget(self.radio_batch_latest)
-        batch_radio_row.addStretch()
-        batch_box.addLayout(batch_radio_row)
-
-        batch_container = StanWidget()
-        batch_container.setLayout(batch_box)
+        batch_container, self.group_batch = _make_option_group(
+            "**Batch**", _HELP_BATCH, self.radio_batch_all, self.radio_batch_latest
+        )
 
         # -- Row 0, Col 4-5: File naming ----------------------------------
         self.radio_ts_on = StanRadioButton("Timestamp files")
         self.radio_ts_off = StanRadioButton("Overwrite")
         self.radio_ts_on.setChecked(True)
-
-        self.group_timestamp = QButtonGroup()
-        self.group_timestamp.addButton(self.radio_ts_on)
-        self.group_timestamp.addButton(self.radio_ts_off)
-
-        ts_box = QVBoxLayout()
-        ts_box.setContentsMargins(0, 0, 0, 0)
-        ts_box.setSpacing(2)
-        ts_label_row = QHBoxLayout()
-        ts_label_row.setContentsMargins(0, 0, 0, 0)
-        ts_label_row.addWidget(StanLabel("**File naming**"))
-        ts_label_row.addWidget(StanHelpIcon(_HELP_TIMESTAMP))
-        ts_label_row.addStretch()
-        ts_box.addLayout(ts_label_row)
-        ts_radio_row = QHBoxLayout()
-        ts_radio_row.setContentsMargins(0, 0, 0, 0)
-        ts_radio_row.addWidget(self.radio_ts_on)
-        ts_radio_row.addWidget(self.radio_ts_off)
-        ts_radio_row.addStretch()
-        ts_box.addLayout(ts_radio_row)
-
-        ts_container = StanWidget()
-        ts_container.setLayout(ts_box)
+        ts_container, self.group_timestamp = _make_option_group(
+            "**File naming**", _HELP_TIMESTAMP, self.radio_ts_on, self.radio_ts_off
+        )
 
         # Assemble Row 0 — three groups side-by-side
         param_grid.addWidget(type_container, 0, 0)
@@ -212,7 +189,7 @@ class ExportDataView(StanWidget):
         folder_label_row.addWidget(StanHelpIcon(_HELP_FOLDER))
         folder_label_row.addStretch()
 
-        self.line_edit_folder = QLineEdit()
+        self.line_edit_folder = StanLineEdit()
         self.line_edit_folder.setReadOnly(True)
         self.line_edit_folder.setPlaceholderText("(project default)")
 
@@ -282,7 +259,7 @@ class ExportDataView(StanWidget):
         self.advanced = AdvancedExportView()
 
         # ── Tab widget ─────────────────────────────────────────────────────
-        self.tabs = QTabWidget()
+        self.tabs = StanTabWidget()
         self.tabs.addTab(standard_tab, "Standard Exports")
         self.tabs.addTab(self.advanced, "Advanced Exports")
 

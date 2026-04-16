@@ -5,21 +5,21 @@ from PyQt6.QtCore import QStandardPaths, pyqtSignal
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QButtonGroup,
-    QComboBox,
     QFileDialog,
     QGridLayout,
     QHBoxLayout,
-    QLineEdit,
     QSizePolicy,
 )
 
 from openstan.components import (
     Qt,
     StanButton,
+    StanComboBox,
     StanErrorMessage,
     StanForm,
     StanInfoMessage,
     StanLabel,
+    StanLineEdit,
     StanWidget,
     StanWizard,
     StanWizardPage,
@@ -89,13 +89,13 @@ class ProjectPageBasic(StanWizardPage):
             )
 
         layout = StanForm()
-        self.id_row = QLineEdit()
+        self.id_row = StanLineEdit()
         self.id_row.setDisabled(True)
         self.id_row.setText(self.newProjectID)
         self.id_row.setFixedWidth(300)
         layout.addRow("Project ID:", self.id_row)
 
-        self.name_row = QLineEdit()
+        self.name_row = StanLineEdit()
         self.name_row.setFixedWidth(300)
         if mode == "existing":
             self.name_row.setDisabled(True)
@@ -107,7 +107,7 @@ class ProjectPageBasic(StanWizardPage):
         else:
             self.location_button = StanButton("Select Project Folder Location")
         self.location_button.setIcon(QIcon(Paths.themed_icon("folder_add.svg")))
-        self.location_label = QLineEdit()
+        self.location_label = StanLineEdit()
         self.location_label.setReadOnly(True)
         self.location_label.setFixedWidth(300)
         self.location_label.hide()
@@ -181,7 +181,7 @@ class ProjectView(StanWidget):
         self.wizard_existing = ProjectWizard(mode="existing", parent=parent)
         self.label = StanLabel("Select an existing project:")
         self.label.setMaximumWidth(180)
-        self.selection = QComboBox()  # model details set in ProjectPresenter
+        self.selection = StanComboBox()  # model details set in ProjectPresenter
         self.selection.setMaximumWidth(250)
         self.label2 = StanLabel("or")
         self.label2.setMaximumWidth(60)

@@ -258,32 +258,24 @@ class RunReportsPresenter(QObject):
     # ------------------------------------------------------------------
 
     def _toggle_cols_all(self) -> None:
-        b = self.view.builder
-        total = b.columns_list.count()
-        checked = sum(
-            1
-            for i in range(total)
-            if (item := b.columns_list.item(i))
-            and item.checkState() == Qt.CheckState.Checked
-        )
-        new_state = (
-            Qt.CheckState.Unchecked if checked == total else Qt.CheckState.Checked
-        )
-        self._set_list_check_all(b.columns_list, new_state)
+        self._toggle_list_all(self.view.builder.columns_list)
 
     def _toggle_derived_all(self) -> None:
-        b = self.view.builder
-        total = b.derived_list.count()
+        self._toggle_list_all(self.view.builder.derived_list)
+
+    def _toggle_list_all(self, list_widget: "QListWidget") -> None:
+        """Toggle all items in *list_widget* — check all if any are unchecked, else uncheck all."""
+        total = list_widget.count()
         checked = sum(
             1
             for i in range(total)
-            if (item := b.derived_list.item(i))
+            if (item := list_widget.item(i))
             and item.checkState() == Qt.CheckState.Checked
         )
         new_state = (
             Qt.CheckState.Unchecked if checked == total else Qt.CheckState.Checked
         )
-        self._set_list_check_all(b.derived_list, new_state)
+        self._set_list_check_all(list_widget, new_state)
 
     def _update_all_checkboxes(self) -> None:
         """Sync the tristate state of checkbox_cols_all and checkbox_derived_all."""
@@ -403,7 +395,9 @@ class RunReportsPresenter(QObject):
         worker = _FetchWorker(_fetch)
         worker.signals.finished.connect(lambda values: row.set_distinct_values(values))
         worker.signals.error.connect(
-            lambda msg: print(f"[run_reports] distinct-values fetch error: {msg}")
+            lambda msg: self._error_dialog.showMessage(
+                f"Failed to fetch distinct values: {msg}"
+            )
         )
         self.threadpool.start(worker)
 

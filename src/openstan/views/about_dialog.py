@@ -8,8 +8,9 @@ from importlib.metadata import PackageNotFoundError, version
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtSvgWidgets import QSvgWidget
-from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout
+from PyQt6.QtWidgets import QDialogButtonBox, QVBoxLayout
 
+from openstan.components import StanDialog, StanLabel
 from openstan.paths import Paths
 
 _WEBSITE_URL = "https://openstan.org"
@@ -23,7 +24,7 @@ def _app_version() -> str:
         return "unknown"
 
 
-class AboutDialog(QDialog):
+class AboutDialog(StanDialog):
     """Modal dialog showing the full logo, version, and external links."""
 
     def __init__(self, parent=None) -> None:
@@ -45,20 +46,20 @@ class AboutDialog(QDialog):
         logo.setAccessibleName("openstan — secure statement analysis")
 
         # ── Version ───────────────────────────────────────────────────────
-        version_label = QLabel(f"Version {_app_version()}")
+        version_label = StanLabel(f"Version {_app_version()}")
         version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # ── Links ─────────────────────────────────────────────────────────
         # setOpenExternalLinks(True) routes clicks to QDesktopServices
         # internally — no extra wiring needed, and no network calls are
         # made by the application itself (NFR-5 compliant).
-        website_label = QLabel(f'<a href="{_WEBSITE_URL}">{_WEBSITE_URL}</a>')
+        website_label = StanLabel(f'<a href="{_WEBSITE_URL}">{_WEBSITE_URL}</a>')
         website_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         website_label.setOpenExternalLinks(True)
         website_label.setTextFormat(Qt.TextFormat.RichText)
         website_label.setAccessibleName("openstan website")
 
-        github_label = QLabel(f'<a href="{_GITHUB_URL}">{_GITHUB_URL}</a>')
+        github_label = StanLabel(f'<a href="{_GITHUB_URL}">{_GITHUB_URL}</a>')
         github_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         github_label.setOpenExternalLinks(True)
         github_label.setTextFormat(Qt.TextFormat.RichText)

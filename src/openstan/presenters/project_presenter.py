@@ -348,6 +348,49 @@ class ProjectPresenter(QObject):
             self.create_new_project()
 
     # ---------------------------------------------------------------------------
+    # Shared post-add helper
+    # ---------------------------------------------------------------------------
+
+    def _finalise_project_add(
+        self,
+        new_pro: tuple[bool, str, str],
+        project_name: str,
+        full_path: Path,
+        wizard,
+        action: str,
+    ) -> bool:
+        """Handle the success/failure outcome after ``model.add_record``.
+
+        *action* is ``"create"`` or ``"add"`` — used to tailor dialog text.
+        Returns ``True`` on success, ``False`` on failure.
+        """
+        if new_pro[0]:
+            verb_past = "created" if action == "create" else "added"
+            title = (
+                "Project Created Successfully"
+                if action == "create"
+                else "Project Added Successfully"
+            )
+            info = f"Project '{project_name}' {verb_past} successfully!\nLocation: {full_path}"
+            wizard.success_dialog.setText(title)
+            wizard.success_dialog.setDetailedText(info)
+            if wizard.success_dialog.exec():
+                wizard.project_created = True
+                self.model.select()
+                new_index = self.model.rowCount() - 1
+                self.view.selection.setCurrentIndex(new_index)
+                wizard.accept()
+                return True
+        else:
+            if new_pro[2].startswith("UNIQUE constraint failed: project.project_name"):
+                error = f"Project with name '{project_name}' already exists."
+            else:
+                error = f"Failed to {action} project: {new_pro[2]}"
+            wizard.back()
+            wizard.failure_dialog.showMessage(error)
+        return False
+
+    # ---------------------------------------------------------------------------
     # New project
     # ---------------------------------------------------------------------------
 
@@ -398,13 +441,11 @@ class ProjectPresenter(QObject):
         except FileExistsError:
             error = f"Folder '{full_path}' already exists. Choose a different name or location."
             wizard.back()
-            print(error)
             wizard.failure_dialog.showMessage(error)
             return False
         except Exception as e:
             error = f"Failed to create project folder: {e}"
             wizard.back()
-            print(error)
             wizard.failure_dialog.showMessage(error)
             return False
 
@@ -419,7 +460,6 @@ class ProjectPresenter(QObject):
                 pass
             error = f"Failed to initialise project: {e}"
             wizard.back()
-            print(error)
             wizard.failure_dialog.showMessage(error)
             return False
 
@@ -429,29 +469,9 @@ class ProjectPresenter(QObject):
             str(full_path),
             self.sessionID,
         )
-        if new_pro[0]:
-            info = (
-                f"Project '{project_name}' created successfully!\nLocation: {full_path}"
-            )
-            wizard.success_dialog.setText("Project Created Successfully")
-            wizard.success_dialog.setDetailedText(info)
-            if wizard.success_dialog.exec():
-                wizard.project_created = True
-                self.model.select()
-                new_index = self.model.rowCount() - 1
-                self.view.selection.setCurrentIndex(new_index)
-                wizard.accept()
-                return True
-        else:
-            if new_pro[2].startswith("UNIQUE constraint failed: project.project_name"):
-                error = f"Project with name '{project_name}' already exists."
-            else:
-                error = f"Failed to create project: {new_pro[2]}"
-            wizard.back()
-            print(error)
-            wizard.failure_dialog.showMessage(error)
-            return False
-        return False
+        return self._finalise_project_add(
+            new_pro, project_name, full_path, wizard, "create"
+        )
 
     # ---------------------------------------------------------------------------
     # Existing project
@@ -481,7 +501,6 @@ class ProjectPresenter(QObject):
         except Exception as e:
             error = f"The selected folder does not appear to be a valid project: {e}"
             wizard.back()
-            print(error)
             wizard.failure_dialog.showMessage(error)
             return False
 
@@ -491,29 +510,9 @@ class ProjectPresenter(QObject):
             str(full_path),
             self.sessionID,
         )
-        if new_pro[0]:
-            info = (
-                f"Project '{project_name}' added successfully!\nLocation: {full_path}"
-            )
-            wizard.success_dialog.setText("Project Added Successfully")
-            wizard.success_dialog.setDetailedText(info)
-            if wizard.success_dialog.exec():
-                wizard.project_created = True
-                self.model.select()
-                new_index = self.model.rowCount() - 1
-                self.view.selection.setCurrentIndex(new_index)
-                wizard.accept()
-                return True
-        else:
-            if new_pro[2].startswith("UNIQUE constraint failed: project.project_name"):
-                error = f"Project with name '{project_name}' already exists."
-            else:
-                error = f"Failed to add project: {new_pro[2]}"
-            wizard.back()
-            print(error)
-            wizard.failure_dialog.showMessage(error)
-            return False
-        return False
+        return self._finalise_project_add(
+            new_pro, project_name, full_path, wizard, "add"
+        )
 
     # ---------------------------------------------------------------------------
     # Shared folder selection and label update

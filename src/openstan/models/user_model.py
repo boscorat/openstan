@@ -7,7 +7,7 @@ NEW_RECORD_STATUS = 8  # active status
 
 
 class UserModel(QSqlTableModel):
-    def __init__(self, db):
+    def __init__(self, db) -> None:
         super().__init__(db=db)
         self.setTable("user")
         self.select()

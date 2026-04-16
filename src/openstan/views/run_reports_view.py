@@ -32,34 +32,31 @@ if TYPE_CHECKING:
 from PyQt6.QtCore import QDate, QSortFilterProxyModel, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QAbstractItemView,
-    QCheckBox,
-    QComboBox,
-    QDateEdit,
-    QFormLayout,
     QFrame,
-    QGroupBox,
     QHBoxLayout,
     QHeaderView,
-    QLabel,
-    QLineEdit,
-    QListWidget,
     QListWidgetItem,
-    QPushButton,
-    QScrollArea,
     QSizePolicy,
     QSplitter,
     QStackedWidget,
-    QToolButton,
     QVBoxLayout,
-    QWidget,
 )
 
 from openstan.components import (
     StanButton,
+    StanCheckBox,
+    StanComboBox,
+    StanDateEdit,
+    StanForm,
+    StanGroupBox,
     StanLabel,
+    StanLineEdit,
+    StanListWidget,
     StanMutedLabel,
     StanPolarsModel,
+    StanScrollArea,
     StanTableView,
+    StanToolButton,
     StanWidget,
 )
 from openstan.models.report_model import (
@@ -76,7 +73,7 @@ from openstan.models.report_model import (
 # ---------------------------------------------------------------------------
 
 
-class MultiSelectWidget(QWidget):
+class MultiSelectWidget(StanWidget):
     """A tool-button that opens a popup checklist of distinct values.
 
     Selecting / deselecting items in the popup emits ``selection_changed``.
@@ -85,10 +82,10 @@ class MultiSelectWidget(QWidget):
 
     selection_changed: pyqtSignal = pyqtSignal()
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
+    def __init__(self, parent: StanWidget | None = None) -> None:
+        super().__init__()
 
-        self._button = QToolButton()
+        self._button = StanToolButton()
         self._button.setMinimumWidth(120)
         self._button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
         self._button.clicked.connect(self._show_popup)
@@ -106,18 +103,18 @@ class MultiSelectWidget(QWidget):
         self._popup.setFrameShape(QFrame.Shape.StyledPanel)
         self._popup.setFrameShadow(QFrame.Shadow.Raised)
 
-        self._list = QListWidget()
+        self._list = StanListWidget()
         self._list.setMinimumWidth(180)
         self._list.itemChanged.connect(self._on_item_changed)
 
         # Search box — filters visible items as the user types
-        self._search = QLineEdit()
+        self._search = StanLineEdit()
         self._search.setPlaceholderText("Search…")
         self._search.setClearButtonEnabled(True)
         self._search.textChanged.connect(self._filter_list)
 
         # Tristate "All" checkbox above the list
-        self._all_cb = QCheckBox("All")
+        self._all_cb = StanCheckBox("All")
         self._all_cb.setTristate(True)
         self._all_cb.clicked.connect(self._toggle_all)
 
@@ -273,7 +270,7 @@ class MultiSelectWidget(QWidget):
 # ---------------------------------------------------------------------------
 
 
-class FilterRowWidget(QWidget):
+class FilterRowWidget(StanWidget):
     """A single filter rule: column ▸ operator ▸ value  [Remove].
 
     When the operator is ``is_in``, the plain text field is replaced by a
@@ -287,19 +284,18 @@ class FilterRowWidget(QWidget):
     # needed for the current column.  Carries (self, column_name).
     values_needed: pyqtSignal = pyqtSignal(object, str)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setAutoFillBackground(True)
+    def __init__(self, parent: StanWidget | None = None) -> None:
+        super().__init__()
 
         # Pending selected values to restore after async value load
         self._pending_is_in_values: list[str] = []
 
-        self.column_combo = QComboBox()
+        self.column_combo = StanComboBox()
         self.column_combo.setMinimumWidth(130)
         for col, label in FLAT_TRANSACTION_COLUMNS:
             self.column_combo.addItem(label, col)
 
-        self.operator_combo = QComboBox()
+        self.operator_combo = StanComboBox()
         for op, label in FILTER_OPERATORS:
             self.operator_combo.addItem(label, op)
 
@@ -307,7 +303,7 @@ class FilterRowWidget(QWidget):
         self._value_stack = QStackedWidget()
         self._value_stack.setMinimumWidth(120)
 
-        self.value_edit = QLineEdit()
+        self.value_edit = StanLineEdit()
         self.value_edit.setPlaceholderText("value…")
         self._value_stack.addWidget(self.value_edit)
 
@@ -316,7 +312,7 @@ class FilterRowWidget(QWidget):
 
         self._value_stack.setCurrentIndex(0)
 
-        self.remove_button = QPushButton("✕")
+        self.remove_button = StanButton("✕", min_width=28)
         self.remove_button.setFixedWidth(28)
         self.remove_button.setToolTip("Remove this filter")
         self.remove_button.clicked.connect(lambda: self.removed.emit(self))
@@ -415,29 +411,28 @@ class FilterRowWidget(QWidget):
 # ---------------------------------------------------------------------------
 
 
-class AggRowWidget(QWidget):
+class AggRowWidget(StanWidget):
     """A single aggregation: column ▸ function ▸ alias  [Remove]."""
 
     removed: pyqtSignal = pyqtSignal(object)  # emits self
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setAutoFillBackground(True)
+    def __init__(self, parent: StanWidget | None = None) -> None:
+        super().__init__()
 
-        self.column_combo = QComboBox()
+        self.column_combo = StanComboBox()
         self.column_combo.setMinimumWidth(130)
         for col, label in NUMERIC_COLUMNS:
             self.column_combo.addItem(label, col)
 
-        self.function_combo = QComboBox()
+        self.function_combo = StanComboBox()
         for fn, label in AGGREGATION_FUNCTIONS:
             self.function_combo.addItem(label, fn)
 
-        self.alias_edit = QLineEdit()
+        self.alias_edit = StanLineEdit()
         self.alias_edit.setPlaceholderText("alias (optional)")
         self.alias_edit.setMinimumWidth(110)
 
-        self.remove_button = QPushButton("✕")
+        self.remove_button = StanButton("✕", min_width=28)
         self.remove_button.setFixedWidth(28)
         self.remove_button.setToolTip("Remove this aggregation")
         self.remove_button.clicked.connect(lambda: self.removed.emit(self))
@@ -473,7 +468,7 @@ class AggRowWidget(QWidget):
 # ---------------------------------------------------------------------------
 
 
-class ReportBuilderPane(QWidget):
+class ReportBuilderPane(StanWidget):
     """Left pane — all configuration controls for a report.
 
     All widgets are public attributes; no signal connections are made here.
@@ -483,16 +478,15 @@ class ReportBuilderPane(QWidget):
     clicks Load or New.
     """
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setAutoFillBackground(True)
+    def __init__(self, parent: StanWidget | None = None) -> None:
+        super().__init__()
 
         outer = QVBoxLayout()
         outer.setContentsMargins(8, 8, 8, 8)
         outer.setSpacing(8)
 
         # ── Save / Load (always visible at the top) ───────────────────
-        persist_box = QGroupBox("Saved Reports")
+        persist_box = StanGroupBox("Saved Reports")
         persist_layout = QVBoxLayout()
         persist_layout.setSpacing(6)
 
@@ -504,7 +498,7 @@ class ReportBuilderPane(QWidget):
         save_row.addStretch()
 
         load_row = QHBoxLayout()
-        self.saved_reports_combo = QComboBox()
+        self.saved_reports_combo = StanComboBox()
         self.saved_reports_combo.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
@@ -520,8 +514,7 @@ class ReportBuilderPane(QWidget):
         outer.addWidget(persist_box)
 
         # ── Builder content (hidden until Load or New) ────────────────
-        self.builder_content = QWidget()
-        self.builder_content.setAutoFillBackground(True)
+        self.builder_content = StanWidget()
         self.builder_content.hide()
 
         builder_layout = QVBoxLayout()
@@ -529,12 +522,12 @@ class ReportBuilderPane(QWidget):
         builder_layout.setSpacing(8)
 
         # ── Meta ──────────────────────────────────────────────────────
-        meta_box = QGroupBox("Report Details")
-        meta_form = QFormLayout()
+        meta_box = StanGroupBox("Report Details")
+        meta_form = StanForm()
         meta_form.setSpacing(6)
-        self.title_edit = QLineEdit()
+        self.title_edit = StanLineEdit()
         self.title_edit.setPlaceholderText("Report title…")
-        self.subtitle_edit = QLineEdit()
+        self.subtitle_edit = StanLineEdit()
         self.subtitle_edit.setPlaceholderText("Subtitle (optional)…")
         meta_form.addRow("Title:", self.title_edit)
         meta_form.addRow("Subtitle:", self.subtitle_edit)
@@ -542,15 +535,15 @@ class ReportBuilderPane(QWidget):
         builder_layout.addWidget(meta_box)
 
         # ── Column selector ───────────────────────────────────────────
-        cols_box = QGroupBox("Columns")
+        cols_box = StanGroupBox("Columns")
         cols_layout = QVBoxLayout()
         cols_layout.setSpacing(2)
 
         # Tristate "All" checkbox for base columns
-        self.checkbox_cols_all = QCheckBox("All")
+        self.checkbox_cols_all = StanCheckBox("All")
         self.checkbox_cols_all.setTristate(True)
 
-        self.columns_list = QListWidget()
+        self.columns_list = StanListWidget()
         self.columns_list.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.columns_list.setMaximumHeight(160)
         for col, label in FLAT_TRANSACTION_COLUMNS:
@@ -561,11 +554,11 @@ class ReportBuilderPane(QWidget):
             self.columns_list.addItem(item)
 
         # Tristate "All" checkbox for derived date columns
-        self.checkbox_derived_all = QCheckBox("All")
+        self.checkbox_derived_all = StanCheckBox("All")
         self.checkbox_derived_all.setTristate(True)
 
-        self.derived_label = QLabel("Derived date columns:")
-        self.derived_list = QListWidget()
+        self.derived_label = StanLabel("Derived date columns:")
+        self.derived_list = StanListWidget()
         self.derived_list.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.derived_list.setMaximumHeight(100)
         for col, label in DERIVED_DATE_COLUMNS:
@@ -584,24 +577,22 @@ class ReportBuilderPane(QWidget):
         builder_layout.addWidget(cols_box)
 
         # ── Date Range ────────────────────────────────────────────────
-        date_range_box = QGroupBox("Date Range")
+        date_range_box = StanGroupBox("Date Range")
         date_range_layout = QVBoxLayout()
         date_range_layout.setSpacing(6)
 
-        self.date_range_enabled = QCheckBox("Filter by date range")
+        self.date_range_enabled = StanCheckBox("Filter by date range")
 
         date_row = QHBoxLayout()
         date_row.setSpacing(6)
-        date_row.addWidget(QLabel("From:"))
-        self.from_date = QDateEdit()
-        self.from_date.setCalendarPopup(True)
+        date_row.addWidget(StanLabel("From:"))
+        self.from_date = StanDateEdit()
         self.from_date.setDisplayFormat("yyyy-MM-dd")
         self.from_date.setDate(QDate.currentDate().addYears(-1))
         self.from_date.setEnabled(False)
         date_row.addWidget(self.from_date)
-        date_row.addWidget(QLabel("To:"))
-        self.to_date = QDateEdit()
-        self.to_date.setCalendarPopup(True)
+        date_row.addWidget(StanLabel("To:"))
+        self.to_date = StanDateEdit()
         self.to_date.setDisplayFormat("yyyy-MM-dd")
         self.to_date.setDate(QDate.currentDate())
         self.to_date.setEnabled(False)
@@ -614,19 +605,18 @@ class ReportBuilderPane(QWidget):
         builder_layout.addWidget(date_range_box)
 
         # ── Filters ───────────────────────────────────────────────────
-        filter_box = QGroupBox("Filters")
+        filter_box = StanGroupBox("Filters")
         filter_layout = QVBoxLayout()
         filter_layout.setSpacing(4)
 
         # Container for dynamically added FilterRowWidgets
-        self._filter_container = QWidget()
-        self._filter_container.setAutoFillBackground(True)
+        self._filter_container = StanWidget()
         self._filter_rows_layout = QVBoxLayout()
         self._filter_rows_layout.setContentsMargins(0, 0, 0, 0)
         self._filter_rows_layout.setSpacing(2)
         self._filter_container.setLayout(self._filter_rows_layout)
 
-        self.button_add_filter = QPushButton("+ Add Filter")
+        self.button_add_filter = StanButton("+ Add Filter", min_width=110)
         self.button_add_filter.setFixedWidth(110)
 
         filter_layout.addWidget(self._filter_container)
@@ -637,10 +627,10 @@ class ReportBuilderPane(QWidget):
         builder_layout.addWidget(filter_box)
 
         # ── Group By ──────────────────────────────────────────────────
-        groupby_box = QGroupBox("Group By")
+        groupby_box = StanGroupBox("Group By")
         groupby_layout = QVBoxLayout()
         groupby_layout.setSpacing(2)
-        self.groupby_list = QListWidget()
+        self.groupby_list = StanListWidget()
         self.groupby_list.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.groupby_list.setMaximumHeight(110)
         # Populated dynamically based on checked columns + derived columns
@@ -649,18 +639,17 @@ class ReportBuilderPane(QWidget):
         builder_layout.addWidget(groupby_box)
 
         # ── Aggregations ──────────────────────────────────────────────
-        agg_box = QGroupBox("Aggregations")
+        agg_box = StanGroupBox("Aggregations")
         agg_layout = QVBoxLayout()
         agg_layout.setSpacing(4)
 
-        self._agg_container = QWidget()
-        self._agg_container.setAutoFillBackground(True)
+        self._agg_container = StanWidget()
         self._agg_rows_layout = QVBoxLayout()
         self._agg_rows_layout.setContentsMargins(0, 0, 0, 0)
         self._agg_rows_layout.setSpacing(2)
         self._agg_container.setLayout(self._agg_rows_layout)
 
-        self.button_add_agg = QPushButton("+ Add Aggregation")
+        self.button_add_agg = StanButton("+ Add Aggregation", min_width=140)
         self.button_add_agg.setFixedWidth(140)
 
         agg_layout.addWidget(self._agg_container)
@@ -773,12 +762,11 @@ class ReportBuilderPane(QWidget):
 # ---------------------------------------------------------------------------
 
 
-class ReportPreviewPane(QWidget):
+class ReportPreviewPane(StanWidget):
     """Right pane — StanTableView + run controls."""
 
-    def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.setAutoFillBackground(True)
+    def __init__(self, parent: StanWidget | None = None) -> None:
+        super().__init__()
 
         layout = QVBoxLayout()
         layout.setContentsMargins(8, 8, 8, 8)
@@ -788,7 +776,7 @@ class ReportPreviewPane(QWidget):
         toolbar = QHBoxLayout()
         toolbar.setSpacing(8)
 
-        self.live_checkbox = QCheckBox("Live updates")
+        self.live_checkbox = StanCheckBox("Live updates")
         self.live_checkbox.setChecked(True)
         self.live_checkbox.setToolTip(
             "When checked, the preview updates automatically as you make changes.\n"
@@ -919,7 +907,7 @@ class RunReportsView(StanWidget):
         self.preview = ReportPreviewPane()
 
         # Wrap builder in a scroll area so it stays usable at small heights
-        scroll = QScrollArea()
+        scroll = StanScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(self.builder)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)

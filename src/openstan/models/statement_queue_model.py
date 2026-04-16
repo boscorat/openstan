@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt, pyqtSignal as Signal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtSql import QSqlRecord, QSqlTableModel
 
@@ -11,7 +11,7 @@ class StatementQueueModel(QSqlTableModel):
     already-filtered view without touching the filter again.
     """
 
-    db_updated: Signal = Signal()
+    db_updated: pyqtSignal = pyqtSignal()
 
     def __init__(self, db) -> None:
         super().__init__(None, db)

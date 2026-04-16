@@ -1,5 +1,5 @@
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QGridLayout, QTabWidget, QVBoxLayout
+from PyQt6.QtWidgets import QGridLayout, QVBoxLayout
 
 from openstan.components import (
     Qt,
@@ -7,6 +7,7 @@ from openstan.components import (
     StanLabel,
     StanProgressBar,
     StanTableView,
+    StanTabWidget,
     StanWidget,
 )
 from openstan.paths import Paths
@@ -55,7 +56,7 @@ class StatementResultView(StanWidget):
         )
 
         # ── Tabbed result sections ─────────────────────────────────────────
-        self.results_tabs = QTabWidget()
+        self.results_tabs = StanTabWidget()
         self.results_tabs.setMinimumWidth(800)
 
         # SUCCESS tab
