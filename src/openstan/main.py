@@ -25,6 +25,7 @@ from openstan.models import (
     BatchModel,
     FailureResultModel,
     ProjectModel,
+    ReportModel,
     ReviewResultModel,
     SessionModel,
     StatementQueueModel,
@@ -40,6 +41,7 @@ from openstan.presenters import (
     AdvancedExportPresenter,
     ExportDataPresenter,
     ProjectPresenter,
+    RunReportsPresenter,
     SessionPresenter,
     StanPresenter,
     StatementQueuePresenter,
@@ -135,6 +137,7 @@ class Stan(QMainWindow):
         self.statement_result_model = StatementResultModel(db=gui_db)
         self.statement_result_payload_model = StatementResultPayloadModel(db=gui_db)
         self.batch_model = BatchModel(db=gui_db)
+        self.report_model = ReportModel()
 
         # ── Views ─────────────────────────────────────────────────────────
         self.stan = QWidget()
@@ -235,6 +238,11 @@ class Stan(QMainWindow):
         )
         self.advanced_export_presenter = AdvancedExportPresenter(
             view=self.export_data_view.advanced,
+            threadpool=self.threadpool,
+        )
+        self.run_reports_presenter = RunReportsPresenter(
+            model=self.report_model,
+            view=self.run_reports_view,
             threadpool=self.threadpool,
         )
         self.stan_presenter = StanPresenter(stan=self)  # type: ignore[arg-type]

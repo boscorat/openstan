@@ -11,7 +11,7 @@ from openstan.views.project_view import ProjectNavView as ProjectNavView
 from openstan.views.project_view import ProjectView as ProjectView
 from openstan.views.statement_queue_view import StatementQueueView
 from openstan.views.statement_result_view import StatementResultView
-from openstan.views.stub_views import RunReportsView
+from openstan.views.run_reports_view import RunReportsView
 from openstan.views.title import TitleView
 
 __all__: list[str] = [
