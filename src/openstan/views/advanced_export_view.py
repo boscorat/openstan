@@ -9,25 +9,24 @@ declarations.
 """
 
 from PyQt6.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QDateEdit,
     QGridLayout,
     QHBoxLayout,
-    QScrollArea,
     QSizePolicy,
     QVBoxLayout,
-    QWidget,
 )
 
 from openstan.components import (
     Qt,
     StanButton,
+    StanCheckBox,
+    StanComboBox,
+    StanDateEdit,
     StanFrame,
     StanHelpIcon,
     StanLabel,
     StanMutedLabel,
     StanProgressBar,
+    StanScrollArea,
     StanWidget,
 )
 
@@ -113,7 +112,7 @@ class AdvancedExportView(StanWidget):
         account_label_row.addWidget(StanHelpIcon(_HELP_ACCOUNT))
         account_label_row.addStretch()
 
-        self.combo_account = QComboBox()
+        self.combo_account = StanComboBox()
         self.combo_account.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
@@ -128,7 +127,7 @@ class AdvancedExportView(StanWidget):
         statement_label_row.addWidget(StanHelpIcon(_HELP_STATEMENT))
         statement_label_row.addStretch()
 
-        self.combo_statement = QComboBox()
+        self.combo_statement = StanComboBox()
         self.combo_statement.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
@@ -143,11 +142,10 @@ class AdvancedExportView(StanWidget):
         date_from_label_row.addWidget(StanHelpIcon(_HELP_DATE_FROM))
         date_from_label_row.addStretch()
 
-        self.date_from = QDateEdit()
-        self.date_from.setCalendarPopup(True)
+        self.date_from = StanDateEdit()
         self.date_from.setEnabled(False)  # starts disabled — "No date" is default
 
-        self.check_date_from_none = QCheckBox("No date")
+        self.check_date_from_none = StanCheckBox("No date")
         self.check_date_from_none.setChecked(True)
         self.check_date_from_none.toggled.connect(
             lambda checked: self.date_from.setEnabled(not checked)
@@ -169,11 +167,10 @@ class AdvancedExportView(StanWidget):
         date_to_label_row.addWidget(StanHelpIcon(_HELP_DATE_TO))
         date_to_label_row.addStretch()
 
-        self.date_to = QDateEdit()
-        self.date_to.setCalendarPopup(True)
+        self.date_to = StanDateEdit()
         self.date_to.setEnabled(False)  # starts disabled — "No date" is default
 
-        self.check_date_to_none = QCheckBox("No date")
+        self.check_date_to_none = StanCheckBox("No date")
         self.check_date_to_none.setChecked(True)
         self.check_date_to_none.toggled.connect(
             lambda checked: self.date_to.setEnabled(not checked)
@@ -204,15 +201,14 @@ class AdvancedExportView(StanWidget):
         # spec_list_widget holds a QVBoxLayout that the presenter populates
         # with one StanButton per .toml file.  The scroll area expands to
         # fill all remaining vertical space in the tab.
-        self.spec_list_widget = QWidget()
-        self.spec_list_widget.setAutoFillBackground(True)
+        self.spec_list_widget = StanWidget()
         spec_list_layout = QVBoxLayout()
         spec_list_layout.setContentsMargins(0, 0, 0, 0)
         spec_list_layout.setSpacing(4)
         spec_list_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.spec_list_widget.setLayout(spec_list_layout)
 
-        self.scroll_area = QScrollArea()
+        self.scroll_area = StanScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.spec_list_widget)
         self.scroll_area.setHorizontalScrollBarPolicy(

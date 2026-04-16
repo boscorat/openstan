@@ -1,8 +1,8 @@
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtSvgWidgets import QSvgWidget
-from PyQt6.QtWidgets import QHBoxLayout, QPushButton
+from PyQt6.QtWidgets import QHBoxLayout
 
-from openstan.components import StanWidget
+from openstan.components import StanButton, StanWidget
 from openstan.paths import Paths
 
 
@@ -18,7 +18,7 @@ class TitleView(StanWidget):
         # Accessible name for screen readers in place of SVG alt text.
         wordmark.setAccessibleName("openstan — secure statement analysis")
 
-        about_btn = QPushButton("About")
+        about_btn = StanButton("About", min_width=56)
         about_btn.setFlat(True)
         about_btn.setFixedWidth(56)
         about_btn.clicked.connect(self.about_requested)

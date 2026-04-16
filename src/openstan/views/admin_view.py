@@ -1,9 +1,10 @@
-from PyQt6.QtWidgets import QComboBox, QVBoxLayout
+from PyQt6.QtWidgets import QVBoxLayout
 
 from openstan.components import (
     Qt,
     StanButton,
     StanCheckBox,
+    StanComboBox,
     StanDialog,
     StanFrame,
     StanLabel,
@@ -41,7 +42,7 @@ class AdminView(StanDialog):
         )
         lbl_delete_info.setWordWrap(True)
 
-        self.combo_delete = QComboBox()
+        self.combo_delete = StanComboBox()
         self.check_delete_folder = StanCheckBox(
             "Also delete the project folder from disk"
         )
@@ -70,7 +71,7 @@ class AdminView(StanDialog):
         )
         lbl_remove_info.setWordWrap(True)
 
-        self.combo_remove = QComboBox()
+        self.combo_remove = StanComboBox()
         self.button_remove_project = StanButton("Remove from UI")
 
         layout_remove.addWidget(lbl_remove_title)

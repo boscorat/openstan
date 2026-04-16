@@ -34,6 +34,7 @@ import dataclasses
 import json
 import sys
 import traceback
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from decimal import Decimal
@@ -314,6 +315,17 @@ class StatementResultModel(QSqlTableModel):
         self.setTable("statement_result")
         self.select()
 
+    @contextmanager
+    def _filtered(self, filter_str: str):
+        """Set *filter_str*, select, yield, then reset filter and re-select."""
+        self.setFilter(filter_str)
+        self.select()
+        try:
+            yield
+        finally:
+            self.setFilter("")
+            self.select()
+
     # ---------------------------------------------------------------------------
     # Write
     # ---------------------------------------------------------------------------
@@ -423,16 +435,13 @@ class StatementResultModel(QSqlTableModel):
         Used by the abandon path.  Soft-deleted rows (deleted=1) are left
         for ``hard_delete_soft_deleted`` to clean up after the debug worker.
         """
-        self.setFilter(f"batch_id = '{batch_id}' AND deleted = 0")
-        self.select()
-        for row in range(self.rowCount() - 1, -1, -1):
-            self.removeRow(row)
-        if self.submitAll():
-            self.setFilter("")
-            self.select()
-            self.db_updated.emit()
-            return (True, f"Results for batch {batch_id} deleted")
-        return (False, self.lastError().text())
+        with self._filtered(f"batch_id = '{batch_id}' AND deleted = 0"):
+            for row in range(self.rowCount() - 1, -1, -1):
+                self.removeRow(row)
+            if self.submitAll():
+                self.db_updated.emit()
+                return (True, f"Results for batch {batch_id} deleted")
+            return (False, self.lastError().text())
 
     # ---------------------------------------------------------------------------
     # Read
@@ -444,46 +453,40 @@ class StatementResultModel(QSqlTableModel):
         ``pdf_result`` is left as ``None`` — payloads are not needed for
         display on session restore.
         """
-        self.setFilter(f"batch_id = '{batch_id}' AND deleted = 0")
-        self.select()
-        rows: list[ResultRow] = []
-        for i in range(self.rowCount()):
-            rec = self.record(i)
-            pin = rec.value("payments_in")
-            pout = rec.value("payments_out")
-            djp = rec.value("debug_json_path")
-            rows.append(
-                ResultRow(
-                    result_id=str(rec.value("result_id")),
-                    batch_id=str(rec.value("batch_id")),
-                    queue_id=str(rec.value("queue_id")),
-                    project_id=str(rec.value("project_id")),
-                    result=str(rec.value("result")),
-                    file_path=Path(str(rec.value("file_path"))),
-                    id_account=rec.value("id_account") or None,
-                    statement_date=rec.value("statement_date") or None,
-                    payments_in=float(pin) if pin not in (None, "") else None,
-                    payments_out=float(pout) if pout not in (None, "") else None,
-                    error_type=rec.value("error_type") or None,
-                    message=rec.value("message") or None,
-                    debug_json_path=Path(str(djp)) if djp else None,
-                    debug_status=rec.value("debug_status") or None,
+        with self._filtered(f"batch_id = '{batch_id}' AND deleted = 0"):
+            rows: list[ResultRow] = []
+            for i in range(self.rowCount()):
+                rec = self.record(i)
+                pin = rec.value("payments_in")
+                pout = rec.value("payments_out")
+                djp = rec.value("debug_json_path")
+                rows.append(
+                    ResultRow(
+                        result_id=str(rec.value("result_id")),
+                        batch_id=str(rec.value("batch_id")),
+                        queue_id=str(rec.value("queue_id")),
+                        project_id=str(rec.value("project_id")),
+                        result=str(rec.value("result")),
+                        file_path=Path(str(rec.value("file_path"))),
+                        id_account=rec.value("id_account") or None,
+                        statement_date=rec.value("statement_date") or None,
+                        payments_in=float(pin) if pin not in (None, "") else None,
+                        payments_out=float(pout) if pout not in (None, "") else None,
+                        error_type=rec.value("error_type") or None,
+                        message=rec.value("message") or None,
+                        debug_json_path=Path(str(djp)) if djp else None,
+                        debug_status=rec.value("debug_status") or None,
+                    )
                 )
-            )
-        self.setFilter("")
-        self.select()
-        return rows
+            return rows
 
     def get_result_ids_for_batch(self, batch_id: str) -> list[str]:
         """Return result_id values for all live rows in *batch_id*."""
-        self.setFilter(f"batch_id = '{batch_id}' AND deleted = 0")
-        self.select()
-        ids: list[str] = [
-            str(self.record(row).value("result_id")) for row in range(self.rowCount())
-        ]
-        self.setFilter("")
-        self.select()
-        return ids
+        with self._filtered(f"batch_id = '{batch_id}' AND deleted = 0"):
+            return [
+                str(self.record(row).value("result_id"))
+                for row in range(self.rowCount())
+            ]
 
 
 # ---------------------------------------------------------------------------
@@ -505,6 +508,17 @@ class StatementResultPayloadModel(QSqlTableModel):
         super().__init__(None, db)
         self.setTable("statement_result_payload")
         self.select()
+
+    @contextmanager
+    def _filtered(self, filter_str: str):
+        """Set *filter_str*, select, yield, then reset filter and re-select."""
+        self.setFilter(filter_str)
+        self.select()
+        try:
+            yield
+        finally:
+            self.setFilter("")
+            self.select()
 
     def add_payload(self, result_id: str, pdf_result: "PdfResult") -> tuple[bool, str]:
         """Serialise *pdf_result* to JSON and persist it linked to *result_id*."""
@@ -530,15 +544,12 @@ class StatementResultPayloadModel(QSqlTableModel):
         if not result_ids:
             return (True, "Nothing to delete")
         placeholders = ", ".join(f"'{rid}'" for rid in result_ids)
-        self.setFilter(f"result_id IN ({placeholders})")
-        self.select()
-        for row in range(self.rowCount() - 1, -1, -1):
-            self.removeRow(row)
-        if self.submitAll():
-            self.setFilter("")
-            self.select()
-            return (True, f"Payloads for {len(result_ids)} result(s) deleted")
-        return (False, self.lastError().text())
+        with self._filtered(f"result_id IN ({placeholders})"):
+            for row in range(self.rowCount() - 1, -1, -1):
+                self.removeRow(row)
+            if self.submitAll():
+                return (True, f"Payloads for {len(result_ids)} result(s) deleted")
+            return (False, self.lastError().text())
 
     def load_payloads_for_batch(self, result_ids: list[str]) -> "dict[str, PdfResult]":
         """Deserialise JSON and return a {result_id: PdfResult} mapping for *result_ids*.
@@ -549,22 +560,19 @@ class StatementResultPayloadModel(QSqlTableModel):
         if not result_ids:
             return {}
         placeholders = ", ".join(f"'{rid}'" for rid in result_ids)
-        self.setFilter(f"result_id IN ({placeholders})")
-        self.select()
-        results: dict[str, PdfResult] = {}
-        for row in range(self.rowCount()):
-            record: QSqlRecord = self.record(row)
-            rid = str(record.value("result_id"))
-            text = record.value("payload")
-            try:
-                obj = _json_to_pdf_result(str(text))
-                results[rid] = obj
-            except Exception:
-                print(
-                    f"WARNING: Could not deserialise payload for result_id={rid} — skipping.",
-                    file=sys.stderr,
-                )
-                traceback.print_exc(file=sys.stderr)
-        self.setFilter("")
-        self.select()
-        return results
+        with self._filtered(f"result_id IN ({placeholders})"):
+            results: dict[str, PdfResult] = {}
+            for row in range(self.rowCount()):
+                record: QSqlRecord = self.record(row)
+                rid = str(record.value("result_id"))
+                text = record.value("payload")
+                try:
+                    obj = _json_to_pdf_result(str(text))
+                    results[rid] = obj
+                except Exception:
+                    print(
+                        f"WARNING: Could not deserialise payload for result_id={rid} — skipping.",
+                        file=sys.stderr,
+                    )
+                    traceback.print_exc(file=sys.stderr)
+            return results

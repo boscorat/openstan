@@ -198,7 +198,6 @@ class AdvancedExportPresenter(QObject):
         self.view.combo_account.blockSignals(False)
         self.view.combo_statement.clear()
         self.view.combo_statement.addItem("(no data)")
-        print(f"AdvancedExportPresenter: datamart load error:\n{message}", flush=True)
 
     # ---------------------------------------------------------------------------
     # Account combo change → filter statement combo
@@ -395,5 +394,4 @@ class AdvancedExportPresenter(QObject):
         self.view.progress_bar.setVisible(False)
         self._set_spec_buttons_enabled(True)
         self.view.label_status.setText("")
-        print(f"AdvancedExportPresenter: export error:\n{message}", flush=True)
         self._error_dialog.showMessage(f"Export failed:\n\n{message}")

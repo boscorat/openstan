@@ -110,9 +110,6 @@ class Stan(QMainWindow):
     def __init__(self, gui_db, sessionID, username) -> None:
         super().__init__()
         self.threadpool = QThreadPool()
-        print(
-            "Multithreading with maximum %d threads" % self.threadpool.maxThreadCount()
-        )
         self.gui_db = gui_db
         self.userID = None
         self.sessionID = sessionID
@@ -273,7 +270,6 @@ class Stan(QMainWindow):
         self.setCentralWidget(self.stan)
 
     def closeEvent(self, a0) -> None:
-        print("Window is closing")
         if self.sessionID:
             self.stan_presenter.cleanup_before_exit()
         if a0:

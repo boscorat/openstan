@@ -22,13 +22,12 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QHeaderView,
     QSizePolicy,
-    QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
-from openstan.components import StanButton, StanDialog, StanLabel
+from openstan.components import StanButton, StanDialog, StanLabel, StanTableWidget
 
 if TYPE_CHECKING:
     from openstan.models.statement_result_model import ResultRow
@@ -62,14 +61,10 @@ class DebugInfoDialog(StanDialog):
         self._row_index: dict[str, int] = {}
 
         # Table
-        self._table = QTableWidget(0, len(_HEADERS))
+        self._table = StanTableWidget(0, len(_HEADERS))
         self._table.setHorizontalHeaderLabels(_HEADERS)
-        self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self._table.setAlternatingRowColors(True)
         v_header = self._table.verticalHeader()
         assert v_header is not None
-        v_header.setVisible(False)
         hdr = self._table.horizontalHeader()
         assert hdr is not None
         hdr.setSectionResizeMode(_COL_FILE, QHeaderView.ResizeMode.ResizeToContents)
