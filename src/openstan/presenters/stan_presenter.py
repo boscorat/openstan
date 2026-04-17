@@ -387,6 +387,9 @@ class StanPresenter(QObject):
         the project summary and nav button visibility, since build_datamart ran
         as part of the commit and the project now has data.
         """
+        # Re-enable nav and return to the import panel before anything else,
+        # so the nav buttons are not left in a disabled state.
+        self.hide_results()
         self.statement_queue_presenter.clear_all_items()
         self.statement_queue_presenter.update_view()
         # Refresh project info — the project may now have data for the first time.

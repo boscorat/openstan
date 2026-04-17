@@ -268,6 +268,8 @@ class Stan(QMainWindow):
 
         self.stan.setLayout(layout)
         self.setCentralWidget(self.stan)
+        self.setMinimumSize(1100, 700)
+        self.resize(1280, 800)
 
     def closeEvent(self, a0) -> None:
         if self.sessionID:
