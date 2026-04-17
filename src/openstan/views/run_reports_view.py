@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     import polars as pl
 
 from PyQt6.QtCore import QDate, QSortFilterProxyModel, Qt, pyqtSignal
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -66,6 +67,7 @@ from openstan.models.report_model import (
     FLAT_TRANSACTION_COLUMNS,
     NUMERIC_COLUMNS,
 )
+from openstan.paths import Paths
 
 
 # ---------------------------------------------------------------------------
@@ -920,7 +922,44 @@ class RunReportsView(StanWidget):
         splitter.setStretchFactor(1, 1)
         splitter.setSizes([380, 700])
 
+        content_page = StanWidget()
+        content_layout = QVBoxLayout()
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.addWidget(splitter)
+        content_page.setLayout(content_layout)
+
+        # ── Placeholder page ──────────────────────────────────────────────
+        placeholder_page = StanWidget()
+        ph_layout = QVBoxLayout()
+        ph_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ph_icon = StanLabel()
+        ph_icon.setPixmap(QIcon(Paths.themed_icon("run.svg")).pixmap(64, 64))
+        ph_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ph_text = StanMutedLabel(
+            "No data yet — import and commit some statements before running reports."
+        )
+        ph_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ph_text.setWordWrap(True)
+        ph_layout.addWidget(ph_icon)
+        ph_layout.addSpacing(8)
+        ph_layout.addWidget(ph_text)
+        placeholder_page.setLayout(ph_layout)
+
+        # ── Stacked widget ────────────────────────────────────────────────
+        self._stack = QStackedWidget()
+        self._stack.addWidget(placeholder_page)  # page 0
+        self._stack.addWidget(content_page)  # page 1
+        self._stack.setCurrentIndex(0)
+
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(splitter)
+        layout.addWidget(self._stack)
         self.setLayout(layout)
+
+    # ---------------------------------------------------------------------------
+    # Public API
+    # ---------------------------------------------------------------------------
+
+    def show_placeholder(self, show: bool) -> None:
+        """Switch between placeholder (page 0) and real content (page 1)."""
+        self._stack.setCurrentIndex(0 if show else 1)
