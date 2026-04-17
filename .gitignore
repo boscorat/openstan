@@ -15,8 +15,5 @@ wheels/
 # SQLite databases (generated at runtime; may contain sensitive data)
 *.db
 
-# Agent files
-AGENTS.md
-
 # example files
 examples/

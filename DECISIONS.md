@@ -207,3 +207,89 @@ throughout the GUI.
 - `duck.py` can be deleted when convenient; it contains no active code.
 - If analytical query performance becomes a bottleneck, the fix belongs in
   `bank_statement_parser`, not in `openstan`.
+
+---
+
+## D006 — Single-page New Project Wizard; no config-subfolder selection step
+
+**Status:** Accepted
+**Applies to:** PM-7, `ProjectWizard`, `ProjectPresenter`
+
+### Context
+
+An earlier design (PM-7) added a second "Configure Project" page to the New Project Wizard
+that let users select which BSP config subfolders to include and optionally source them from
+an existing project. The full backend implementation was built
+(`_collect_config_sources`, `_apply_config_selections`, `_merge_toplevel_tomls`) but the UI
+page was never created.
+
+### Decision
+
+The config-selection step is removed. The New Project Wizard has a single page (name +
+location). BSP scaffolding always runs with default config. Users who need custom config
+can modify the project's `config/` folder directly after creation.
+
+The backend implementation has been deleted to prevent maintenance confusion.
+
+### Consequences
+
+- PM-7 is removed from REQUIREMENTS.md and ROADMAP.md.
+- `_collect_config_sources`, `_apply_config_selections`, `_merge_toplevel_tomls`, and
+  `_MERGE_TOML_FILES` are removed from `project_presenter.py`.
+- The `shutil`, `tomllib`, and `tomli_w` imports are also removed from that module.
+- If config-selection is revisited it must be re-proposed as a new requirement.
+
+---
+
+## D007 — Synchronous project summary fetch on main thread
+
+**Status:** Accepted
+**Applies to:** PM-6, `StanPresenter.__refresh_project_info()`
+
+### Context
+
+An earlier acceptance criterion for PM-6 specified a `ProjectSummaryWorker` background
+thread for fetching transaction/statement/account counts. A background worker was
+implemented but then reverted because it caused Qt signal/slot re-entrancy issues —
+specifically, the worker completing mid-presenter-init triggered cascading state updates
+that were difficult to sequence correctly.
+
+### Decision
+
+`get_project_info()` runs synchronously on the main thread. The call is fast enough
+(a handful of lightweight Polars queries against a local SQLite file) that it does not
+produce a perceptible UI pause in practice.
+
+### Consequences
+
+- No `ProjectSummaryWorker` class exists or should be added.
+- If project databases grow large enough to make the call slow, the right fix is to
+  cache the result in `project.db` via a `bank_statement_parser` API rather than
+  move the call to a background thread.
+
+---
+
+## D008 — Bare-comma multi-exception syntax is Ruff-canonical for Python 3.14
+
+**Status:** Accepted
+**Applies to:** All exception handling in the codebase
+
+### Context
+
+The form `except A, B:` was flagged repeatedly as Python 2 syntax requiring correction to
+`except (A, B):`. Investigation confirmed that in Python 3.14 both forms are valid and
+semantically identical — the AST represents both as an `ExceptHandler` with a `Tuple` type
+node. Furthermore, `ruff format` actively removes the parentheses, converting the
+parenthesised form back to the bare-comma form on every save.
+
+### Decision
+
+`except A, B:` is the accepted style for this codebase. It is valid Python 3.14, preferred
+by `ruff format`, and should not be "corrected" to the parenthesised form. This is also
+documented in `AGENTS.md` under "Multi-exception syntax".
+
+### Consequences
+
+- Do not add parentheses to bare-comma except clauses; `ruff format` will remove them.
+- Do not flag `except A, B:` as a bug or Python 2 holdover.
+- The instance in `project_presenter.py` is correct as written.

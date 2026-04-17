@@ -27,9 +27,6 @@ folder on disk that is scaffolded and validated by `bank_statement_parser`.
 - **PM-6** As a user, I want to see a summary of the selected project's contents (transaction
   count, statement count, and account count) displayed beneath the project selector, so that I
   can assess the scope of a project at a glance without opening any views.
-- **PM-7** As a user, I want to select which bank config subfolders to include in a new project
-  (and optionally source them from an existing project rather than the BSP defaults), so that
-  I don't have to manually copy or delete bank-specific configuration files after creation.
 
 ### Acceptance Criteria
 
@@ -44,41 +41,15 @@ folder on disk that is scaffolded and validated by `bank_statement_parser`.
 - All project mutations are recorded in `event_log` via the existing SQLite triggers.
 - (PM-6) The summary label is displayed immediately below the project selector combo box and
   reads in the form `N transactions in M statements across K accounts`.
-- (PM-6) Summary counts are fetched in a background thread (`ProjectSummaryWorker`) so the UI
-  is never blocked; the label is cleared while the fetch is in progress.
+- (PM-6) Summary counts are fetched synchronously on the main thread. A background worker
+  was considered but rejected due to Qt signal/slot re-entrancy issues; the synchronous call
+  is fast enough in practice and keeps the implementation simple.
 - (PM-6) Counts are sourced exclusively from the `bsp.db` mart API (`FactTransaction`,
   `DimStatement`, `DimAccount`) — no raw SQL from `openstan` (see D001).
 - (PM-6) If the data mart has not yet been built for the project (mart tables absent or all
   zero), the summary label is left blank.
 - (PM-6) The summary refreshes automatically whenever the selected project changes, and again
   after a batch is committed.
-- (PM-7) The New Project Wizard presents a second page ("Configure Project") after the basic
-  details page, allowing the user to select which bank config subfolders to include in the
-  new project and from which source.
-- (PM-7) Each row of the config table represents a unique config subfolder name discovered
-  across the BSP default config and all registered projects whose config folder exists on disk.
-- (PM-7) Each column represents a source: "Default" (BSP bundled config) plus one column per
-  registered project with an accessible config folder. Projects whose folder is absent from
-  disk are silently omitted.
-- (PM-7) A radio button appears in a cell only where the subfolder actually exists for that
-  source. A "Skip" radio button is always available at the end of each row.
-- (PM-7) The default selection is: "Default" chosen for every subfolder that exists in the
-  BSP default config; "Skip" chosen for subfolders that only appear in existing projects.
-- (PM-7) Selecting "Skip" for a subfolder causes openstan to delete that subfolder from the
-  new project's config after BSP scaffolding completes.
-- (PM-7) Selecting a non-default project for a subfolder causes openstan to replace the
-  BSP-scaffolded subfolder with a copy from the chosen project, and to merge the top-level
-  TOML files from that project into the new project's equivalents (see merge rules below).
-- (PM-7) Selecting "Default" for a subfolder requires no post-scaffolding action; BSP has
-  already placed the correct files.
-- (PM-7) `account_types.toml` merge rule: any top-level key present in the source project's
-  file but absent from the new project's file is appended. Existing keys are never overwritten.
-- (PM-7) `standard_fields.toml` merge rule: for each `[STD_*]` key, any `std_refs` entry
-  whose `statement_type` is not already present in the new project's list for that key is
-  appended. Entirely new `[STD_*]` keys from the source are added wholesale.
-- (PM-7) `anonymise_example.toml` is never modified during project creation.
-- (PM-7) The config selection page only appears in the "New Project" wizard flow, not in
-  "Add Existing Project".
 
 ---
 
