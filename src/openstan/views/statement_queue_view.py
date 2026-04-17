@@ -69,7 +69,6 @@ class StatementQueueView(StanWidget):
             self.buttonRemove,
             self.buttonClear,
         ):
-            btn.setWordWrap(True)
             btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
 
         # Remove and Clear start disabled; enabled by presenter based on state
