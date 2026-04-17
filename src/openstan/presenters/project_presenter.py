@@ -1,7 +1,5 @@
-import shutil
 import sqlite3
 import sys
-import tomllib
 import traceback
 from dataclasses import dataclass
 from datetime import datetime
@@ -11,126 +9,11 @@ from uuid import uuid4
 
 import bank_statement_parser as bsp
 import polars as pl
-import tomli_w
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 if TYPE_CHECKING:
     from openstan.models.project_model import ProjectModel
     from openstan.views.project_view import ProjectView
-
-# Top-level config TOML files that may need merging when a non-default config
-# subfolder is selected.  anonymise_example.toml is intentionally excluded.
-_MERGE_TOML_FILES: tuple[str, ...] = ("account_types.toml", "standard_fields.toml")
-
-
-def _merge_toplevel_tomls(new_config_dir: Path, source_config_dir: Path) -> None:
-    """Merge top-level TOML config files from *source_config_dir* into *new_config_dir*.
-
-    Rules:
-    - ``account_types.toml``: any top-level key absent from the new project's file
-      is appended.  Existing keys are never overwritten.
-    - ``standard_fields.toml``: for each ``[STD_*]`` key, any ``std_refs`` entry
-      whose ``statement_type`` value is not already present in the new project's list
-      is appended.  Entirely new ``[STD_*]`` keys from the source are added wholesale.
-    - ``anonymise_example.toml``: never touched.
-    """
-    for filename in _MERGE_TOML_FILES:
-        new_file = new_config_dir / filename
-        src_file = source_config_dir / filename
-        if not src_file.exists():
-            continue
-        if not new_file.exists():
-            # New project doesn't have this file at all — just copy it
-            shutil.copy2(src_file, new_file)
-            continue
-
-        with new_file.open("rb") as fh:
-            new_data: dict = tomllib.load(fh)
-        with src_file.open("rb") as fh:
-            src_data: dict = tomllib.load(fh)
-
-        if filename == "account_types.toml":
-            changed = False
-            for key, value in src_data.items():
-                if key not in new_data:
-                    new_data[key] = value
-                    changed = True
-            if changed:
-                with new_file.open("wb") as fh:
-                    tomli_w.dump(new_data, fh)
-
-        elif filename == "standard_fields.toml":
-            changed = False
-            for key, src_entry in src_data.items():
-                if key not in new_data:
-                    # Entire STD_* key is new — add it wholesale
-                    new_data[key] = src_entry
-                    changed = True
-                else:
-                    # Merge std_refs lists — add refs whose statement_type is absent
-                    new_refs: list = new_data[key].get("std_refs", [])
-                    src_refs: list = src_entry.get("std_refs", [])
-                    existing_types: set[str] = {
-                        r.get("statement_type", "") for r in new_refs
-                    }
-                    for ref in src_refs:
-                        if ref.get("statement_type", "") not in existing_types:
-                            new_refs.append(ref)
-                            changed = True
-                    if changed:
-                        new_data[key]["std_refs"] = new_refs
-            if changed:
-                with new_file.open("wb") as fh:
-                    tomli_w.dump(new_data, fh)
-
-
-def _apply_config_selections(
-    new_config_dir: Path,
-    selections: dict[str, Path | None],
-    default_config_dir: Path,
-) -> None:
-    """Apply the user's config subfolder selections to the newly scaffolded project.
-
-    For each subfolder:
-    - ``None``  → delete the BSP-scaffolded copy (user chose "Skip").
-    - ``default_config_dir`` → no-op (BSP already placed the correct files).
-    - any other Path → replace the BSP-scaffolded subfolder with a copy from that
-      source, then merge top-level TOML files from that source.
-    """
-    # Track which non-default sources we have merged TOMLs from to avoid redundant
-    # merges when multiple subfolders are drawn from the same source project.
-    merged_sources: set[Path] = set()
-
-    for subfolder, source_config_dir in selections.items():
-        target = new_config_dir / subfolder
-
-        if source_config_dir is None:
-            # Skip — delete whatever BSP scaffolded
-            if target.exists():
-                shutil.rmtree(target)
-
-        elif source_config_dir.resolve() == default_config_dir.resolve():
-            # Default selected — BSP already placed the files, nothing to do
-            pass
-
-        else:
-            # Non-default project — replace with chosen project's subfolder copy
-            src_subfolder = source_config_dir / subfolder
-            if not src_subfolder.is_dir():
-                # Source subfolder no longer on disk — fall back to default/skip
-                print(
-                    f"Warning: source config subfolder '{src_subfolder}' not found; keeping BSP default.",
-                    file=sys.stderr,
-                )
-                continue
-            if target.exists():
-                shutil.rmtree(target)
-            shutil.copytree(src_subfolder, target)
-
-            # Merge top-level TOML files (once per unique source)
-            if source_config_dir not in merged_sources:
-                _merge_toplevel_tomls(new_config_dir, source_config_dir)
-                merged_sources.add(source_config_dir)
 
 
 def _fmt_date(s: str) -> str:
@@ -393,28 +276,6 @@ class ProjectPresenter(QObject):
     # ---------------------------------------------------------------------------
     # New project
     # ---------------------------------------------------------------------------
-
-    def _collect_config_sources(self) -> dict[str, Path]:
-        """Build an ordered sources dict for the config selection page.
-
-        The dict maps display key → config/ directory path.  The BSP default
-        comes first (key ``"default"``), followed by all currently registered
-        projects whose ``project_location`` is a readable directory on disk,
-        ordered by ``project_name``.
-        """
-        sources: dict[str, Path] = {
-            "default": bsp.ProjectPaths.resolve().config_import,
-        }
-        for row in range(self.model.rowCount()):
-            record = self.model.record(row)
-            name: str = record.value("project_name") or ""
-            location: str = record.value("project_location") or ""
-            if not name or not location:
-                continue
-            config_dir = Path(location) / "config"
-            if config_dir.is_dir():
-                sources[name] = config_dir
-        return sources
 
     @pyqtSlot()
     def open_new_project_wizard(self) -> None:
