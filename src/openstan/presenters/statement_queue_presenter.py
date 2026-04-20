@@ -143,9 +143,9 @@ class StatementQueuePresenter(QObject):
         self.view.buttonViewResults.clicked.connect(self.__on_view_results_clicked)
 
         # Update Remove/Clear enabled state whenever the tree selection changes
-        self.view.tree.selectionModel().selectionChanged.connect(
-            self.__update_modification_buttons
-        )
+        sel_model = self.view.tree.selectionModel()
+        assert sel_model is not None
+        sel_model.selectionChanged.connect(self.__update_modification_buttons)
 
     # ---------------------------------------------------------------------------
     # Import
@@ -354,7 +354,8 @@ class StatementQueuePresenter(QObject):
         Called after every model change and on selection change.  Does nothing
         when the queue is locked — the lock methods manage enabled state then.
         """
-        n_selected = len(self.view.tree.selectionModel().selectedRows())
+        sel_model = self.view.tree.selectionModel()
+        n_selected = len(sel_model.selectedRows()) if sel_model is not None else 0
         self.view.buttonRemove.setEnabled(n_selected > 0)
         self.view.buttonClear.setEnabled(self.model.rowCount() > 0)
 
