@@ -36,6 +36,7 @@ class StanPresenter(QObject):
         self.project_presenter.view.selection.currentIndexChanged.connect(
             self.project_selection_changed
         )
+        self.project_presenter.model.db_updated.connect(self.__on_project_db_updated)
         self.session_presenter.db_lock_signal.connect(self.db_lock_handler)
         self.statement_queue_presenter.statement_imported.connect(
             self.statement_imported
@@ -116,6 +117,18 @@ class StanPresenter(QObject):
     def project_selection_changed(self, index: int) -> None:
         self.update_current_project_info(index)
 
+    @pyqtSlot()
+    def __on_project_db_updated(self) -> None:
+        """Re-evaluate chrome visibility when projects are added or removed."""
+        self.update_current_project_info(
+            self.project_presenter.view.selection.currentIndex()
+        )
+
+    def __update_chrome_for_selection(self, *, has_project: bool) -> None:
+        """Show or hide the nav bar and content stack based on project presence."""
+        self.stan.project_nav_view.setVisible(has_project)
+        self.stan.content_stack.setVisible(has_project)
+
     def cleanup_before_exit(self) -> None:
         # Cancel any in-progress debug worker so it stops at its next iteration
         self.statement_result_presenter.cancel_debug_worker()
@@ -126,6 +139,12 @@ class StanPresenter(QObject):
         current_record: "QSqlRecord" = self.project_presenter.model.record(index)
         self.stan.current_project_name = current_record.value("project_name")
         self.stan.current_project_id = current_record.value("project_ID")
+
+        has_project: bool = bool(self.stan.current_project_id)
+        self.__update_chrome_for_selection(has_project=has_project)
+        if not has_project:
+            return
+
         self.statement_queue_presenter.projectID = self.stan.current_project_id
         self.statement_queue_presenter.update_view()
         self.footer_view.labelProject.setText(
@@ -197,14 +216,14 @@ class StanPresenter(QObject):
         self.__update_nav_for_project(has_data=info is not None)
 
     def __update_nav_for_project(self, *, has_data: bool) -> None:
-        """Show/hide data-dependent buttons and navigate to the default panel.
+        """Show placeholder panels for data-gated views and navigate to default panel.
 
         Projects with data default to Project Info; new/empty projects default
         to Import Statements (the only always-available panel).
         """
-        self.nav_view.button_info.setVisible(has_data)
-        self.nav_view.button_export.setVisible(has_data)
-        self.nav_view.button_reports.setVisible(has_data)
+        self.stan.project_info_view.show_placeholder(not has_data)
+        self.stan.export_data_view.show_placeholder(not has_data)
+        self.stan.run_reports_view.show_placeholder(not has_data)
 
         if has_data:
             self.__nav_to_info()
@@ -242,12 +261,22 @@ class StanPresenter(QObject):
     def show_results(self) -> None:
         """Switch the content area to the results block."""
         self.__set_panel(self.stan.nav_idx_results)
-        # Uncheck all nav buttons — results is not a user-navigable panel
+        # Uncheck and disable all nav buttons — results is not a user-navigable
+        # panel; the user must commit, abandon, or close results to leave.
         self.nav_view.clear_checks()
+        self.__set_nav_enabled(False)
 
     def hide_results(self) -> None:
         """Return from the results block to the import panel."""
+        self.__set_nav_enabled(True)
         self.__nav_to_import()
+
+    def __set_nav_enabled(self, enabled: bool) -> None:
+        """Enable or disable all four nav bar buttons."""
+        self.nav_view.button_info.setEnabled(enabled)
+        self.nav_view.button_import.setEnabled(enabled)
+        self.nav_view.button_export.setEnabled(enabled)
+        self.nav_view.button_reports.setEnabled(enabled)
 
     # ---------------------------------------------------------------------------
     # Statement import callbacks
@@ -312,14 +341,17 @@ class StanPresenter(QObject):
         )
         self.statement_result_presenter.add_result_to_memory(row)
 
-    @pyqtSlot()
-    def on_import_started(self) -> None:
-        """Import worker has started: disable result action buttons."""
-        self.statement_result_presenter.set_importing(True)
+    @pyqtSlot(int)
+    def on_import_started(self, total_files: int) -> None:
+        """Import worker has started: notify result presenter of total file count."""
+        self.statement_result_presenter.set_importing(True, total_files)
 
     @pyqtSlot(float)
     def on_import_finished(self, duration_secs: float) -> None:
         """Worker thread finished: persist batch record and all in-memory results."""
+        # Mark the progress bar as complete
+        self.statement_result_presenter.view.progressBar.setFormat("Import complete")
+
         batch_id = self.statement_queue_presenter._current_batch_id  # noqa: SLF001
         if batch_id:
             ok, msg = self.stan.batch_model.create_batch(
@@ -355,6 +387,9 @@ class StanPresenter(QObject):
         the project summary and nav button visibility, since build_datamart ran
         as part of the commit and the project now has data.
         """
+        # Re-enable nav and return to the import panel before anything else,
+        # so the nav buttons are not left in a disabled state.
+        self.hide_results()
         self.statement_queue_presenter.clear_all_items()
         self.statement_queue_presenter.update_view()
         # Refresh project info — the project may now have data for the first time.

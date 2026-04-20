@@ -106,7 +106,7 @@ class StatementQueuePresenter(QObject):
     statement_imported = pyqtSignal(
         Path, bsp.PdfResult, int, str
     )  # file, result, progress%, queue_id
-    import_started = pyqtSignal()
+    import_started = pyqtSignal(int)  # total_files
     import_finished = pyqtSignal(float)  # duration_secs
     view_results_requested = pyqtSignal()
 
@@ -142,6 +142,11 @@ class StatementQueuePresenter(QObject):
         self.view.buttonRunImport.clicked.connect(self.run_import)
         self.view.buttonViewResults.clicked.connect(self.__on_view_results_clicked)
 
+        # Update Remove/Clear enabled state whenever the tree selection changes
+        sel_model = self.view.tree.selectionModel()
+        assert sel_model is not None
+        sel_model.selectionChanged.connect(self.__update_modification_buttons)
+
     # ---------------------------------------------------------------------------
     # Import
     # ---------------------------------------------------------------------------
@@ -162,11 +167,17 @@ class StatementQueuePresenter(QObject):
         self._batch_start_time = time.monotonic()
         self.__set_queue_locked(importing=True)
 
+        # Count file rows so the result presenter knows the total upfront
+        total_n = self.model.rowCount()
+        total_files: int = sum(
+            1 for r in range(total_n) if self.model.record(r).value("is_folder") != 1
+        )
+
         worker = SQWorker(presenter=self, model=self.model, batch_id=batch_id)
         worker.signals.progress.connect(self.__on_worker_progress)
         worker.signals.finished.connect(self.__on_worker_finished)
         self.threadpool.start(worker)
-        self.import_started.emit()
+        self.import_started.emit(total_files)
 
     @pyqtSlot(Path, int, bsp.PdfResult, str)
     def __on_worker_progress(
@@ -248,6 +259,7 @@ class StatementQueuePresenter(QObject):
         result: tuple[bool, list[str], str] = self.model.clear_records()
         print(result)
         self.update_view()
+        self.__update_modification_buttons()
 
     def add_record(self, queue_id, parent_id, path, is_folder) -> None:
         result: tuple[bool, str, str] = self.model.add_record(
@@ -336,6 +348,17 @@ class StatementQueuePresenter(QObject):
             self._current_batch_id = None
             self.__set_queue_unlocked()
 
+    def __update_modification_buttons(self) -> None:
+        """Set Remove/Clear enabled state based on current queue and selection.
+
+        Called after every model change and on selection change.  Does nothing
+        when the queue is locked — the lock methods manage enabled state then.
+        """
+        sel_model = self.view.tree.selectionModel()
+        n_selected = len(sel_model.selectedRows()) if sel_model is not None else 0
+        self.view.buttonRemove.setEnabled(n_selected > 0)
+        self.view.buttonClear.setEnabled(self.model.rowCount() > 0)
+
     def __set_queue_locked(self, *, importing: bool) -> None:
         """Disable all modification buttons and show the lock label.
 
@@ -355,10 +378,10 @@ class StatementQueuePresenter(QObject):
         """Re-enable modification buttons and hide the lock indicator."""
         self.view.buttonAddFolders.setEnabled(True)
         self.view.buttonAddFiles.setEnabled(True)
-        self.view.buttonRemove.setEnabled(True)
-        self.view.buttonClear.setEnabled(True)
         # Run Import enabled only if there are rows to process
         has_rows = self.model.rowCount() > 0
         self.view.buttonRunImport.setEnabled(has_rows)
         self.view.labelLocked.setVisible(False)
         self.view.buttonViewResults.setVisible(False)
+        # Remove/Clear state depends on selection and row count
+        self.__update_modification_buttons()

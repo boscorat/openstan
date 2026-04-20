@@ -49,7 +49,7 @@ class StatementResultView(StanWidget):
 
         # ── Summary label ──────────────────────────────────────────────────
         self.labelStatementsProcessed = StanLabel(
-            "Processed: 0  |  Success: 0  |  Review: 0  |  Failed: 0"
+            "Total: 0  |  Pending: 0  |  Processed: 0  |  Success: 0  |  Review: 0  |  Failed: 0"
         )
         outer_layout.addWidget(
             self.labelStatementsProcessed, alignment=Qt.AlignmentFlag.AlignLeft

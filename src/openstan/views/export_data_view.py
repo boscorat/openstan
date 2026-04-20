@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
     QButtonGroup,
     QGridLayout,
     QHBoxLayout,
+    QStackedWidget,
     QVBoxLayout,
 )
 
@@ -263,10 +264,49 @@ class ExportDataView(StanWidget):
         self.tabs.addTab(standard_tab, "Standard Exports")
         self.tabs.addTab(self.advanced, "Advanced Exports")
 
+        # ── Placeholder page (page 0) ──────────────────────────────────────
+        placeholder_page = StanWidget()
+        ph_layout = QVBoxLayout()
+        ph_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ph_icon = StanLabel()
+        ph_icon.setPixmap(QIcon(Paths.themed_icon("export.svg")).pixmap(64, 64))
+        ph_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ph_text = StanMutedLabel(
+            "No data yet — import and commit some statements before exporting."
+        )
+        ph_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ph_text.setWordWrap(True)
+        ph_layout.addWidget(ph_icon)
+        ph_layout.addSpacing(8)
+        ph_layout.addWidget(ph_text)
+        placeholder_page.setLayout(ph_layout)
+
+        # Content page (page 1) wraps the tab widget
+        content_page = StanWidget()
+        content_layout = QVBoxLayout()
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
+        content_layout.addWidget(self.tabs)
+        content_page.setLayout(content_layout)
+
+        # ── Stacked widget ─────────────────────────────────────────────────
+        self._stack = QStackedWidget()
+        self._stack.addWidget(placeholder_page)  # page 0
+        self._stack.addWidget(content_page)  # page 1
+        self._stack.setCurrentIndex(0)
+
         # ── Outer layout ───────────────────────────────────────────────────
         outer_layout = QVBoxLayout()
         outer_layout.setContentsMargins(0, 0, 0, 0)
         outer_layout.setSpacing(0)
-        outer_layout.addWidget(self.tabs)
+        outer_layout.addWidget(self._stack)
 
         self.setLayout(outer_layout)
+
+    # ---------------------------------------------------------------------------
+    # Public API
+    # ---------------------------------------------------------------------------
+
+    def show_placeholder(self, show: bool) -> None:
+        """Switch between placeholder (page 0) and real content (page 1)."""
+        self._stack.setCurrentIndex(0 if show else 1)

@@ -296,6 +296,7 @@ class StatementResultPresenter(QObject):
         # True while the background import worker is running — all buttons
         # are disabled until import finishes to prevent a mid-batch commit.
         self._importing: bool = False
+        self._total_files: int = 0  # set when import starts; used for Pending count
 
         # Debug worker state
         self._debug_cancel: threading.Event | None = None
@@ -448,7 +449,7 @@ class StatementResultPresenter(QObject):
     # Public: import lifecycle — called by StanPresenter
     # ---------------------------------------------------------------------------
 
-    def set_importing(self, importing: bool) -> None:
+    def set_importing(self, importing: bool, total_files: int = 0) -> None:
         """Set whether a background import is currently running.
 
         When *importing* is ``True`` all three action buttons are disabled so
@@ -457,11 +458,16 @@ class StatementResultPresenter(QObject):
         re-enabled according to the normal rules: Close and Abandon are always
         enabled, Commit only when n_success > 0.
 
+        *total_files* is the number of PDF files in the batch; it is stored so
+        that the results label can show a live Pending count during import.
+
         Called by ``StanPresenter``:
         * ``True``  — just before the worker thread is started.
         * ``False`` — inside ``on_import_finished``, after persisting to DB.
         """
         self._importing = importing
+        if importing:
+            self._total_files = total_files
         self.__apply_button_state()
 
     def cancel_debug_worker(self) -> None:
@@ -872,10 +878,13 @@ class StatementResultPresenter(QObject):
         n_success = self.success_model.row_count
         n_review = self.review_model.row_count
         n_failure = self.failure_model.row_count
-        n_total = n_success + n_review + n_failure
+        n_processed = n_success + n_review + n_failure
+        n_pending = max(0, self._total_files - n_processed)
 
         self.view.labelStatementsProcessed.setText(
-            f"Processed: {n_total}  |  "
+            f"Total: {self._total_files}  |  "
+            f"Pending: {n_pending}  |  "
+            f"Processed: {n_processed}  |  "
             f"Success: {n_success}  |  "
             f"Review: {n_review}  |  "
             f"Failed: {n_failure}"
@@ -890,7 +899,7 @@ class StatementResultPresenter(QObject):
         tabs.setTabVisible(self.view.TAB_FAILURE, n_failure > 0)
 
         # Ensure the tab widget itself is always visible once any results arrive
-        tabs.setVisible(n_total > 0)
+        tabs.setVisible(n_processed > 0)
 
         self.view.success_table.resizeColumnsToContents()
         self.view.review_table.resizeColumnsToContents()
@@ -946,9 +955,10 @@ class StatementResultPresenter(QObject):
         self.success_model.clear_rows()
         self.review_model.clear_rows()
         self.failure_model.clear_rows()
+        self._total_files = 0
 
         self.view.labelStatementsProcessed.setText(
-            "Processed: 0  |  Success: 0  |  Review: 0  |  Failed: 0"
+            "Total: 0  |  Pending: 0  |  Processed: 0  |  Success: 0  |  Review: 0  |  Failed: 0"
         )
         tabs = self.view.results_tabs
         tabs.setTabText(self.view.TAB_SUCCESS, "SUCCESS (0)")
@@ -959,6 +969,7 @@ class StatementResultPresenter(QObject):
         tabs.setTabVisible(self.view.TAB_FAILURE, False)
         tabs.setVisible(False)
         self.view.progressBar.setValue(0)
+        self.view.progressBar.setFormat("%p%")
         # Clearing always means we are no longer in an importing state
         self._importing = False
         self.view.buttonCloseResults.setEnabled(True)

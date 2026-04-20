@@ -9,8 +9,14 @@ from typing import TYPE_CHECKING
 
 import polars as pl
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtGui import QStandardItem, QStandardItemModel
-from PyQt6.QtWidgets import QDialogButtonBox, QHBoxLayout, QPushButton, QVBoxLayout
+from PyQt6.QtGui import QIcon, QStandardItem, QStandardItemModel
+from PyQt6.QtWidgets import (
+    QDialogButtonBox,
+    QHBoxLayout,
+    QPushButton,
+    QStackedWidget,
+    QVBoxLayout,
+)
 
 from openstan.components import (
     Qt,
@@ -23,6 +29,7 @@ from openstan.components import (
     StanTreeView,
     StanWidget,
 )
+from openstan.paths import Paths
 
 if TYPE_CHECKING:
     from openstan.presenters.project_presenter import ProjectInfo
@@ -115,6 +122,26 @@ class ProjectInfoView(StanWidget):
     def __init__(self) -> None:
         super().__init__()
 
+        # ── Placeholder page (page 0) ─────────────────────────────────────────
+        placeholder_page = StanWidget()
+        ph_layout = QVBoxLayout()
+        ph_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ph_icon = StanLabel()
+        ph_icon.setPixmap(QIcon(Paths.themed_icon("project.svg")).pixmap(64, 64))
+        ph_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ph_text = StanMutedLabel(
+            "No data yet — import and commit some statements to see your project summary."
+        )
+        ph_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ph_text.setWordWrap(True)
+        ph_layout.addWidget(ph_icon)
+        ph_layout.addSpacing(8)
+        ph_layout.addWidget(ph_text)
+        placeholder_page.setLayout(ph_layout)
+
+        # ── Content page (page 1) ─────────────────────────────────────────────
+        content_page = StanWidget()
+
         # ── Summary strip ─────────────────────────────────────────────────────
         self._lbl_tx = StanLabel("")
         self._lbl_stmt = StanLabel("")
@@ -138,9 +165,6 @@ class ProjectInfoView(StanWidget):
         self._acc_table.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
 
         # ── Gap indicator ─────────────────────────────────────────────────────
-        # A specialised flat warning-link button — not using StanButton because
-        # it requires a custom stylesheet (red colour, underline hover, no border)
-        # that is incompatible with the standard StanButton appearance.
         self._gap_button = QPushButton()
         self._gap_button.setFlat(True)
         self._gap_button.setStyleSheet(
@@ -153,36 +177,43 @@ class ProjectInfoView(StanWidget):
 
         # ── Gap detail dialog ─────────────────────────────────────────────────
         self._gap_dialog = GapDetailDialog(self)
-        # Connect the gap_clicked signal directly so the view owns the dialog
-        # lifecycle — the presenter need only emit the signal.
         self.gap_clicked.connect(self._gap_dialog.exec)
 
-        # ── Empty-state label (shown when info is None) ───────────────────────
-        self._empty_label = StanMutedLabel(
-            "No project data yet — import statements to get started."
-        )
-        self._empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._empty_label.hide()
+        # ── Content page layout ───────────────────────────────────────────────
+        content_layout = QVBoxLayout()
+        content_layout.setSpacing(12)
+        content_layout.addLayout(summary_row)
+        content_layout.addWidget(self._acc_table_header)
+        content_layout.addWidget(self._acc_table)
+        content_layout.addWidget(self._gap_button)
+        content_layout.addStretch()
+        content_page.setLayout(content_layout)
 
-        # ── Main layout ───────────────────────────────────────────────────────
-        layout = QVBoxLayout()
-        layout.setSpacing(12)
-        layout.addLayout(summary_row)
-        layout.addWidget(self._acc_table_header)
-        layout.addWidget(self._acc_table)
-        layout.addWidget(self._gap_button)
-        layout.addWidget(self._empty_label)
-        layout.addStretch()
-        self.setLayout(layout)
+        # ── Stacked widget ────────────────────────────────────────────────────
+        self._stack = QStackedWidget()
+        self._stack.addWidget(placeholder_page)  # page 0
+        self._stack.addWidget(content_page)  # page 1
+        self._stack.setCurrentIndex(0)
+
+        # ── Outer layout ──────────────────────────────────────────────────────
+        outer = QVBoxLayout()
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(self._stack)
+        self.setLayout(outer)
 
     # ---------------------------------------------------------------------------
     # Public API
     # ---------------------------------------------------------------------------
 
+    def show_placeholder(self, show: bool) -> None:
+        """Switch between placeholder (page 0) and real content (page 1)."""
+        self._stack.setCurrentIndex(0 if show else 1)
+
     def update(self, info: "ProjectInfo | None") -> None:  # type: ignore[override]
         """Refresh the entire panel from *info*.
 
-        Passing ``None`` clears all data and shows the empty-state placeholder.
+        Passing ``None`` clears all data (placeholder is controlled separately
+        via :meth:`show_placeholder`).
         """
         if info is None:
             self._clear()
@@ -213,17 +244,15 @@ class ProjectInfoView(StanWidget):
         else:
             self._gap_button.hide()
 
-        # Show data widgets, hide empty state
         self._acc_table_header.show()
         self._acc_table.show()
-        self._empty_label.hide()
 
     # ---------------------------------------------------------------------------
     # Private helpers
     # ---------------------------------------------------------------------------
 
     def _clear(self) -> None:
-        """Reset to empty-state appearance."""
+        """Reset content to empty state."""
         self._lbl_tx.setText("")
         self._lbl_stmt.setText("")
         self._lbl_acc.setText("")
@@ -232,4 +261,3 @@ class ProjectInfoView(StanWidget):
         self._gap_button.hide()
         self._acc_table_header.hide()
         self._acc_table.hide()
-        self._empty_label.show()
