@@ -62,6 +62,20 @@ class StatementQueueView(StanWidget):
         self.buttonRemove.setIcon(QIcon(Paths.themed_icon("file_remove.svg")))
         self.buttonClear.setIcon(QIcon(Paths.themed_icon("folder_remove.svg")))
 
+        self.buttonAddFolders.setToolTip(
+            "Browse for a folder and add all PDF statement files inside it to the queue"
+        )
+        self.buttonAddFiles.setToolTip(
+            "Browse for individual PDF statement files and add them to the queue"
+        )
+        self.buttonRemove.setToolTip("Remove the selected statement(s) from the queue")
+        self.buttonClear.setToolTip("Remove all statements from the queue")
+
+        self.buttonAddFolders.setAccessibleName("Add folders of statements")
+        self.buttonAddFiles.setAccessibleName("Add individual statement files")
+        self.buttonRemove.setAccessibleName("Remove selected statements")
+        self.buttonClear.setAccessibleName("Clear all statements")
+
         # Allow buttons to grow vertically when text wraps
         for btn in (
             self.buttonAddFolders,
@@ -83,6 +97,7 @@ class StatementQueueView(StanWidget):
         # ── Tree View for statements ───────────────────────────────────────
         self.tree = StanTreeView()
         self.tree.setMinimumWidth(800)
+        self.tree.setAccessibleName("Statement queue")
         layout.addWidget(self.tree, 1, 0, 1, 4)
 
         # ── Lock status label (hidden when queue is free) ──────────────────
@@ -98,6 +113,9 @@ class StatementQueueView(StanWidget):
         self.buttonRunImport = StanButton("Run Statement Import")
         self.buttonRunImport.setIcon(QIcon(Paths.themed_icon("run.svg")))
         self.buttonRunImport.setDisabled(True)
+        self.buttonRunImport.setToolTip(
+            "Parse and import all queued statement files into the project"
+        )
         layout.addWidget(
             self.buttonRunImport, 3, 3, alignment=Qt.AlignmentFlag.AlignRight
         )
@@ -105,6 +123,9 @@ class StatementQueueView(StanWidget):
         self.buttonViewResults = StanButton("View Statement Results")
         self.buttonViewResults.setIcon(QIcon(Paths.themed_icon("download.svg")))
         self.buttonViewResults.setVisible(False)
+        self.buttonViewResults.setToolTip(
+            "Return to the import results for the current batch"
+        )
         layout.addWidget(
             self.buttonViewResults, 3, 0, alignment=Qt.AlignmentFlag.AlignLeft
         )

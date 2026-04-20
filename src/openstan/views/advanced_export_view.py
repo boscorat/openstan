@@ -116,6 +116,7 @@ class AdvancedExportView(StanWidget):
         self.combo_account.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
+        self.combo_account.setAccessibleName("Account filter")
 
         param_grid.addLayout(account_label_row, 0, 0)
         param_grid.addWidget(self.combo_account, 0, 1)
@@ -131,6 +132,7 @@ class AdvancedExportView(StanWidget):
         self.combo_statement.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
+        self.combo_statement.setAccessibleName("Statement filter")
 
         param_grid.addLayout(statement_label_row, 1, 0)
         param_grid.addWidget(self.combo_statement, 1, 1)
@@ -144,9 +146,11 @@ class AdvancedExportView(StanWidget):
 
         self.date_from = StanDateEdit()
         self.date_from.setEnabled(False)  # starts disabled — "No date" is default
+        self.date_from.setAccessibleName("Date from")
 
         self.check_date_from_none = StanCheckBox("No date")
         self.check_date_from_none.setChecked(True)
+        self.check_date_from_none.setAccessibleName("No start date")
         self.check_date_from_none.toggled.connect(
             lambda checked: self.date_from.setEnabled(not checked)
         )
@@ -169,9 +173,11 @@ class AdvancedExportView(StanWidget):
 
         self.date_to = StanDateEdit()
         self.date_to.setEnabled(False)  # starts disabled — "No date" is default
+        self.date_to.setAccessibleName("Date to")
 
         self.check_date_to_none = StanCheckBox("No date")
         self.check_date_to_none.setChecked(True)
+        self.check_date_to_none.setAccessibleName("No end date")
         self.check_date_to_none.toggled.connect(
             lambda checked: self.date_to.setEnabled(not checked)
         )
@@ -240,6 +246,14 @@ class AdvancedExportView(StanWidget):
         layout.addWidget(self.label_status)
 
         self.setLayout(layout)
+
+    def setup_tab_order(self) -> None:
+        """Establish an explicit, logical Tab key traversal order."""
+        self.setTabOrder(self.combo_account, self.combo_statement)
+        self.setTabOrder(self.combo_statement, self.check_date_from_none)
+        self.setTabOrder(self.check_date_from_none, self.date_from)
+        self.setTabOrder(self.date_from, self.check_date_to_none)
+        self.setTabOrder(self.check_date_to_none, self.date_to)
 
 
 def make_spec_button(filename: str, description: str) -> StanButton:

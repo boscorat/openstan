@@ -494,7 +494,9 @@ class ReportBuilderPane(StanWidget):
 
         save_row = QHBoxLayout()
         self.button_save = StanButton("Save Report", min_width=110)
+        self.button_save.setToolTip("Save the current report configuration")
         self.button_delete = StanButton("Delete", min_width=80)
+        self.button_delete.setToolTip("Delete the selected saved report")
         save_row.addWidget(self.button_save)
         save_row.addWidget(self.button_delete)
         save_row.addStretch()
@@ -504,8 +506,11 @@ class ReportBuilderPane(StanWidget):
         self.saved_reports_combo.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
         )
+        self.saved_reports_combo.setAccessibleName("Saved reports")
         self.button_load = StanButton("Load", min_width=60)
+        self.button_load.setToolTip("Load the selected saved report into the builder")
         self.button_new = StanButton("New", min_width=60)
+        self.button_new.setToolTip("Start building a new blank report")
         load_row.addWidget(self.saved_reports_combo, stretch=1)
         load_row.addWidget(self.button_load)
         load_row.addWidget(self.button_new)
@@ -548,6 +553,7 @@ class ReportBuilderPane(StanWidget):
         self.columns_list = StanListWidget()
         self.columns_list.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.columns_list.setMaximumHeight(160)
+        self.columns_list.setAccessibleName("Column selection")
         for col, label in FLAT_TRANSACTION_COLUMNS:
             item = QListWidgetItem(label)
             item.setData(Qt.ItemDataRole.UserRole, col)
@@ -563,6 +569,7 @@ class ReportBuilderPane(StanWidget):
         self.derived_list = StanListWidget()
         self.derived_list.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.derived_list.setMaximumHeight(100)
+        self.derived_list.setAccessibleName("Derived date column selection")
         for col, label in DERIVED_DATE_COLUMNS:
             item = QListWidgetItem(label)
             item.setData(Qt.ItemDataRole.UserRole, col)
@@ -620,6 +627,7 @@ class ReportBuilderPane(StanWidget):
 
         self.button_add_filter = StanButton("+ Add Filter", min_width=110)
         self.button_add_filter.setFixedWidth(110)
+        self.button_add_filter.setToolTip("Add a new row filter rule")
 
         filter_layout.addWidget(self._filter_container)
         filter_layout.addWidget(
@@ -635,6 +643,7 @@ class ReportBuilderPane(StanWidget):
         self.groupby_list = StanListWidget()
         self.groupby_list.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.groupby_list.setMaximumHeight(110)
+        self.groupby_list.setAccessibleName("Group by columns")
         # Populated dynamically based on checked columns + derived columns
         groupby_layout.addWidget(self.groupby_list)
         groupby_box.setLayout(groupby_layout)
@@ -653,6 +662,7 @@ class ReportBuilderPane(StanWidget):
 
         self.button_add_agg = StanButton("+ Add Aggregation", min_width=140)
         self.button_add_agg.setFixedWidth(140)
+        self.button_add_agg.setToolTip("Add a new column aggregation (e.g. Sum, Count)")
 
         agg_layout.addWidget(self._agg_container)
         agg_layout.addWidget(self.button_add_agg, alignment=Qt.AlignmentFlag.AlignLeft)
@@ -673,6 +683,30 @@ class ReportBuilderPane(StanWidget):
     def set_builder_visible(self, visible: bool) -> None:
         """Show or hide the builder content (everything except Saved Reports)."""
         self.builder_content.setVisible(visible)
+
+    def setup_tab_order(self) -> None:
+        """Establish an explicit, logical Tab key traversal order for the builder pane."""
+        # Saved Reports group
+        self.setTabOrder(self.saved_reports_combo, self.button_load)
+        self.setTabOrder(self.button_load, self.button_new)
+        self.setTabOrder(self.button_new, self.button_save)
+        self.setTabOrder(self.button_save, self.button_delete)
+        # Report details
+        self.setTabOrder(self.button_delete, self.title_edit)
+        self.setTabOrder(self.title_edit, self.subtitle_edit)
+        # Columns
+        self.setTabOrder(self.subtitle_edit, self.checkbox_cols_all)
+        self.setTabOrder(self.checkbox_cols_all, self.columns_list)
+        self.setTabOrder(self.columns_list, self.checkbox_derived_all)
+        self.setTabOrder(self.checkbox_derived_all, self.derived_list)
+        # Date range
+        self.setTabOrder(self.derived_list, self.date_range_enabled)
+        self.setTabOrder(self.date_range_enabled, self.from_date)
+        self.setTabOrder(self.from_date, self.to_date)
+        # Filters and aggregations buttons
+        self.setTabOrder(self.to_date, self.button_add_filter)
+        self.setTabOrder(self.button_add_filter, self.groupby_list)
+        self.setTabOrder(self.groupby_list, self.button_add_agg)
 
     # ------------------------------------------------------------------
     # Dynamic row management (called by presenter)
@@ -808,6 +842,7 @@ class ReportPreviewPane(StanWidget):
 
         # Table view
         self.table_view = StanTableView()
+        self.table_view.setAccessibleName("Report preview")
         header = self.table_view.horizontalHeader()
         assert header is not None
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
