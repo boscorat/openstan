@@ -1,4 +1,3 @@
-from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QGridLayout, QVBoxLayout
 
 from openstan.components import (
@@ -10,7 +9,6 @@ from openstan.components import (
     StanTabWidget,
     StanWidget,
 )
-from openstan.paths import Paths
 
 
 class StatementResultView(StanWidget):
@@ -83,19 +81,19 @@ class StatementResultView(StanWidget):
         action_buttons = QGridLayout()
 
         self.buttonCloseResults = StanButton("Close Results")
-        self.buttonCloseResults.setIcon(QIcon(Paths.themed_icon("exit.svg")))
+        self.buttonCloseResults.set_themed_icon("exit.svg")
         self.buttonCloseResults.setToolTip(
             "Return to the statement queue (the batch remains open)"
         )
 
         self.buttonAbandonBatch = StanButton("Abandon Batch")
-        self.buttonAbandonBatch.setIcon(QIcon(Paths.themed_icon("bin.svg")))
+        self.buttonAbandonBatch.set_themed_icon("bin.svg")
         self.buttonAbandonBatch.setToolTip(
             "Discard all results from this import run and unlock the queue"
         )
 
         self.buttonViewDebugInfo = StanButton("View Debug Info")
-        self.buttonViewDebugInfo.setIcon(QIcon(Paths.themed_icon("bug.svg")))
+        self.buttonViewDebugInfo.set_themed_icon("bug.svg")
         self.buttonViewDebugInfo.setToolTip(
             "Open detailed debug information for statements that were not fully parsed"
         )
@@ -104,7 +102,7 @@ class StatementResultView(StanWidget):
         )  # enabled by presenter when non-success rows exist
 
         self.buttonCommitBatch = StanButton("Commit Batch")
-        self.buttonCommitBatch.setIcon(QIcon(Paths.themed_icon("tick.svg")))
+        self.buttonCommitBatch.set_themed_icon("tick.svg")
         self.buttonCommitBatch.setToolTip(
             "Save successfully parsed transactions to the project database"
         )

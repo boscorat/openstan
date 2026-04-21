@@ -2,7 +2,7 @@ from pathlib import Path
 
 import bank_statement_parser as bsp
 from PyQt6.QtCore import QStandardPaths, pyqtSignal
-from PyQt6.QtGui import QIcon, QKeySequence
+from PyQt6.QtGui import QKeySequence
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QFileDialog,
@@ -24,7 +24,6 @@ from openstan.components import (
     StanWizard,
     StanWizardPage,
 )
-from openstan.paths import Paths
 
 # Sentinel value used as the "Skip" source key in config selections
 _SKIP_SENTINEL: str = "__skip__"
@@ -106,7 +105,7 @@ class ProjectPageBasic(StanWizardPage):
             self.location_button = StanButton("Select Existing Project Folder")
         else:
             self.location_button = StanButton("Select Project Folder Location")
-        self.location_button.setIcon(QIcon(Paths.themed_icon("folder_add.svg")))
+        self.location_button.set_themed_icon("folder_add.svg")
         self.location_label = StanLineEdit()
         self.location_label.setReadOnly(True)
         self.location_label.setFixedWidth(300)
@@ -189,13 +188,13 @@ class ProjectView(StanWidget):
         self.label2.setMaximumWidth(60)
         self.label2.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.button_new = StanButton("Create New Project")
-        self.button_new.setIcon(QIcon(Paths.themed_icon("project.svg")))
+        self.button_new.set_themed_icon("project.svg")
         self.button_new.setMinimumWidth(180)
         self.button_new.setToolTip("Open the wizard to create a new project")
         self.button_new.setAccessibleName("Create new project")
         self.label3 = StanLabel("or")
         self.button_existing = StanButton("Add Existing Project")
-        self.button_existing.setIcon(QIcon(Paths.themed_icon("folder_add.svg")))
+        self.button_existing.set_themed_icon("folder_add.svg")
         self.button_existing.setMinimumWidth(180)
         self.button_existing.setToolTip("Add an existing project folder to openstan")
         self.button_existing.setAccessibleName("Add existing project")
@@ -260,25 +259,25 @@ class ProjectNavView(StanWidget):
 
         self.button_info = self.__make_button(
             "Project Info",
-            Paths.themed_icon("project.svg"),
+            "project.svg",
             "View project summary, account list and gap report (Alt+P)",
             QKeySequence("Alt+P"),
         )
         self.button_import = self.__make_button(
             "Import Statements",
-            Paths.themed_icon("file_add.svg"),
+            "file_add.svg",
             "Add and import bank statement PDF files (Alt+I)",
             QKeySequence("Alt+I"),
         )
         self.button_export = self.__make_button(
             "Export Data",
-            Paths.themed_icon("export.svg"),
+            "export.svg",
             "Export transactions to Excel, CSV or JSON (Alt+E)",
             QKeySequence("Alt+E"),
         )
         self.button_reports = self.__make_button(
             "Run Reports",
-            Paths.themed_icon("run.svg"),
+            "run.svg",
             "Build and preview custom transaction reports (Alt+R)",
             QKeySequence("Alt+R"),
         )
@@ -317,12 +316,12 @@ class ProjectNavView(StanWidget):
     @staticmethod
     def __make_button(
         text: str,
-        icon_path: str,
+        icon_filename: str,
         tooltip: str = "",
         shortcut: QKeySequence | None = None,
     ) -> StanButton:
         btn = StanButton(text)
-        btn.setIcon(QIcon(icon_path))
+        btn.set_themed_icon(icon_filename)
         btn.setCheckable(True)
         btn.setMinimumWidth(0)  # override StanButton default 200px minimum
         btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)

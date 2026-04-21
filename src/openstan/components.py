@@ -1,5 +1,5 @@
-from PyQt6.QtCore import QAbstractTableModel, QSize, Qt
-from PyQt6.QtGui import QPalette, QPixmap
+from PyQt6.QtCore import QAbstractTableModel, QEvent, QSize, Qt
+from PyQt6.QtGui import QIcon, QPalette, QPixmap
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -202,17 +202,96 @@ class StanHeaderLabel(StanLabel):
 class StanMutedLabel(StanLabel):
     """A StanLabel rendered in a muted colour — used for placeholder/absent cells.
 
-    Uses the ``Mid`` palette role so the colour adapts to the active theme
-    and high-contrast modes rather than relying on the hardcoded string "grey".
+    The muted colour is derived from the ``WindowText`` palette role at reduced
+    opacity (55 %), so it is always a legible but de-emphasised variant of the
+    normal foreground colour on both light and dark themes.
+
+    The colour is re-resolved whenever the application palette changes so that
+    switching between light and dark themes at runtime is reflected immediately.
     """
 
     def __init__(self, text="Label") -> None:
         super().__init__(text)
-        # Resolve the palette's Mid colour at construction time and apply it.
-        # We use a stylesheet so the colour is visible immediately; the palette
-        # role adapts to light/dark/high-contrast themes.
-        color = self.palette().color(QPalette.ColorRole.Mid).name()
-        self.setStyleSheet(f"color: {color};")
+        self._refresh_color()
+
+    def _refresh_color(self) -> None:
+        """Re-derive the muted colour from WindowText and apply it via palette."""
+        from PyQt6.QtWidgets import QApplication
+
+        app = QApplication.instance()
+        base = (
+            app.palette().color(QPalette.ColorRole.WindowText)
+            if isinstance(app, QApplication)
+            else self.palette().color(QPalette.ColorRole.WindowText)
+        )
+        base.setAlphaF(0.55)
+        palette = self.palette()
+        palette.setColor(QPalette.ColorRole.WindowText, base)
+        self.setPalette(palette)
+
+    def changeEvent(self, event: QEvent | None) -> None:  # noqa: N802
+        """Re-apply the muted colour whenever the palette changes."""
+        if (
+            not getattr(self, "_refreshing_color", False)
+            and event is not None
+            and event.type()
+            in (
+                QEvent.Type.ApplicationPaletteChange,
+                QEvent.Type.PaletteChange,
+            )
+        ):
+            self._refreshing_color = True
+            self._refresh_color()
+            self._refreshing_color = False
+        super().changeEvent(event)
+
+
+class StanThemedPixmapLabel(StanLabel):
+    """A StanLabel that renders a theme-sensitive icon as a pixmap.
+
+    The icon path is re-resolved via :func:`Paths.themed_icon` whenever the
+    application palette changes, so the correct light- or dark-variant SVG is
+    always displayed regardless of when the user switches themes.
+
+    Parameters
+    ----------
+    filename:
+        Basename of the icon file (e.g. ``"project.svg"``), resolved through
+        :meth:`Paths.themed_icon`.
+    size:
+        Side length in pixels for the square pixmap (default 64).
+    """
+
+    def __init__(self, filename: str, size: int = 64) -> None:
+        super().__init__()
+        self._filename = filename
+        self._size = size
+        self._refreshing_pixmap = False
+        self._refresh_pixmap()
+
+    def _refresh_pixmap(self) -> None:
+        """Re-resolve the themed icon path and update the displayed pixmap."""
+        from openstan.paths import Paths
+
+        self._refreshing_pixmap = True
+        self.setPixmap(
+            QIcon(Paths.themed_icon(self._filename)).pixmap(self._size, self._size)
+        )
+        self._refreshing_pixmap = False
+
+    def changeEvent(self, event: QEvent | None) -> None:  # noqa: N802
+        """Reload the pixmap whenever the application palette changes."""
+        if (
+            not getattr(self, "_refreshing_pixmap", False)
+            and event is not None
+            and event.type()
+            in (
+                QEvent.Type.ApplicationPaletteChange,
+                QEvent.Type.PaletteChange,
+            )
+        ):
+            self._refresh_pixmap()
+        super().changeEvent(event)
 
 
 class StanButton(QPushButton):
@@ -222,6 +301,42 @@ class StanButton(QPushButton):
         self.setAutoFillBackground(True)
         self.setIconSize(QSize(16, 16))
         self.setMinimumWidth(min_width)
+        self._themed_icon_filename: str | None = None
+        self._refreshing_icon = False
+
+    def set_themed_icon(self, filename: str) -> None:
+        """Set the button icon from a themed SVG and re-resolve it on theme changes.
+
+        Parameters
+        ----------
+        filename:
+            Basename of the icon (e.g. ``"run.svg"``), resolved via
+            :meth:`Paths.themed_icon`.
+        """
+        self._themed_icon_filename = filename
+        self._refresh_icon()
+
+    def _refresh_icon(self) -> None:
+        """Re-resolve and apply the themed icon."""
+        if self._themed_icon_filename is None:
+            return
+        from openstan.paths import Paths
+
+        self._refreshing_icon = True
+        self.setIcon(QIcon(Paths.themed_icon(self._themed_icon_filename)))
+        self._refreshing_icon = False
+
+    def changeEvent(self, event: QEvent | None) -> None:  # noqa: N802
+        """Reload the themed icon whenever the application palette changes."""
+        if (
+            not getattr(self, "_refreshing_icon", False)
+            and event is not None
+            and event.type()
+            in (QEvent.Type.ApplicationPaletteChange, QEvent.Type.PaletteChange)
+            and self._themed_icon_filename is not None
+        ):
+            self._refresh_icon()
+        super().changeEvent(event)
 
 
 class StanWizardPage(QWizardPage):
@@ -254,6 +369,7 @@ class StanHelpIcon(QPushButton):
     def __init__(self, help_text: str) -> None:
         super().__init__()
         self._help_text = help_text
+        self._refreshing_icon = False
         self.setAutoFillBackground(True)
         self.setFixedSize(20, 20)
         self.setFlat(True)
@@ -271,15 +387,29 @@ class StanHelpIcon(QPushButton):
 
         icon_path = Paths.themed_icon("info.svg")
         pixmap = QPixmap(icon_path)
+        self._refreshing_icon = True
         if not pixmap.isNull():
-            from PyQt6.QtGui import QIcon
-
             self.setIcon(QIcon(pixmap))
             self.setIconSize(QSize(16, 16))
             self.setText("")
         else:
             # Fallback: render a text "?" if icon not found.
             self.setText("?")
+        self._refreshing_icon = False
+
+    def changeEvent(self, event: QEvent | None) -> None:  # noqa: N802
+        """Reload the themed icon whenever the application palette changes."""
+        if (
+            not getattr(self, "_refreshing_icon", False)
+            and event is not None
+            and event.type()
+            in (
+                QEvent.Type.ApplicationPaletteChange,
+                QEvent.Type.PaletteChange,
+            )
+        ):
+            self._load_icon()
+        super().changeEvent(event)
 
     def _show_tooltip(self) -> None:
         """Show the tooltip at the centre of the button (click or keyboard)."""

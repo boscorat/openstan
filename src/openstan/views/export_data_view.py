@@ -14,7 +14,6 @@ Both presenters access their respective sub-widget trees through the
 public attributes exposed by this class.
 """
 
-from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QGridLayout,
@@ -34,9 +33,9 @@ from openstan.components import (
     StanProgressBar,
     StanRadioButton,
     StanTabWidget,
+    StanThemedPixmapLabel,
     StanWidget,
 )
-from openstan.paths import Paths
 from openstan.views.advanced_export_view import AdvancedExportView
 
 # ---------------------------------------------------------------------------
@@ -228,13 +227,13 @@ class ExportDataView(StanWidget):
 
         # ── Export buttons ─────────────────────────────────────────────────
         self.button_excel = StanButton("Export Excel")
-        self.button_excel.setIcon(QIcon(Paths.themed_icon("excel.svg")))
+        self.button_excel.set_themed_icon("excel.svg")
         self.button_excel.setToolTip("Export transactions to an Excel (.xlsx) file")
         self.button_csv = StanButton("Export CSV")
-        self.button_csv.setIcon(QIcon(Paths.themed_icon("csv.svg")))
+        self.button_csv.set_themed_icon("csv.svg")
         self.button_csv.setToolTip("Export transactions to a CSV file")
         self.button_json = StanButton("Export JSON")
-        self.button_json.setIcon(QIcon(Paths.themed_icon("json.svg")))
+        self.button_json.set_themed_icon("json.svg")
         self.button_json.setToolTip("Export transactions to a JSON file")
 
         button_row = QHBoxLayout()
@@ -282,8 +281,7 @@ class ExportDataView(StanWidget):
         placeholder_page = StanWidget()
         ph_layout = QVBoxLayout()
         ph_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        ph_icon = StanLabel()
-        ph_icon.setPixmap(QIcon(Paths.themed_icon("export.svg")).pixmap(64, 64))
+        ph_icon = StanThemedPixmapLabel("export.svg", size=64)
         ph_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         ph_text = StanMutedLabel(
             "No data yet — import and commit some statements before exporting."
