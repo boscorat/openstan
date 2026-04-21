@@ -46,6 +46,8 @@ from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtSql import QSqlQuery, QSqlRecord, QSqlTableModel
 
+from openstan.models.statement_queue_model import _safe_hex_id
+
 if TYPE_CHECKING:
     from bank_statement_parser import PdfResult
 
@@ -435,7 +437,7 @@ class StatementResultModel(QSqlTableModel):
         Used by the abandon path.  Soft-deleted rows (deleted=1) are left
         for ``hard_delete_soft_deleted`` to clean up after the debug worker.
         """
-        with self._filtered(f"batch_id = '{batch_id}' AND deleted = 0"):
+        with self._filtered(f"batch_id = '{_safe_hex_id(batch_id)}' AND deleted = 0"):
             for row in range(self.rowCount() - 1, -1, -1):
                 self.removeRow(row)
             if self.submitAll():
@@ -453,7 +455,7 @@ class StatementResultModel(QSqlTableModel):
         ``pdf_result`` is left as ``None`` — payloads are not needed for
         display on session restore.
         """
-        with self._filtered(f"batch_id = '{batch_id}' AND deleted = 0"):
+        with self._filtered(f"batch_id = '{_safe_hex_id(batch_id)}' AND deleted = 0"):
             rows: list[ResultRow] = []
             for i in range(self.rowCount()):
                 rec = self.record(i)
@@ -482,7 +484,7 @@ class StatementResultModel(QSqlTableModel):
 
     def get_result_ids_for_batch(self, batch_id: str) -> list[str]:
         """Return result_id values for all live rows in *batch_id*."""
-        with self._filtered(f"batch_id = '{batch_id}' AND deleted = 0"):
+        with self._filtered(f"batch_id = '{_safe_hex_id(batch_id)}' AND deleted = 0"):
             return [
                 str(self.record(row).value("result_id"))
                 for row in range(self.rowCount())
@@ -543,13 +545,18 @@ class StatementResultPayloadModel(QSqlTableModel):
         """Delete payload rows for all *result_ids*."""
         if not result_ids:
             return (True, "Nothing to delete")
-        placeholders = ", ".join(f"'{rid}'" for rid in result_ids)
-        with self._filtered(f"result_id IN ({placeholders})"):
-            for row in range(self.rowCount() - 1, -1, -1):
-                self.removeRow(row)
-            if self.submitAll():
-                return (True, f"Payloads for {len(result_ids)} result(s) deleted")
-            return (False, self.lastError().text())
+        validated = [_safe_hex_id(rid) for rid in result_ids]
+        placeholders = ", ".join("?" * len(validated))
+        query = QSqlQuery(self.database())
+        query.prepare(
+            f"DELETE FROM statement_result_payload WHERE result_id IN ({placeholders})"
+        )
+        for rid in validated:
+            query.addBindValue(rid)
+        if query.exec():
+            self.select()
+            return (True, f"Payloads for {len(validated)} result(s) deleted")
+        return (False, query.lastError().text())
 
     def load_payloads_for_batch(self, result_ids: list[str]) -> "dict[str, PdfResult]":
         """Deserialise JSON and return a {result_id: PdfResult} mapping for *result_ids*.
@@ -559,20 +566,32 @@ class StatementResultPayloadModel(QSqlTableModel):
         """
         if not result_ids:
             return {}
-        placeholders = ", ".join(f"'{rid}'" for rid in result_ids)
-        with self._filtered(f"result_id IN ({placeholders})"):
-            results: dict[str, PdfResult] = {}
-            for row in range(self.rowCount()):
-                record: QSqlRecord = self.record(row)
-                rid = str(record.value("result_id"))
-                text = record.value("payload")
-                try:
-                    obj = _json_to_pdf_result(str(text))
-                    results[rid] = obj
-                except Exception:
-                    print(
-                        f"WARNING: Could not deserialise payload for result_id={rid} — skipping.",
-                        file=sys.stderr,
-                    )
-                    traceback.print_exc(file=sys.stderr)
+        validated = [_safe_hex_id(rid) for rid in result_ids]
+        placeholders = ", ".join("?" * len(validated))
+        query = QSqlQuery(self.database())
+        query.prepare(
+            f"SELECT result_id, payload FROM statement_result_payload"
+            f" WHERE result_id IN ({placeholders})"
+        )
+        for rid in validated:
+            query.addBindValue(rid)
+        results: dict[str, PdfResult] = {}
+        if not query.exec():
+            print(
+                f"ERROR: load_payloads_for_batch query failed: {query.lastError().text()}",
+                file=sys.stderr,
+            )
             return results
+        while query.next():
+            rid = str(query.value("result_id"))
+            text = query.value("payload")
+            try:
+                obj = _json_to_pdf_result(str(text))
+                results[rid] = obj
+            except Exception:
+                print(
+                    f"WARNING: Could not deserialise payload for result_id={rid} — skipping.",
+                    file=sys.stderr,
+                )
+                traceback.print_exc(file=sys.stderr)
+        return results

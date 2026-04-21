@@ -18,6 +18,8 @@ existing gui.db file has been deleted.
 """
 
 import sqlite3
+import stat
+import sys
 from pathlib import Path
 
 
@@ -253,6 +255,11 @@ def create_gui_db(db_path: Path) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     conn = sqlite3.connect(db_path)
+    # Restrict file permissions to owner-only on POSIX systems.
+    # On Windows, user-profile isolation provides equivalent protection;
+    # chmod is silently ignored there so the guard avoids false confidence.
+    if sys.platform != "win32":
+        db_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
     try:
         conn.executescript(_DDL_TABLES)
         conn.executescript(_DDL_VIEW)

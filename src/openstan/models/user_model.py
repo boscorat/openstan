@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from PyQt6.QtSql import QSqlTableModel, QSqlRecord
+from PyQt6.QtSql import QSqlQuery, QSqlRecord, QSqlTableModel
 
 NEW_RECORD_STATUS = 8  # active status
 
@@ -32,10 +32,9 @@ class UserModel(QSqlTableModel):
             return (False, user_id, msg)
 
     def user_id_from_username(self, username: str) -> str | None:
-        filter_str: str = f"username = '{username}'"
-        self.setFilter(filter_str)
-        self.select()
-        if self.rowCount() > 0:
-            return self.record(self.rowCount() - 1).value("user_id")
-        else:
-            return None
+        query = QSqlQuery(self.database())
+        query.prepare("SELECT user_id FROM user WHERE username = :username")
+        query.bindValue(":username", username)
+        if query.exec() and query.last():
+            return str(query.value("user_id"))
+        return None
