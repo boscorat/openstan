@@ -1,9 +1,7 @@
 from PyQt6.QtCore import QStandardPaths
-from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QFileDialog, QGridLayout, QSizePolicy
 
 from openstan.components import Qt, StanButton, StanLabel, StanTreeView, StanWidget
-from openstan.paths import Paths
 
 
 class FileDialog(QFileDialog):
@@ -57,10 +55,10 @@ class StatementQueueView(StanWidget):
         self.buttonRemove = StanButton("Remove Selected")
         self.buttonClear = StanButton("Clear All Statements")
 
-        self.buttonAddFolders.setIcon(QIcon(Paths.themed_icon("folder_add.svg")))
-        self.buttonAddFiles.setIcon(QIcon(Paths.themed_icon("file_add.svg")))
-        self.buttonRemove.setIcon(QIcon(Paths.themed_icon("file_remove.svg")))
-        self.buttonClear.setIcon(QIcon(Paths.themed_icon("folder_remove.svg")))
+        self.buttonAddFolders.set_themed_icon("folder_add.svg")
+        self.buttonAddFiles.set_themed_icon("file_add.svg")
+        self.buttonRemove.set_themed_icon("file_remove.svg")
+        self.buttonClear.set_themed_icon("folder_remove.svg")
 
         self.buttonAddFolders.setToolTip(
             "Browse for a folder and add all PDF statement files inside it to the queue"
@@ -111,7 +109,7 @@ class StatementQueueView(StanWidget):
 
         # ── Run Import / View Results buttons ──────────────────────────────
         self.buttonRunImport = StanButton("Run Statement Import")
-        self.buttonRunImport.setIcon(QIcon(Paths.themed_icon("run.svg")))
+        self.buttonRunImport.set_themed_icon("run.svg")
         self.buttonRunImport.setDisabled(True)
         self.buttonRunImport.setToolTip(
             "Parse and import all queued statement files into the project"
@@ -121,7 +119,7 @@ class StatementQueueView(StanWidget):
         )
 
         self.buttonViewResults = StanButton("View Statement Results")
-        self.buttonViewResults.setIcon(QIcon(Paths.themed_icon("download.svg")))
+        self.buttonViewResults.set_themed_icon("download.svg")
         self.buttonViewResults.setVisible(False)
         self.buttonViewResults.setToolTip(
             "Return to the import results for the current batch"

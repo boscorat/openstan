@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 import polars as pl
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtGui import QIcon, QStandardItem, QStandardItemModel
+from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QHBoxLayout,
@@ -26,10 +26,10 @@ from openstan.components import (
     StanMutedLabel,
     StanPolarsModel,
     StanTableView,
+    StanThemedPixmapLabel,
     StanTreeView,
     StanWidget,
 )
-from openstan.paths import Paths
 
 if TYPE_CHECKING:
     from openstan.presenters.project_presenter import ProjectInfo
@@ -126,8 +126,7 @@ class ProjectInfoView(StanWidget):
         placeholder_page = StanWidget()
         ph_layout = QVBoxLayout()
         ph_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        ph_icon = StanLabel()
-        ph_icon.setPixmap(QIcon(Paths.themed_icon("project.svg")).pixmap(64, 64))
+        ph_icon = StanThemedPixmapLabel("project.svg", size=64)
         ph_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         ph_text = StanMutedLabel(
             "No data yet — import and commit some statements to see your project summary."

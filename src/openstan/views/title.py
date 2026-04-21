@@ -1,4 +1,4 @@
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import QEvent, pyqtSignal
 from PyQt6.QtSvgWidgets import QSvgWidget
 from PyQt6.QtWidgets import QHBoxLayout
 
@@ -13,11 +13,11 @@ class TitleView(StanWidget):
     def __init__(self) -> None:
         super().__init__()
 
-        wordmark = QSvgWidget(Paths.wordmark(with_tagline=True))
+        self._wordmark = QSvgWidget(Paths.wordmark(with_tagline=True))
         # Fix the display size to match the SVG viewBox aspect ratio (200×56).
-        wordmark.setFixedSize(200, 56)
+        self._wordmark.setFixedSize(200, 56)
         # Accessible name for screen readers in place of SVG alt text.
-        wordmark.setAccessibleName("openstan — secure statement analysis")
+        self._wordmark.setAccessibleName("openstan — secure statement analysis")
 
         about_btn = StanButton("About", min_width=70)
         about_btn.setFixedWidth(70)
@@ -35,9 +35,18 @@ class TitleView(StanWidget):
 
         layout = QHBoxLayout()
         layout.setContentsMargins(8, 4, 8, 4)
-        layout.addWidget(wordmark)
+        layout.addWidget(self._wordmark)
         layout.addStretch()
         layout.addWidget(admin_btn)
         layout.addWidget(about_btn)
         self.setLayout(layout)
         self.setMaximumHeight(72)
+
+    def changeEvent(self, a0: QEvent | None) -> None:  # noqa: N802
+        """Reload the wordmark SVG whenever the application palette changes."""
+        if a0 is not None and a0.type() in (
+            QEvent.Type.ApplicationPaletteChange,
+            QEvent.Type.PaletteChange,
+        ):
+            self._wordmark.load(Paths.wordmark(with_tagline=True))
+        super().changeEvent(a0)

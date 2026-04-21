@@ -30,7 +30,6 @@ if TYPE_CHECKING:
     import polars as pl
 
 from PyQt6.QtCore import QDate, QSortFilterProxyModel, Qt, pyqtSignal
-from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -57,6 +56,7 @@ from openstan.components import (
     StanPolarsModel,
     StanScrollArea,
     StanTableView,
+    StanThemedPixmapLabel,
     StanToolButton,
     StanWidget,
 )
@@ -67,7 +67,6 @@ from openstan.models.report_model import (
     FLAT_TRANSACTION_COLUMNS,
     NUMERIC_COLUMNS,
 )
-from openstan.paths import Paths
 
 
 # ---------------------------------------------------------------------------
@@ -967,8 +966,7 @@ class RunReportsView(StanWidget):
         placeholder_page = StanWidget()
         ph_layout = QVBoxLayout()
         ph_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        ph_icon = StanLabel()
-        ph_icon.setPixmap(QIcon(Paths.themed_icon("run.svg")).pixmap(64, 64))
+        ph_icon = StanThemedPixmapLabel("run.svg", size=64)
         ph_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         ph_text = StanMutedLabel(
             "No data yet — import and commit some statements before running reports."
