@@ -9,7 +9,6 @@ dependency (session → user → session) that exists at the application level.
 import sqlite3
 from uuid import uuid4
 
-import pytest
 
 from PyQt6.QtSql import QSqlDatabase
 
@@ -59,9 +58,7 @@ class TestEndActiveSessions:
         assert success is False
         assert isinstance(msg, str)
 
-    def test_no_active_sessions_message_informative(
-        self, gui_db: QSqlDatabase
-    ) -> None:
+    def test_no_active_sessions_message_informative(self, gui_db: QSqlDatabase) -> None:
         """The message indicates there were no active sessions to end."""
         model = SessionModel(db=gui_db)
         model.select()

@@ -9,7 +9,6 @@ No database fixture required.
 
 import os
 
-import pytest
 
 from openstan.paths import Paths
 

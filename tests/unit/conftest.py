@@ -127,7 +127,13 @@ def seed_session_and_project(
             "(project_id, project_name, project_location, "
             " createdBy_session, updatedBy_session, status_id) "
             "VALUES (?, ?, ?, ?, ?, 8)",
-            (project_id, f"test_project_{project_id[:8]}", "/tmp", session_id, session_id),
+            (
+                project_id,
+                f"test_project_{project_id[:8]}",
+                "/tmp",
+                session_id,
+                session_id,
+            ),
         )
         conn.commit()
 

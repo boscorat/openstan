@@ -10,11 +10,8 @@ The ``seed_session_and_project`` helper in conftest.py inserts the minimum
 FK rows (session + project) before each test that needs them.
 """
 
-import sqlite3
-from pathlib import Path
 from uuid import uuid4
 
-import pytest
 
 from PyQt6.QtSql import QSqlDatabase
 
@@ -304,7 +301,7 @@ class TestGetFolderPathsForBatch:
         model.set_project(project_id)
 
         batch_id = uuid4().hex
-        folder_id = _add_folder(model, session_id, path="/data/statements")
+        _add_folder(model, session_id, path="/data/statements")
         model.select()
         model.set_batch_id(batch_id)
 
@@ -381,9 +378,7 @@ class TestStatementQueueTreeModel:
 
         assert tree.rowCount() == 0
 
-    def test_folder_with_no_children_labelled_empty(
-        self, gui_db: QSqlDatabase
-    ) -> None:
+    def test_folder_with_no_children_labelled_empty(self, gui_db: QSqlDatabase) -> None:
         """A folder row with no child files is labelled '(empty)'."""
         session_id, project_id, _ = seed_session_and_project(gui_db)
 
@@ -415,8 +410,12 @@ class TestStatementQueueTreeModel:
         queue_model.set_project(project_id)
 
         folder_id = _add_folder(queue_model, session_id, path="/data/folder")
-        _add_file(queue_model, session_id, parent_id=folder_id, path="/data/folder/a.pdf")
-        _add_file(queue_model, session_id, parent_id=folder_id, path="/data/folder/b.pdf")
+        _add_file(
+            queue_model, session_id, parent_id=folder_id, path="/data/folder/a.pdf"
+        )
+        _add_file(
+            queue_model, session_id, parent_id=folder_id, path="/data/folder/b.pdf"
+        )
 
         tree = StatementQueueTreeModel(db=gui_db)
         tree.update_model(project_id)
@@ -475,7 +474,9 @@ class TestStatementQueueTreeModel:
         tree = StatementQueueTreeModel(db=gui_db)
         tree.update_model(project_id)
 
-        root_texts = [tree.item(i).text() for i in range(tree.rowCount())]
+        root_texts = [
+            item.text() for i in range(tree.rowCount()) if (item := tree.item(i))
+        ]
         assert "Folders" not in root_texts
 
     def test_no_files_root_when_only_folders(self, gui_db: QSqlDatabase) -> None:
@@ -489,5 +490,7 @@ class TestStatementQueueTreeModel:
         tree = StatementQueueTreeModel(db=gui_db)
         tree.update_model(project_id)
 
-        root_texts = [tree.item(i).text() for i in range(tree.rowCount())]
+        root_texts = [
+            item.text() for i in range(tree.rowCount()) if (item := tree.item(i))
+        ]
         assert "Files" not in root_texts

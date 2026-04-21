@@ -10,11 +10,9 @@ the _row_items helper in statement_result_model.py.
 of ``QStandardItem`` objects.
 """
 
-from datetime import date
 from pathlib import Path
 from uuid import uuid4
 
-import pytest
 
 from PyQt6.QtCore import Qt
 
