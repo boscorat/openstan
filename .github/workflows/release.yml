@@ -1,0 +1,244 @@
+name: Release
+
+# Triggered when a version tag is pushed (e.g. v1.0.0).
+# Builds platform-native installers on each OS and attaches them to the
+# GitHub Release that is created (or must already exist) for the tag.
+#
+# Packager strategy: cx_Freeze primary, PyInstaller fallback.
+# This workflow uses cx_Freeze for all platforms.  If cx_Freeze fails on a
+# platform during validation testing, switch that job's build step to the
+# PyInstaller path (see comments in each job).
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # needed to upload release assets
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Linux — produces .deb and .rpm
+  # ---------------------------------------------------------------------------
+  build-linux:
+    name: Build Linux packages (.deb / .rpm)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install Qt system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
+            libxcb-xkb1 libegl1 libxkbcommon-x11-0 libdbus-1-3 \
+            libfontconfig1 libfreetype6 \
+            rpm build-essential
+
+      - name: Install Python dependencies (including packaging tools)
+        run: uv sync --all-groups
+
+      # Icon conversion: SVG → PNG intermediate → .ico (for cross-platform reference)
+      # Linux packages use the SVG directly via the .desktop entry; no .ico needed here.
+      - name: Convert app icon SVG → PNG (Linux desktop entry)
+        run: |
+          mkdir -p build/icons
+          uv run python - <<'EOF'
+          import cairosvg, pathlib
+          cairosvg.svg2png(
+              url="src/openstan/icons/icon-square.svg",
+              write_to="build/icons/openstan.png",
+              output_width=256, output_height=256,
+          )
+          EOF
+        continue-on-error: true   # non-fatal: .desktop file can reference the SVG directly
+
+      # ── cx_Freeze build ────────────────────────────────────────────────────
+      - name: Build frozen app (cx_Freeze)
+        run: uv run python cx_freeze_setup.py build
+
+      - name: Build .deb package
+        run: uv run python cx_freeze_setup.py bdist_deb
+
+      - name: Build .rpm package
+        run: uv run python cx_freeze_setup.py bdist_rpm
+
+      # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
+      # - name: Build frozen app (PyInstaller fallback)
+      #   run: uv run pyinstaller openstan.spec
+      # - name: Package .deb (fpm)
+      #   run: |
+      #     gem install fpm
+      #     fpm -s dir -t deb -n openstan -v ${GITHUB_REF_NAME#v} \
+      #         --description "Open source bank statement analysis" \
+      #         --url "https://openstan.org" \
+      #         --maintainer "Jason Farrar <stillwaters.technology@gmail.com>" \
+      #         dist/openstan/=/opt/openstan
+      # - name: Package .rpm (fpm)
+      #   run: |
+      #     fpm -s dir -t rpm -n openstan -v ${GITHUB_REF_NAME#v} \
+      #         --description "Open source bank statement analysis" \
+      #         --url "https://openstan.org" \
+      #         --maintainer "Jason Farrar <stillwaters.technology@gmail.com>" \
+      #         dist/openstan/=/opt/openstan
+
+      - name: Upload .deb and .rpm to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.deb
+            dist/*.rpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # Windows — produces .msi installer
+  # ---------------------------------------------------------------------------
+  build-windows:
+    name: Build Windows installer (.msi)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install Python dependencies (including packaging tools)
+        run: uv sync --all-groups
+
+      # Icon conversion: SVG → multi-resolution .ico
+      - name: Convert app icon SVG → .ico
+        shell: python
+        run: |
+          import subprocess, sys, pathlib
+          # Install cairosvg temporarily for the icon conversion step
+          subprocess.check_call([sys.executable, "-m", "pip", "install", "cairosvg", "Pillow"])
+          import cairosvg
+          from PIL import Image
+          import io, pathlib
+          pathlib.Path("build/icons").mkdir(parents=True, exist_ok=True)
+          sizes = [16, 32,48, 64, 128, 256]
+          imgs = []
+          for sz in sizes:
+              png_data = cairosvg.svg2png(
+                  url="src/openstan/icons/icon-square.svg",
+                  output_width=sz, output_height=sz,
+              )
+              imgs.append(Image.open(io.BytesIO(png_data)))
+          imgs[0].save(
+              "build/icons/openstan.ico",
+              format="ICO",
+              sizes=[(sz, sz) for sz in sizes],
+              append_images=imgs[1:],
+          )
+          print("Icon written to build/icons/openstan.ico")
+
+      # ── cx_Freeze build ────────────────────────────────────────────────────
+      - name: Build .msi installer (cx_Freeze)
+        run: uv run python cx_freeze_setup.py bdist_msi
+
+      # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
+      # - name: Build frozen app (PyInstaller fallback)
+      #   run: uv run pyinstaller openstan.spec
+      # - name: Build .msi with WiX (PyInstaller fallback)
+      #   run: |
+      #     # Requires WiX Toolset installed on the runner
+      #     # See https://wixtoolset.org/
+
+      - name: Upload .msi to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.msi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # macOS — produces .dmg disk image
+  # ---------------------------------------------------------------------------
+  build-macos:
+    name: Build macOS disk image (.dmg)
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install Python dependencies (including packaging tools)
+        run: uv sync --all-groups
+
+      # Icon conversion: SVG → .icns
+      - name: Convert app icon SVG → .icns
+        run: |
+          pip install cairosvg Pillow
+          mkdir -p build/icons
+          python - <<'EOF'
+          import cairosvg, io, pathlib, subprocess, tempfile, os
+          from PIL import Image
+
+          sizes = [16, 32, 64, 128, 256, 512, 1024]
+          iconset = pathlib.Path(tempfile.mkdtemp()) / "openstan.iconset"
+          iconset.mkdir()
+
+          for sz in sizes:
+              png_data = cairosvg.svg2png(
+                  url="src/openstan/icons/icon-square.svg",
+                  output_width=sz, output_height=sz,
+              )
+              img = Image.open(io.BytesIO(png_data))
+              img.save(iconset / f"icon_{sz}x{sz}.png")
+              if sz <= 512:
+                  img2x = Image.open(io.BytesIO(
+                      cairosvg.svg2png(
+                          url="src/openstan/icons/icon-square.svg",
+                          output_width=sz*2, output_height=sz*2,
+                      )
+                  ))
+                  img2x.save(iconset / f"icon_{sz}x{sz}@2x.png")
+
+          subprocess.check_call(["iconutil", "-c", "icns", str(iconset), "-o", "build/icons/openstan.icns"])
+          print("Icon written to build/icons/openstan.icns")
+          EOF
+
+      # ── cx_Freeze build ────────────────────────────────────────────────────
+      - name: Build .dmg disk image (cx_Freeze)
+        run: uv run python cx_freeze_setup.py bdist_dmg
+
+      # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
+      # - name: Build .app bundle (PyInstaller fallback)
+      #   run: uv run pyinstaller openstan.spec
+      # - name: Create .dmg from .app (create-dmg)
+      #   run: |
+      #     brew install create-dmg
+      #     create-dmg \
+      #       --volname "openstan" \
+      #       --window-pos 200 120 \
+      #       --window-size 600 400 \
+      #       --icon-size 100 \
+      #       --app-drop-link 450 185 \
+      #       "dist/openstan.dmg" \
+      #       "dist/openstan.app"
+
+      - name: Upload .dmg to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

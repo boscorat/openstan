@@ -269,6 +269,86 @@ produce a perceptible UI pause in practice.
 
 ---
 
+## D009 — Packaging and distribution toolchain
+
+**Status:** Accepted
+**Applies to:** Release builds, CI/CD, `cx_freeze_setup.py`, `openstan.spec`, `.github/workflows/release.yml`
+
+### Context
+
+The application needs to be distributed as native installers for Linux (`.deb`,
+`.rpm`), Windows (`.msi`), and macOS (`.dmg`).  A future path to Snap and Flatpak
+is desirable.  The project uses Python 3.14 and is managed entirely with `uv`.
+
+The following tools were evaluated:
+
+| Tool | Python 3.14 | All 4 formats native | PyQt6 hooks | uv integration |
+|---|---|---|---|---|
+| Briefcase | uncertain | partial | fair | none |
+| cx_Freeze 8.x | **explicit** | **yes** | fair (improving) | natural |
+| PyInstaller 6.x | likely | no (needs fpm/NSIS/create-dmg) | **excellent** | natural |
+| Nuitka | **blocked** | no | good (paid++) | natural |
+| PyApp | conditional | no | n/a | first-class |
+
+### Decision
+
+1. **Primary packager: cx_Freeze 8.x.**  It is the only tool that explicitly
+   documents Python 3.14 support and natively produces all four required output
+   formats without additional tooling in CI.
+
+2. **Fallback: PyInstaller 6.x + create-dmg / fpm / NSIS.**  A complete
+   `openstan.spec` is maintained alongside `cx_freeze_setup.py`.  If cx_Freeze's
+   PyQt6 hook coverage proves incomplete on any platform during validation testing,
+   the corresponding CI job is switched to the PyInstaller path (commented-out
+   steps are included in `release.yml`).  The decision to switch permanently will
+   be recorded as an amendment to this ADR.
+
+3. **Both tools are dev dependencies** (`uv add --dev cx-freeze pyinstaller`).
+   This has no impact on the production distribution — both are used only at
+   build time.
+
+4. **BSP dependency in production builds:** `uk-bank-statement-parser` is
+   published to PyPI.  The `[tool.uv.sources]` git-tag override in
+   `pyproject.toml` is intentional for *development only* (to track in-progress
+   bsp tags before a PyPI release).  The comment in `pyproject.toml` documents
+   this intent.  A production build may be made from a clean venv without the
+   override by removing the `[tool.uv.sources]` block; the PyPI release will be
+   resolved automatically.
+
+5. **Update mechanism:** A lightweight `UpdateChecker` (`src/openstan/updater.py`)
+   performs a silent background check against the GitHub Releases API on startup.
+   It emits a Qt signal when a newer version is found; `StanPresenter` handles the
+   signal and shows a user-prompted `QDialog` with a link to the release notes.
+   No automatic downloads or installations are performed.  No third-party update
+   library is used (PyUpdater is archived; Sparkle/WinSparkle have no maintained
+   Qt Python binding).
+
+6. **App icon formats:** The canonical source is `src/openstan/icons/icon-square.svg`.
+   Platform-specific formats (`.ico` for Windows, `.icns` for macOS) are generated
+   by `cairosvg` + `Pillow` as part of the release CI workflow and are **not**
+   committed to the repository.  The generated files land in `build/icons/` which
+   is excluded from version control.
+
+7. **Snap / Flatpak (future):** cx_Freeze's `bdist_appimage` output is compatible
+   with both packaging paths.  No implementation is needed now; the frozen
+   directory output will be the input for either system when the time comes.
+
+### Consequences
+
+- `cx_freeze_setup.py` and `openstan.spec` must be kept in sync when adding new
+  data assets (icons, fonts, SQL files).
+- The `build/` directory (generated icon files) must be added to `.gitignore`.
+- The `dist/` directory (frozen output) must be added to `.gitignore`.
+- `paths.py` contains a `_base_dir()` helper that resolves asset paths correctly
+  in both frozen (PyInstaller and cx_Freeze) and unfrozen (development) modes.
+  All asset resolution in the application must go through `Paths.*` methods —
+  never via bare `__file__` references.
+- When a new tagged release is pushed, `.github/workflows/release.yml` runs
+  automatically and attaches the platform installers to the GitHub Release.  The
+  release description (changelog) is what `UpdateChecker` links to in its dialog.
+
+---
+
 ## D008 — Bare-comma multi-exception syntax is Ruff-canonical for Python 3.14
 
 **Status:** Accepted

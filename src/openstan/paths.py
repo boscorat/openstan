@@ -1,8 +1,41 @@
 import os
+import sys
+
+
+def _base_dir() -> str:
+    """Return the root directory that contains the ``openstan`` package data.
+
+    In a normal (development) run this is the directory that holds this file,
+    i.e. ``src/openstan/``.
+
+    When the application is **frozen** the package data is extracted alongside
+    the executable rather than sitting next to a ``.py`` source file:
+
+    * **PyInstaller** (both one-file and one-dir modes) sets ``sys._MEIPASS``
+      to the temporary directory where all bundled files are extracted.  Data
+      added via the ``datas`` list in the ``.spec`` file lands inside a
+      ``openstan/`` sub-directory there, mirroring the original layout.
+
+    * **cx_Freeze** sets ``sys.frozen = True`` and places the frozen package
+      alongside the executable.  ``sys.executable`` is the path to the exe, so
+      ``os.path.dirname(sys.executable)`` gives the install root, and the
+      package data lives in an ``openstan/`` sub-directory of that root.
+
+    Both cases produce the same logical structure; only the root anchor differs.
+    """
+    if getattr(sys, "frozen", False):
+        if hasattr(sys, "_MEIPASS"):
+            # PyInstaller
+            return os.path.join(sys._MEIPASS, "openstan")  # type: ignore[attr-defined]
+        # cx_Freeze: executable is in <install_root>/, package data is in
+        # <install_root>/lib/openstan/
+        return os.path.join(os.path.dirname(sys.executable), "lib", "openstan")
+    # Normal / development run
+    return os.path.dirname(__file__)
 
 
 class Paths:
-    base: str = os.path.dirname(__file__)
+    base: str = _base_dir()
     icons: str = os.path.join(base, "icons")
     data: str = os.path.join(base, "data")
     fonts: str = os.path.join(data, "fonts")
