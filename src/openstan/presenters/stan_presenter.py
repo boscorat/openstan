@@ -7,6 +7,7 @@ from PyQt6.QtCore import QObject, pyqtSlot
 
 from openstan.models.statement_result_model import ResultRow
 from openstan.presenters.project_presenter import get_project_info
+from openstan.updater import UpdateChecker
 
 if TYPE_CHECKING:
     from PyQt6.QtSql import QSqlRecord
@@ -99,6 +100,13 @@ class StanPresenter(QObject):
         self.update_current_project_info(
             self.project_presenter.view.selection.currentIndex()
         )
+
+        # ── Update check ───────────────────────────────────────────────────────
+        # Silent background check; shows a user-prompted dialog only if a
+        # newer release is found on GitHub.  Network errors are silently ignored.
+        self._update_checker = UpdateChecker(parent=self)
+        self._update_checker.update_available.connect(self._on_update_available)
+        self._update_checker.check_async()
 
     # ---------------------------------------------------------------------------
     # DB lock
@@ -404,3 +412,20 @@ class StanPresenter(QObject):
     def open_admin_dialog(self) -> None:
         self.stan.admin_presenter.refresh_combos()
         self.stan.admin_view.exec()
+
+    # ---------------------------------------------------------------------------
+    # Update notifications
+    # ---------------------------------------------------------------------------
+
+    @pyqtSlot(str, str)
+    def _on_update_available(self, latest_version: str, release_url: str) -> None:
+        """Show the update-available dialog when a newer release is found.
+
+        This slot is connected to ``UpdateChecker.update_available`` and is
+        called on the main thread via Qt's queued connection mechanism.
+        """
+        self._update_checker.show_update_dialog(
+            latest_version,
+            release_url,
+            parent=self.stan,
+        )

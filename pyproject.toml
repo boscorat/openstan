@@ -1,6 +1,6 @@
 [project]
 name = "openstan"
-version = "0.1.0"
+version = "0.1.1a1"
 description = "Open source application for statement analysis and visualization"
 readme = "README.md"
 authors = [
@@ -26,11 +26,24 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "cx-freeze>=8.0.0",
+    "pyinstaller>=6.0.0",
     "pyrefly>=0.50.0",
     "pytest>=9.0.0",
     "ruff>=0.14.14",
 ]
 
+# ---------------------------------------------------------------------------
+# Dependency source overrides (development only)
+# ---------------------------------------------------------------------------
+# In production builds the packager (cx_Freeze / PyInstaller) freezes whatever
+# is installed into the venv by `uv sync`.  For distribution, uk-bank-statement-
+# parser is resolved from PyPI (no override needed in a clean install).
+#
+# The git+tag override below is intentional for *development*: it lets us work
+# against a specific in-progress tag of the upstream bsp repo without waiting
+# for a PyPI release.  Remove or update this entry when pinning to a released
+# PyPI version for a production build.
 [tool.uv.sources]
 uk-bank-statement-parser = { git = "https://github.com/boscorat/bank_statement_parser", tag = "v0.2.1a9" }
 
