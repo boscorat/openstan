@@ -229,12 +229,12 @@ class StanMutedLabel(StanLabel):
         palette.setColor(QPalette.ColorRole.WindowText, base)
         self.setPalette(palette)
 
-    def changeEvent(self, event: QEvent | None) -> None:  # noqa: N802
+    def changeEvent(self, a0: QEvent | None) -> None:  # noqa: N802
         """Re-apply the muted colour whenever the palette changes."""
         if (
             not getattr(self, "_refreshing_color", False)
-            and event is not None
-            and event.type()
+            and a0 is not None
+            and a0.type()
             in (
                 QEvent.Type.ApplicationPaletteChange,
                 QEvent.Type.PaletteChange,
@@ -243,7 +243,7 @@ class StanMutedLabel(StanLabel):
             self._refreshing_color = True
             self._refresh_color()
             self._refreshing_color = False
-        super().changeEvent(event)
+        super().changeEvent(a0)
 
 
 class StanThemedPixmapLabel(StanLabel):
@@ -279,19 +279,19 @@ class StanThemedPixmapLabel(StanLabel):
         )
         self._refreshing_pixmap = False
 
-    def changeEvent(self, event: QEvent | None) -> None:  # noqa: N802
+    def changeEvent(self, a0: QEvent | None) -> None:  # noqa: N802
         """Reload the pixmap whenever the application palette changes."""
         if (
             not getattr(self, "_refreshing_pixmap", False)
-            and event is not None
-            and event.type()
+            and a0 is not None
+            and a0.type()
             in (
                 QEvent.Type.ApplicationPaletteChange,
                 QEvent.Type.PaletteChange,
             )
         ):
             self._refresh_pixmap()
-        super().changeEvent(event)
+        super().changeEvent(a0)
 
 
 class StanButton(QPushButton):
@@ -326,17 +326,17 @@ class StanButton(QPushButton):
         self.setIcon(QIcon(Paths.themed_icon(self._themed_icon_filename)))
         self._refreshing_icon = False
 
-    def changeEvent(self, event: QEvent | None) -> None:  # noqa: N802
+    def changeEvent(self, e: QEvent | None) -> None:  # noqa: N802
         """Reload the themed icon whenever the application palette changes."""
         if (
             not getattr(self, "_refreshing_icon", False)
-            and event is not None
-            and event.type()
+            and e is not None
+            and e.type()
             in (QEvent.Type.ApplicationPaletteChange, QEvent.Type.PaletteChange)
             and self._themed_icon_filename is not None
         ):
             self._refresh_icon()
-        super().changeEvent(event)
+        super().changeEvent(e)
 
 
 class StanWizardPage(QWizardPage):
@@ -397,19 +397,19 @@ class StanHelpIcon(QPushButton):
             self.setText("?")
         self._refreshing_icon = False
 
-    def changeEvent(self, event: QEvent | None) -> None:  # noqa: N802
+    def changeEvent(self, e: QEvent | None) -> None:  # noqa: N802
         """Reload the themed icon whenever the application palette changes."""
         if (
             not getattr(self, "_refreshing_icon", False)
-            and event is not None
-            and event.type()
+            and e is not None
+            and e.type()
             in (
                 QEvent.Type.ApplicationPaletteChange,
                 QEvent.Type.PaletteChange,
             )
         ):
             self._load_icon()
-        super().changeEvent(event)
+        super().changeEvent(e)
 
     def _show_tooltip(self) -> None:
         """Show the tooltip at the centre of the button (click or keyboard)."""
