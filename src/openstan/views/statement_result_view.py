@@ -58,6 +58,7 @@ class StatementResultView(StanWidget):
         # ── Tabbed result sections ─────────────────────────────────────────
         self.results_tabs = StanTabWidget()
         self.results_tabs.setMinimumWidth(800)
+        self.results_tabs.setAccessibleName("Import results")
 
         # SUCCESS tab
         self.success_table = StanTableView()
@@ -83,18 +84,30 @@ class StatementResultView(StanWidget):
 
         self.buttonCloseResults = StanButton("Close Results")
         self.buttonCloseResults.setIcon(QIcon(Paths.themed_icon("exit.svg")))
+        self.buttonCloseResults.setToolTip(
+            "Return to the statement queue (the batch remains open)"
+        )
 
         self.buttonAbandonBatch = StanButton("Abandon Batch")
         self.buttonAbandonBatch.setIcon(QIcon(Paths.themed_icon("bin.svg")))
+        self.buttonAbandonBatch.setToolTip(
+            "Discard all results from this import run and unlock the queue"
+        )
 
         self.buttonViewDebugInfo = StanButton("View Debug Info")
         self.buttonViewDebugInfo.setIcon(QIcon(Paths.themed_icon("bug.svg")))
+        self.buttonViewDebugInfo.setToolTip(
+            "Open detailed debug information for statements that were not fully parsed"
+        )
         self.buttonViewDebugInfo.setEnabled(
             False
         )  # enabled by presenter when non-success rows exist
 
         self.buttonCommitBatch = StanButton("Commit Batch")
         self.buttonCommitBatch.setIcon(QIcon(Paths.themed_icon("tick.svg")))
+        self.buttonCommitBatch.setToolTip(
+            "Save successfully parsed transactions to the project database"
+        )
         self.buttonCommitBatch.setEnabled(
             False
         )  # enabled by presenter when n_success > 0

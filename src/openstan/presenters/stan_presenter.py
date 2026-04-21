@@ -31,6 +31,7 @@ class StanPresenter(QObject):
         # views
         self.footer_view = self.stan.footer_view
         self.nav_view = self.stan.project_nav_view
+        self.title_view = self.stan.title_view
 
         # ── Signal wiring ──────────────────────────────────────────────────────
         self.project_presenter.view.selection.currentIndexChanged.connect(
@@ -48,7 +49,7 @@ class StanPresenter(QObject):
         self.statement_result_presenter.batch_abandoned.connect(self.on_batch_abandoned)
         self.statement_result_presenter.batch_committed.connect(self.on_batch_committed)
         self.export_data_presenter.review_pending_batch.connect(self.show_results)
-        self.footer_view.admin_requested.connect(self.open_admin_dialog)
+        self.title_view.admin_requested.connect(self.open_admin_dialog)
 
         # Nav button clicks
         self.nav_view.button_info.clicked.connect(self.__nav_to_info)

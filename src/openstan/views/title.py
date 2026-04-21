@@ -8,6 +8,7 @@ from openstan.paths import Paths
 
 class TitleView(StanWidget):
     about_requested: pyqtSignal = pyqtSignal()
+    admin_requested: pyqtSignal = pyqtSignal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -18,15 +19,25 @@ class TitleView(StanWidget):
         # Accessible name for screen readers in place of SVG alt text.
         wordmark.setAccessibleName("openstan — secure statement analysis")
 
-        about_btn = StanButton("About", min_width=56)
-        about_btn.setFlat(True)
-        about_btn.setFixedWidth(56)
+        about_btn = StanButton("About", min_width=70)
+        about_btn.setFixedWidth(70)
+        about_btn.setToolTip("About openstan")
+        about_btn.setAccessibleName("About openstan")
         about_btn.clicked.connect(self.about_requested)
+
+        admin_btn = StanButton("Admin", min_width=70)
+        admin_btn.setFixedWidth(70)
+        admin_btn.setToolTip(
+            "Open admin options (delete / remove projects, reset application)"
+        )
+        admin_btn.setAccessibleName("Admin options")
+        admin_btn.clicked.connect(self.admin_requested)
 
         layout = QHBoxLayout()
         layout.setContentsMargins(8, 4, 8, 4)
         layout.addWidget(wordmark)
         layout.addStretch()
+        layout.addWidget(admin_btn)
         layout.addWidget(about_btn)
         self.setLayout(layout)
         self.setMaximumHeight(72)

@@ -1,11 +1,11 @@
 from PyQt6.QtCore import QAbstractTableModel, QSize, Qt
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPalette, QPixmap
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDateEdit,
     QDialog,
-    QErrorMessage,
+    QDialogButtonBox,
     QFormLayout,
     QFrame,
     QGroupBox,
@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
     QToolButton,
     QToolTip,
     QTreeView,
+    QVBoxLayout,
     QWidget,
     QWizard,
     QWizardPage,
@@ -116,12 +117,38 @@ class StanRadioButton(QRadioButton):
         self.setAutoFillBackground(True)
 
 
-class StanErrorMessage(QErrorMessage):
+class StanErrorMessage(QDialog):
+    """A modal error dialog that shows a message without a 'don't show again' checkbox.
+
+    Provides the same ``.showMessage(text)`` API as ``QErrorMessage`` so all
+    existing callers need no changes.
+    """
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Error")
         self.setModal(True)
         self.setWindowModality(Qt.WindowModality.WindowModal)
+        self.setMinimumWidth(360)
+
+        self._label = QLabel()
+        self._label.setWordWrap(True)
+        self._label.setTextFormat(Qt.TextFormat.PlainText)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        buttons.accepted.connect(self.accept)
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(16)
+        layout.addWidget(self._label)
+        layout.addWidget(buttons)
+        self.setLayout(layout)
+
+    def showMessage(self, message: str) -> None:  # noqa: N802
+        """Display *message* in the dialog and exec it modally."""
+        self._label.setText(message)
+        self.exec()
 
 
 class StanInfoMessage(QMessageBox):
@@ -173,11 +200,19 @@ class StanHeaderLabel(StanLabel):
 
 
 class StanMutedLabel(StanLabel):
-    """A StanLabel rendered in a muted (grey) colour — used for placeholder/absent cells."""
+    """A StanLabel rendered in a muted colour — used for placeholder/absent cells.
+
+    Uses the ``Mid`` palette role so the colour adapts to the active theme
+    and high-contrast modes rather than relying on the hardcoded string "grey".
+    """
 
     def __init__(self, text="Label") -> None:
         super().__init__(text)
-        self.setStyleSheet("color: grey;")
+        # Resolve the palette's Mid colour at construction time and apply it.
+        # We use a stylesheet so the colour is visible immediately; the palette
+        # role adapts to light/dark/high-contrast themes.
+        color = self.palette().color(QPalette.ColorRole.Mid).name()
+        self.setStyleSheet(f"color: {color};")
 
 
 class StanButton(QPushButton):
@@ -203,55 +238,57 @@ class StanWizard(QWizard):
         self.setWindowModality(Qt.WindowModality.WindowModal)
 
 
-class StanHelpIcon(QLabel):
-    """A small themed info icon that shows a tooltip on hover and click.
+class StanHelpIcon(QPushButton):
+    """A small themed info icon that shows a tooltip on hover, click, and keyboard activation.
 
-    Uses the ``info.svg`` icon from the themed icon directory (dark/light).
-    The help text is displayed via ``QToolTip`` so it works on both hover
-    and click without needing a separate popup widget.
+    Subclasses ``QPushButton`` so that it is focusable via Tab and can be
+    activated with Space / Enter — making help text accessible without a mouse.
 
     Parameters
     ----------
     help_text:
-        The explanatory text shown when the user hovers over or clicks the
-        icon.
+        The explanatory text shown when the user hovers over, clicks, or
+        keyboard-activates the icon.
     """
 
     def __init__(self, help_text: str) -> None:
         super().__init__()
         self._help_text = help_text
         self.setAutoFillBackground(True)
-        self.setFixedSize(16, 16)
+        self.setFixedSize(20, 20)
+        self.setFlat(True)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setCursor(Qt.CursorShape.WhatsThisCursor)
         self.setToolTip(help_text)
+        self.setAccessibleName("Help")
+        self.setAccessibleDescription(help_text)
+        self.clicked.connect(self._show_tooltip)
         self._load_icon()
 
     def _load_icon(self) -> None:
-        """Load the themed info.svg and set it as the label pixmap."""
+        """Load the themed info.svg and set it as the button icon."""
         from openstan.paths import Paths
 
         icon_path = Paths.themed_icon("info.svg")
         pixmap = QPixmap(icon_path)
         if not pixmap.isNull():
-            self.setPixmap(
-                pixmap.scaled(
-                    16,
-                    16,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation,
-                )
-            )
+            from PyQt6.QtGui import QIcon
+
+            self.setIcon(QIcon(pixmap))
+            self.setIconSize(QSize(16, 16))
+            self.setText("")
         else:
             # Fallback: render a text "?" if icon not found.
             self.setText("?")
-            self.setAlignment(
-                Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
-            )
 
-    def mousePressEvent(self, ev) -> None:  # noqa: N802
+    def _show_tooltip(self) -> None:
+        """Show the tooltip at the centre of the button (click or keyboard)."""
+        QToolTip.showText(self.mapToGlobal(self.rect().center()), self._help_text, self)
+
+    def mousePressEvent(self, e) -> None:  # noqa: N802
         """Show the tooltip at the cursor position on click."""
         QToolTip.showText(self.mapToGlobal(self.rect().center()), self._help_text, self)
-        super().mousePressEvent(ev)
+        super().mousePressEvent(e)
 
 
 class StanComboBox(QComboBox):

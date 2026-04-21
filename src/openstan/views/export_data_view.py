@@ -153,6 +153,8 @@ class ExportDataView(StanWidget):
         self.radio_type_single = StanRadioButton("Single")
         self.radio_type_multi = StanRadioButton("Multi")
         self.radio_type_single.setChecked(True)
+        self.radio_type_single.setAccessibleName("Export type: Single flat table")
+        self.radio_type_multi.setAccessibleName("Export type: Multi star-schema tables")
         type_container, self.group_type = _make_option_group(
             "**Type**", _HELP_TYPE, self.radio_type_single, self.radio_type_multi
         )
@@ -161,6 +163,8 @@ class ExportDataView(StanWidget):
         self.radio_batch_all = StanRadioButton("All")
         self.radio_batch_latest = StanRadioButton("Latest")
         self.radio_batch_all.setChecked(True)
+        self.radio_batch_all.setAccessibleName("Batch filter: All batches")
+        self.radio_batch_latest.setAccessibleName("Batch filter: Latest batch only")
         batch_container, self.group_batch = _make_option_group(
             "**Batch**", _HELP_BATCH, self.radio_batch_all, self.radio_batch_latest
         )
@@ -169,6 +173,8 @@ class ExportDataView(StanWidget):
         self.radio_ts_on = StanRadioButton("Timestamp files")
         self.radio_ts_off = StanRadioButton("Overwrite")
         self.radio_ts_on.setChecked(True)
+        self.radio_ts_on.setAccessibleName("File naming: Append timestamp")
+        self.radio_ts_off.setAccessibleName("File naming: Overwrite existing files")
         ts_container, self.group_timestamp = _make_option_group(
             "**File naming**", _HELP_TIMESTAMP, self.radio_ts_on, self.radio_ts_off
         )
@@ -193,9 +199,14 @@ class ExportDataView(StanWidget):
         self.line_edit_folder = StanLineEdit()
         self.line_edit_folder.setReadOnly(True)
         self.line_edit_folder.setPlaceholderText("(project default)")
+        self.line_edit_folder.setAccessibleName("Export folder path")
 
         self.button_browse_folder = StanButton("Browse", min_width=0)
+        self.button_browse_folder.setToolTip("Choose a custom export output folder")
         self.button_reset_folder = StanButton("Reset", min_width=0)
+        self.button_reset_folder.setToolTip(
+            "Reset export folder to the project default"
+        )
 
         folder_controls = QHBoxLayout()
         folder_controls.setContentsMargins(0, 0, 0, 0)
@@ -218,10 +229,13 @@ class ExportDataView(StanWidget):
         # ── Export buttons ─────────────────────────────────────────────────
         self.button_excel = StanButton("Export Excel")
         self.button_excel.setIcon(QIcon(Paths.themed_icon("excel.svg")))
+        self.button_excel.setToolTip("Export transactions to an Excel (.xlsx) file")
         self.button_csv = StanButton("Export CSV")
         self.button_csv.setIcon(QIcon(Paths.themed_icon("csv.svg")))
+        self.button_csv.setToolTip("Export transactions to a CSV file")
         self.button_json = StanButton("Export JSON")
         self.button_json.setIcon(QIcon(Paths.themed_icon("json.svg")))
+        self.button_json.setToolTip("Export transactions to a JSON file")
 
         button_row = QHBoxLayout()
         button_row.setSpacing(8)
@@ -310,3 +324,18 @@ class ExportDataView(StanWidget):
     def show_placeholder(self, show: bool) -> None:
         """Switch between placeholder (page 0) and real content (page 1)."""
         self._stack.setCurrentIndex(0 if show else 1)
+
+    def setup_tab_order(self) -> None:
+        """Establish an explicit, logical Tab key traversal order for the standard tab."""
+        # Parameter group: Type → Batch → File naming → folder browse → reset
+        self.setTabOrder(self.radio_type_single, self.radio_type_multi)
+        self.setTabOrder(self.radio_type_multi, self.radio_batch_all)
+        self.setTabOrder(self.radio_batch_all, self.radio_batch_latest)
+        self.setTabOrder(self.radio_batch_latest, self.radio_ts_on)
+        self.setTabOrder(self.radio_ts_on, self.radio_ts_off)
+        self.setTabOrder(self.radio_ts_off, self.button_browse_folder)
+        self.setTabOrder(self.button_browse_folder, self.button_reset_folder)
+        # Export action buttons
+        self.setTabOrder(self.button_reset_folder, self.button_excel)
+        self.setTabOrder(self.button_excel, self.button_csv)
+        self.setTabOrder(self.button_csv, self.button_json)

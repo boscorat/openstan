@@ -167,11 +167,20 @@ class ProjectInfoView(StanWidget):
         # ── Gap indicator ─────────────────────────────────────────────────────
         self._gap_button = QPushButton()
         self._gap_button.setFlat(True)
+        # Use the Link colour role so the warning text adapts to the active
+        # theme (including high-contrast modes) rather than a hardcoded hex.
         self._gap_button.setStyleSheet(
-            "QPushButton { color: #c0392b; font-weight: bold; text-align: left; border: none; }"
+            "QPushButton { color: palette(link); font-weight: bold; text-align: left; border: none; }"
             "QPushButton:hover { text-decoration: underline; }"
         )
         self._gap_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._gap_button.setToolTip(
+            "A gap means there is a missing statement between two consecutive imported statements "
+            "for the same account.  Click to see which accounts and date ranges are affected."
+        )
+        self._gap_button.setAccessibleDescription(
+            "One or more statement gaps detected. Click to review."
+        )
         self._gap_button.clicked.connect(self.gap_clicked)
         self._gap_button.hide()
 
