@@ -2,6 +2,19 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtSql import QSqlRecord, QSqlTableModel
 
+_HEX_CHARS: frozenset[str] = frozenset("0123456789abcdef")
+
+
+def _safe_hex_id(value: str) -> str:
+    """Validate that *value* is a 32-character lowercase hex string (uuid4().hex).
+
+    Raises ``ValueError`` if the value does not match, preventing raw
+    interpolation of untrusted strings into ``setFilter`` SQL expressions.
+    """
+    if len(value) != 32 or not all(c in _HEX_CHARS for c in value):
+        raise ValueError(f"Invalid ID value {value!r}: expected 32-char hex string")
+    return value
+
 
 class StatementQueueModel(QSqlTableModel):
     """SQL table model for the ``statement_queue`` table.
@@ -30,7 +43,7 @@ class StatementQueueModel(QSqlTableModel):
         Call this whenever the active project changes.
         """
         self._project_id = project_id
-        self.setFilter(f"project_id = '{project_id}'")
+        self.setFilter(f"project_id = '{_safe_hex_id(project_id)}'")
         self.select()
 
     # ---------------------------------------------------------------------------
@@ -201,10 +214,11 @@ class StatementQueueTreeModel(QStandardItemModel):
         self.child_model = StatementQueueModel(db=db)
 
     def update_model(self, project_id) -> None:
-        self.parent_filter = f"parent_id = queue_id AND project_id = '{project_id}'"
+        pid = _safe_hex_id(project_id)
+        self.parent_filter = f"parent_id = queue_id AND project_id = '{pid}'"
         self.parent_model.setFilter(self.parent_filter)
         self.parent_model.select()
-        self.child_filter = f"parent_id != queue_id AND project_id = '{project_id}'"
+        self.child_filter = f"parent_id != queue_id AND project_id = '{pid}'"
         self.child_model.setFilter(self.child_filter)
         self.child_model.select()
         self.clear()
@@ -222,7 +236,7 @@ class StatementQueueTreeModel(QStandardItemModel):
                 parent_id = QStandardItem(record.value("queue_id"))
                 parent_path = QStandardItem(record.value("path"))
                 parent_path.setData(record.value("path"), Qt.ItemDataRole.UserRole)
-                child_filter: str = f"parent_id = '{record.value('queue_id')}' AND queue_id != parent_id"
+                child_filter: str = f"parent_id = '{_safe_hex_id(record.value('queue_id'))}' AND queue_id != parent_id"
                 self.child_model.setFilter(child_filter)
                 if self.child_model.rowCount() > 0:
                     for child_row in range(self.child_model.rowCount()):

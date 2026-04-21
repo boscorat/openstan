@@ -33,6 +33,8 @@ from typing import TYPE_CHECKING
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtSql import QSqlRecord, QSqlTableModel
 
+from openstan.models.statement_queue_model import _safe_hex_id
+
 if TYPE_CHECKING:
     from PyQt6.QtSql import QSqlDatabase
 
@@ -70,7 +72,9 @@ class BatchModel(QSqlTableModel):
         """Return the most recent ``batch_id`` for *project_id* with *status*,
         or ``None`` if no matching rows exist.
         """
-        self.setFilter(f"project_id = '{project_id}' AND status = {status}")
+        self.setFilter(
+            f"project_id = '{_safe_hex_id(project_id)}' AND status = {int(status)}"
+        )
         self.setSort(self.fieldIndex("created"), Qt.SortOrder.DescendingOrder)
         self.select()
         batch_id: str | None = None
@@ -115,7 +119,7 @@ class BatchModel(QSqlTableModel):
 
     def delete_batch(self, batch_id: str) -> tuple[bool, str]:
         """Delete the row for *batch_id*.  Returns (success, message)."""
-        with self._filtered(f"batch_id = '{batch_id}'"):
+        with self._filtered(f"batch_id = '{_safe_hex_id(batch_id)}'"):
             for row in range(self.rowCount() - 1, -1, -1):
                 self.removeRow(row)
             if self.submitAll():
@@ -130,7 +134,7 @@ class BatchModel(QSqlTableModel):
         three BSP calls (``update_db``, ``copy_statements``, ``delete_temps``)
         succeed.  Returns (success, message).
         """
-        with self._filtered(f"batch_id = '{batch_id}'"):
+        with self._filtered(f"batch_id = '{_safe_hex_id(batch_id)}'"):
             if self.rowCount() == 0:
                 return (False, f"Batch {batch_id} not found")
             record: QSqlRecord = self.record(0)
@@ -149,7 +153,7 @@ class BatchModel(QSqlTableModel):
 
     def get_duration(self, batch_id: str) -> float:
         """Return persisted ``duration_secs`` for *batch_id*, or ``0.0`` if absent."""
-        with self._filtered(f"batch_id = '{batch_id}'"):
+        with self._filtered(f"batch_id = '{_safe_hex_id(batch_id)}'"):
             val = self.record(0).value("duration_secs") if self.rowCount() > 0 else None
             return float(val) if val is not None else 0.0
 

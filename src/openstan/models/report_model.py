@@ -212,6 +212,15 @@ class ReportModel(QObject):
         reports_dir = self.reports_dir(project_path)
         safe_name = _slugify(filename) or "report"
         path = reports_dir / f"{safe_name}.toml"
+        # Guard against path traversal: confirm the resolved destination
+        # is still inside the reports directory.  This catches edge cases
+        # where project_path points at a sensitive system directory.
+        if not path.resolve().is_relative_to(reports_dir.resolve()):
+            return (
+                False,
+                path,
+                "Invalid report path: would write outside project directory",
+            )
         try:
             with open(path, "wb") as fh:
                 tomli_w.dump(definition, fh)
