@@ -251,7 +251,7 @@ dev = [
 requires-dist = [
     { name = "pyqt6", specifier = ">=6.10.2" },
     { name = "tomli-w", specifier = ">=1.2.0" },
-    { name = "uk-bank-statement-parser", git = "https://github.com/boscorat/bank_statement_parser?tag=v0.2.1a8" },
+    { name = "uk-bank-statement-parser", git = "https://github.com/boscorat/bank_statement_parser?tag=v0.2.1a9" },
 ]
 
 [package.metadata.requires-dev]
@@ -562,8 +562,8 @@ wheels = [
 
 [[package]]
 name = "uk-bank-statement-parser"
-version = "0.2.1a8"
-source = { git = "https://github.com/boscorat/bank_statement_parser?tag=v0.2.1a8#526c0c641a5c951d8b4289f0773f439bc59b5e18" }
+version = "0.2.1a9"
+source = { git = "https://github.com/boscorat/bank_statement_parser?tag=v0.2.1a9#8ae7b5cbd0eadb2009130658e514360e7f0d05d5" }
 dependencies = [
     { name = "dacite" },
     { name = "pdfplumber" },

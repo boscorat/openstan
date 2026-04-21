@@ -32,7 +32,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-uk-bank-statement-parser = { git = "https://github.com/boscorat/bank_statement_parser", tag = "v0.2.1a8" }
+uk-bank-statement-parser = { git = "https://github.com/boscorat/bank_statement_parser", tag = "v0.2.1a9" }
 
 [tool.pyrefly]
 search-path = ["."]
