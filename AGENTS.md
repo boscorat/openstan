@@ -35,10 +35,32 @@ uv run pyrefly check
 
 ---
 
-## Tests
+## Pre-PR Checklist
 
-There is currently **no test suite**. No `pytest` or test files exist yet.
-When tests are added:
+**Always run all of the following before opening or updating a pull request.**
+These mirror the steps in `.github/workflows/ci.yml` and will be enforced by GitHub Actions.
+
+```bash
+# 1. Lint
+uv run ruff check .
+
+# 2. Format check (do NOT skip — ruff format changes are required to pass CI)
+uv run ruff format --check .
+# Auto-fix if needed:
+uv run ruff format .
+
+# 3. Type check
+uv run pyrefly check
+
+# 4. Tests
+uv run pytest tests/ -v
+```
+
+All four commands must exit cleanly (zero errors) before the PR is opened or force-pushed.
+
+---
+
+## Tests
 
 ```bash
 # Install pytest (one-time)
