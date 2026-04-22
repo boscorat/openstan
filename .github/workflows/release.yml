@@ -8,6 +8,12 @@ name: Release
 # This workflow uses cx_Freeze for all platforms.  If cx_Freeze fails on a
 # platform during validation testing, switch that job's build step to the
 # PyInstaller path (see comments in each job).
+#
+# Icon conversion strategy: Inkscape headless CLI.
+# cairosvg requires the libcairo system library which is not pre-installed on
+# any GitHub-hosted runner.  Inkscape is available on all three platforms via
+# the system package manager (apt/brew/choco) and converts SVG → PNG natively.
+# Pillow is then used (Python-only, no system deps) to produce .ico and .icns.
 
 on:
   push:
@@ -34,7 +40,7 @@ jobs:
         with:
           python-version: "3.14"
 
-      - name: Install Qt system dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
@@ -42,35 +48,32 @@ jobs:
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
             libxcb-xkb1 libegl1 libxkbcommon-x11-0 libdbus-1-3 \
             libfontconfig1 libfreetype6 \
-            rpm build-essential
+            rpm rpm-build dpkg-dev fakeroot \
+            inkscape
 
-      - name: Install Python dependencies (including packaging tools)
+      - name: Install Python dependencies
         run: uv sync --all-groups
 
-      # Icon conversion: SVG → PNG intermediate → .ico (for cross-platform reference)
-      # Linux packages use the SVG directly via the .desktop entry; no .ico needed here.
-      - name: Convert app icon SVG → PNG (Linux desktop entry)
+      # Inkscape converts SVG → PNG; Pillow (pure Python) converts PNG → .ico.
+      # The resulting .png is also placed in the package share/ directory so
+      # the .desktop entry can reference it.
+      - name: Convert app icon SVG → PNG
         run: |
           mkdir -p build/icons
-          uv run python - <<'EOF'
-          import cairosvg, pathlib
-          cairosvg.svg2png(
-              url="src/openstan/icons/icon-square.svg",
-              write_to="build/icons/openstan.png",
-              output_width=256, output_height=256,
-          )
-          EOF
-        continue-on-error: true   # non-fatal: .desktop file can reference the SVG directly
+          inkscape --export-type=png \
+                   --export-filename=build/icons/openstan.png \
+                   --export-width=256 --export-height=256 \
+                   src/openstan/icons/icon-square.svg
 
       # ── cx_Freeze build ────────────────────────────────────────────────────
       - name: Build frozen app (cx_Freeze)
         run: uv run python cx_freeze_setup.py build
 
-      - name: Build .deb package
-        run: uv run python cx_freeze_setup.py bdist_deb
-
       - name: Build .rpm package
         run: uv run python cx_freeze_setup.py bdist_rpm
+
+      - name: Build .deb package
+        run: uv run python cx_freeze_setup.py bdist_deb
 
       # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
       # - name: Build frozen app (PyInstaller fallback)
@@ -116,28 +119,31 @@ jobs:
         with:
           python-version: "3.14"
 
-      - name: Install Python dependencies (including packaging tools)
+      - name: Install Inkscape
+        run: choco install inkscape --no-progress -y
+
+      - name: Install Python dependencies
         run: uv sync --all-groups
 
-      # Icon conversion: SVG → multi-resolution .ico
+      # Inkscape converts SVG → PNG at each required .ico size.
+      # Pillow (pure Python, no system libs) assembles the multi-resolution .ico.
       - name: Convert app icon SVG → .ico
-        shell: python
+        shell: pwsh
         run: |
-          import subprocess, sys, pathlib
-          # Install cairosvg temporarily for the icon conversion step
-          subprocess.check_call([sys.executable, "-m", "pip", "install", "cairosvg", "Pillow"])
-          import cairosvg
+          New-Item -ItemType Directory -Force -Path build\icons | Out-Null
+          $inkscape = "C:\Program Files\Inkscape\bin\inkscape.exe"
+          $sizes = 16, 32, 48, 64, 128, 256
+          foreach ($sz in $sizes) {
+            & $inkscape --export-type=png `
+                        --export-filename="build\icons\icon_${sz}.png" `
+                        --export-width=$sz --export-height=$sz `
+                        src\openstan\icons\icon-square.svg
+          }
+          uv run python - <<'PYEOF'
           from PIL import Image
           import io, pathlib
-          pathlib.Path("build/icons").mkdir(parents=True, exist_ok=True)
-          sizes = [16, 32,48, 64, 128, 256]
-          imgs = []
-          for sz in sizes:
-              png_data = cairosvg.svg2png(
-                  url="src/openstan/icons/icon-square.svg",
-                  output_width=sz, output_height=sz,
-              )
-              imgs.append(Image.open(io.BytesIO(png_data)))
+          sizes = [16, 32, 48, 64, 128, 256]
+          imgs = [Image.open(f"build/icons/icon_{sz}.png") for sz in sizes]
           imgs[0].save(
               "build/icons/openstan.ico",
               format="ICO",
@@ -145,6 +151,7 @@ jobs:
               append_images=imgs[1:],
           )
           print("Icon written to build/icons/openstan.ico")
+          PYEOF
 
       # ── cx_Freeze build ────────────────────────────────────────────────────
       - name: Build .msi installer (cx_Freeze)
@@ -181,41 +188,40 @@ jobs:
         with:
           python-version: "3.14"
 
-      - name: Install Python dependencies (including packaging tools)
+      - name: Install Inkscape
+        run: brew install inkscape
+
+      - name: Install Python dependencies
         run: uv sync --all-groups
 
-      # Icon conversion: SVG → .icns
+      # Inkscape converts SVG → PNG at each size.
+      # Pillow assembles the PNGs into an iconset; iconutil (macOS built-in)
+      # compiles the iconset into an .icns file.
       - name: Convert app icon SVG → .icns
         run: |
-          pip install cairosvg Pillow
           mkdir -p build/icons
-          python - <<'EOF'
-          import cairosvg, io, pathlib, subprocess, tempfile, os
-          from PIL import Image
+          ICONSET=$(mktemp -d)/openstan.iconset
+          mkdir -p "$ICONSET"
 
-          sizes = [16, 32, 64, 128, 256, 512, 1024]
-          iconset = pathlib.Path(tempfile.mkdtemp()) / "openstan.iconset"
-          iconset.mkdir()
+          # Standard sizes required by macOS iconutil
+          for SZ in 16 32 64 128 256 512 1024; do
+            inkscape --export-type=png \
+                     --export-filename="${ICONSET}/icon_${SZ}x${SZ}.png" \
+                     --export-width=${SZ} --export-height=${SZ} \
+                     src/openstan/icons/icon-square.svg
+          done
 
-          for sz in sizes:
-              png_data = cairosvg.svg2png(
-                  url="src/openstan/icons/icon-square.svg",
-                  output_width=sz, output_height=sz,
-              )
-              img = Image.open(io.BytesIO(png_data))
-              img.save(iconset / f"icon_{sz}x{sz}.png")
-              if sz <= 512:
-                  img2x = Image.open(io.BytesIO(
-                      cairosvg.svg2png(
-                          url="src/openstan/icons/icon-square.svg",
-                          output_width=sz*2, output_height=sz*2,
-                      )
-                  ))
-                  img2x.save(iconset / f"icon_{sz}x{sz}@2x.png")
+          # @2x variants (up to 512@2x = 1024px)
+          for SZ in 16 32 64 128 256 512; do
+            SZ2=$((SZ * 2))
+            inkscape --export-type=png \
+                     --export-filename="${ICONSET}/icon_${SZ}x${SZ}@2x.png" \
+                     --export-width=${SZ2} --export-height=${SZ2} \
+                     src/openstan/icons/icon-square.svg
+          done
 
-          subprocess.check_call(["iconutil", "-c", "icns", str(iconset), "-o", "build/icons/openstan.icns"])
-          print("Icon written to build/icons/openstan.icns")
-          EOF
+          iconutil -c icns "$ICONSET" -o build/icons/openstan.icns
+          echo "Icon written to build/icons/openstan.icns"
 
       # ── cx_Freeze build ────────────────────────────────────────────────────
       - name: Build .dmg disk image (cx_Freeze)

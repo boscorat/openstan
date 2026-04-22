@@ -386,6 +386,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "cx-freeze" },
+    { name = "pillow" },
     { name = "pyinstaller" },
     { name = "pyrefly" },
     { name = "pytest" },
@@ -402,6 +403,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "cx-freeze", specifier = ">=8.0.0" },
+    { name = "pillow", specifier = ">=11.0.0" },
     { name = "pyinstaller", specifier = ">=6.0.0" },
     { name = "pyrefly", specifier = ">=0.50.0" },
     { name = "pytest", specifier = ">=9.0.0" },

@@ -27,6 +27,7 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "cx-freeze>=8.0.0",
+    "pillow>=11.0.0",
     "pyinstaller>=6.0.0",
     "pyrefly>=0.50.0",
     "pytest>=9.0.0",
