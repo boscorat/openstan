@@ -27,10 +27,13 @@ permissions:
 jobs:
   # ---------------------------------------------------------------------------
   # Linux — produces .deb and .rpm
+  # TEMPORARILY DISABLED while troubleshooting macOS and Windows builds.
+  # Re-enable by removing the `if: false` condition.
   # ---------------------------------------------------------------------------
   build-linux:
     name: Build Linux packages (.deb / .rpm)
     runs-on: ubuntu-latest
+    if: false
 
     steps:
       - uses: actions/checkout@v4
@@ -121,7 +124,12 @@ jobs:
           python-version: "3.14"
 
       - name: Install resvg (headless SVG→PNG, no display required)
-        run: choco install resvg --no-progress -y
+        shell: pwsh
+        run: |
+          $url = "https://github.com/linebender/resvg/releases/download/v0.44.0/resvg-win64.zip"
+          Invoke-WebRequest $url -OutFile resvg.zip
+          Expand-Archive resvg.zip -DestinationPath C:\resvg
+          echo "C:\resvg" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Install Python dependencies
         run: uv sync --all-groups
@@ -182,8 +190,14 @@ jobs:
       - name: Install libiodbc (required by cx_Freeze on macOS)
         run: brew install libiodbc
 
-      - name: Install libpq (required by cx_Freeze on macOS)
-        run: brew install libpq
+      - name: Remove Postgres.app and install libpq via brew
+        # cx_Freeze scans dylib dependencies and picks up libpq from the
+        # pre-installed Postgres.app on macOS runners.  Remove it so that
+        # the brew-installed libpq (under /opt/homebrew) is found instead.
+        run: |
+          sudo rm -rf /Applications/Postgres.app
+          brew install libpq
+          brew link --force libpq
 
       - name: Install Python dependencies
         run: uv sync --all-groups
