@@ -48,7 +48,7 @@ jobs:
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
             libxcb-xkb1 libegl1 libxkbcommon-x11-0 libdbus-1-3 \
             libfontconfig1 libfreetype6 \
-            rpm rpm-build dpkg-dev fakeroot \
+            rpm dpkg-dev fakeroot \
             inkscape
 
       - name: Install Python dependencies
@@ -127,6 +127,8 @@ jobs:
 
       # Inkscape converts SVG → PNG at each required .ico size.
       # Pillow (pure Python, no system libs) assembles the multi-resolution .ico.
+      # The Python assembly is in .github/scripts/make_ico.py to avoid
+      # heredoc syntax which PowerShell does not support.
       - name: Convert app icon SVG → .ico
         shell: pwsh
         run: |
@@ -139,19 +141,7 @@ jobs:
                         --export-width=$sz --export-height=$sz `
                         src\openstan\icons\icon-square.svg
           }
-          uv run python - <<'PYEOF'
-          from PIL import Image
-          import io, pathlib
-          sizes = [16, 32, 48, 64, 128, 256]
-          imgs = [Image.open(f"build/icons/icon_{sz}.png") for sz in sizes]
-          imgs[0].save(
-              "build/icons/openstan.ico",
-              format="ICO",
-              sizes=[(sz, sz) for sz in sizes],
-              append_images=imgs[1:],
-          )
-          print("Icon written to build/icons/openstan.ico")
-          PYEOF
+          uv run python .github/scripts/make_ico.py
 
       # ── cx_Freeze build ────────────────────────────────────────────────────
       - name: Build .msi installer (cx_Freeze)
@@ -190,6 +180,9 @@ jobs:
 
       - name: Install Inkscape
         run: brew install inkscape
+
+      - name: Install libiodbc (required by cx_Freeze on macOS)
+        run: brew install libiodbc
 
       - name: Install Python dependencies
         run: uv sync --all-groups
