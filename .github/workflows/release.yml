@@ -27,13 +27,10 @@ permissions:
 jobs:
   # ---------------------------------------------------------------------------
   # Linux — produces .deb and .rpm
-  # TEMPORARILY DISABLED while troubleshooting macOS and Windows builds.
-  # Re-enable by removing the `if: false` condition.
   # ---------------------------------------------------------------------------
   build-linux:
     name: Build Linux packages (.deb / .rpm)
     runs-on: ubuntu-latest
-    if: false
 
     steps:
       - uses: actions/checkout@v4
@@ -109,12 +106,10 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Windows — produces .msi installer
-  # TEMPORARILY DISABLED — build succeeds; re-enable once macOS is green.
   # ---------------------------------------------------------------------------
   build-windows:
     name: Build Windows installer (.msi)
     runs-on: windows-latest
-    if: false
 
     steps:
       - uses: actions/checkout@v4

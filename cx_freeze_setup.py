@@ -114,8 +114,8 @@ build_exe_options: dict = {
     # qsqlpsql (PostgreSQL), which depend on system libraries not present on
     # CI runners.  We only use SQLite — qsqlite is included automatically.
     "bin_excludes": [
-        "libmimerapi.dylib",   # MimerSQL — not present on macOS runners
-        "libpq.dylib",         # PostgreSQL client — not needed at runtime
+        "libmimerapi.dylib",  # MimerSQL — not present on macOS runners
+        "libpq.dylib",  # PostgreSQL client — not needed at runtime
     ],
     "optimize": 1,
     "build_exe": str(HERE / "dist" / "openstan"),
