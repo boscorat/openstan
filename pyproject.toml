@@ -1,6 +1,6 @@
 [project]
 name = "openstan"
-version = "0.1.1a1"
+version = "0.1.2a1"
 description = "Open source application for statement analysis and visualization"
 readme = "README.md"
 authors = [
@@ -10,7 +10,7 @@ requires-python = ">=3.14"
 dependencies = [
     "pyqt6>=6.10.2",
     "tomli-w>=1.2.0",
-    "uk-bank-statement-parser==0.2.1a9",
+    "uk-bank-statement-parser==0.2.1b1",
 ]
 
 [project.urls]

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=openstan
+GenericName=Bank Statement Analyser
+Comment=Open source bank statement analysis and visualization
+Exec=openstan
+Icon=openstan
+Terminal=false
+Categories=Office;Finance;
+Keywords=bank;statement;finance;analysis;
+StartupNotify=true
+StartupWMClass=openstan

@@ -375,7 +375,7 @@ wheels = [
 
 [[package]]
 name = "openstan"
-version = "0.1.1a1"
+version = "0.1.2a1"
 source = { editable = "." }
 dependencies = [
     { name = "pyqt6" },
@@ -397,7 +397,7 @@ dev = [
 requires-dist = [
     { name = "pyqt6", specifier = ">=6.10.2" },
     { name = "tomli-w", specifier = ">=1.2.0" },
-    { name = "uk-bank-statement-parser", specifier = "==0.2.1a9" },
+    { name = "uk-bank-statement-parser", specifier = "==0.2.1b1" },
 ]
 
 [package.metadata.requires-dev]
@@ -816,7 +816,7 @@ wheels = [
 
 [[package]]
 name = "uk-bank-statement-parser"
-version = "0.2.1a9"
+version = "0.2.1b1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dacite" },
@@ -826,9 +826,9 @@ dependencies = [
     { name = "requests" },
     { name = "xlsxwriter" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e3/8a/be6670ad849f6c0abbf76594c54e94ea25ae4540dd5149a8f244d5744101/uk_bank_statement_parser-0.2.1a9.tar.gz", hash = "sha256:a9545267f34ce0c15bc30fb39178b9c0e937830e71afc70e2138eefa3375c2a8", size = 4607006, upload-time = "2026-04-21T09:59:50.493Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/00/a7/5922de9a6693beaa190c35635f625f98da66d783199df93973eac024d20b/uk_bank_statement_parser-0.2.1b1.tar.gz", hash = "sha256:b02fc3e835fbd8c3a9ebd4fea807c8cf18d3ebb8a3ee1037dc2ec8fe94b89e01", size = 4607312, upload-time = "2026-04-22T17:18:16.744Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/3d/4f59046c5c0ab52726a7e84092c88d73eb54e39733e47d890a333bbbb969/uk_bank_statement_parser-0.2.1a9-py3-none-any.whl", hash = "sha256:a5775b153e4f67f43fe09e74f0fea9cedd918aa4bb3a554ca1b6ad05cecd824b", size = 4639951, upload-time = "2026-04-21T09:59:52.364Z" },
+    { url = "https://files.pythonhosted.org/packages/aa/7f/4b390acec49f9de473c08dabc3696ba769864352ed0e623cb713a785fe65/uk_bank_statement_parser-0.2.1b1-py3-none-any.whl", hash = "sha256:7e3f2bb47c61d618401f8dac0960818f415c7a8e3259238fbefbf43aceb2b7ef", size = 4640233, upload-time = "2026-04-22T17:18:15.217Z" },
 ]
 
 [[package]]
