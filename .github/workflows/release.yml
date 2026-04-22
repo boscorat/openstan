@@ -31,6 +31,7 @@ jobs:
   build-linux:
     name: Build Linux packages (.deb / .rpm)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v4
@@ -72,9 +73,11 @@ jobs:
 
       - name: Build .rpm package
         run: uv run python cx_freeze_setup.py bdist_rpm
+        timeout-minutes: 10
 
       - name: Build .deb package
         run: uv run python cx_freeze_setup.py bdist_deb
+        timeout-minutes: 10
 
       # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
       # - name: Build frozen app (PyInstaller fallback)
