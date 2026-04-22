@@ -10,7 +10,7 @@ requires-python = ">=3.14"
 dependencies = [
     "pyqt6>=6.10.2",
     "tomli-w>=1.2.0",
-    "uk-bank-statement-parser",
+    "uk-bank-statement-parser==0.2.1a9",
 ]
 
 [project.urls]
@@ -44,8 +44,8 @@ dev = [
 # against a specific in-progress tag of the upstream bsp repo without waiting
 # for a PyPI release.  Remove or update this entry when pinning to a released
 # PyPI version for a production build.
-[tool.uv.sources]
-uk-bank-statement-parser = { git = "https://github.com/boscorat/bank_statement_parser", tag = "v0.2.1a9" }
+#[tool.uv.sources]
+#uk-bank-statement-parser = { git = "https://github.com/boscorat/bank_statement_parser", tag = "v0.2.1a9" }
 
 [tool.pyrefly]
 search-path = ["."]

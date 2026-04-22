@@ -396,7 +396,7 @@ dev = [
 requires-dist = [
     { name = "pyqt6", specifier = ">=6.10.2" },
     { name = "tomli-w", specifier = ">=1.2.0" },
-    { name = "uk-bank-statement-parser", git = "https://github.com/boscorat/bank_statement_parser?tag=v0.2.1a9" },
+    { name = "uk-bank-statement-parser", specifier = "==0.2.1a9" },
 ]
 
 [package.metadata.requires-dev]
@@ -815,7 +815,7 @@ wheels = [
 [[package]]
 name = "uk-bank-statement-parser"
 version = "0.2.1a9"
-source = { git = "https://github.com/boscorat/bank_statement_parser?tag=v0.2.1a9#8ae7b5cbd0eadb2009130658e514360e7f0d05d5" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dacite" },
     { name = "pdfplumber" },
@@ -823,6 +823,10 @@ dependencies = [
     { name = "polars" },
     { name = "requests" },
     { name = "xlsxwriter" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e3/8a/be6670ad849f6c0abbf76594c54e94ea25ae4540dd5149a8f244d5744101/uk_bank_statement_parser-0.2.1a9.tar.gz", hash = "sha256:a9545267f34ce0c15bc30fb39178b9c0e937830e71afc70e2138eefa3375c2a8", size = 4607006, upload-time = "2026-04-21T09:59:50.493Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0f/3d/4f59046c5c0ab52726a7e84092c88d73eb54e39733e47d890a333bbbb969/uk_bank_statement_parser-0.2.1a9-py3-none-any.whl", hash = "sha256:a5775b153e4f67f43fe09e74f0fea9cedd918aa4bb3a554ca1b6ad05cecd824b", size = 4639951, upload-time = "2026-04-21T09:59:52.364Z" },
 ]
 
 [[package]]
