@@ -71,6 +71,14 @@ jobs:
       - name: Build frozen app (cx_Freeze)
         run: uv run python cx_freeze_setup.py build
 
+      - name: Verify icon and .desktop file were bundled
+        run: |
+          echo "--- dist/openstan/share/ contents ---"
+          ls -lh dist/openstan/share/ || echo "(share/ directory not found)"
+          echo "--- PNG existence check ---"
+          test -f dist/openstan/share/openstan.png && echo "PNG: OK" || echo "PNG: MISSING"
+          test -f dist/openstan/share/openstan.desktop && echo ".desktop: OK" || echo ".desktop: MISSING"
+
       - name: Build .rpm package
         run: uv run python cx_freeze_setup.py bdist_rpm
         timeout-minutes: 10

@@ -5,7 +5,21 @@
 
 set -e
 
-INSTALL_DIR="/usr/lib/openstan"
+# cx_Freeze installs to a versioned directory, e.g. /usr/lib/openstan-0.1.2a1.
+# Glob for it; fall back to the unversioned path for manual/legacy installs.
+INSTALL_DIR=""
+for _d in /usr/lib/openstan-* /usr/lib/openstan; do
+    if [ -d "$_d" ]; then
+        INSTALL_DIR="$_d"
+        break
+    fi
+done
+
+if [ -z "$INSTALL_DIR" ]; then
+    echo "post-install: could not locate openstan install directory under /usr/lib — skipping desktop integration" >&2
+    exit 0
+fi
+
 ICON_SRC="${INSTALL_DIR}/lib/openstan/icons/icon-square.svg"
 DESKTOP_SRC="${INSTALL_DIR}/share/openstan.desktop"
 
