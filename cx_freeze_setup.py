@@ -109,6 +109,14 @@ build_exe_options: dict = {
     "zip_exclude_packages": zip_exclude_packages,
     # Strip test directories and __pycache__ from the bundle
     "excludes": ["tkinter", "test", "unittest", "pydoc"],
+    # Exclude Qt SQL drivers we don't use.  cx_Freeze's PyQt6 hook bundles
+    # every Qt SQL plugin it finds, including qsqlmimer (MimerSQL) and
+    # qsqlpsql (PostgreSQL), which depend on system libraries not present on
+    # CI runners.  We only use SQLite — qsqlite is included automatically.
+    "bin_excludes": [
+        "libmimerapi.dylib",   # MimerSQL — not present on macOS runners
+        "libpq.dylib",         # PostgreSQL client — not needed at runtime
+    ],
     "optimize": 1,
     "build_exe": str(HERE / "dist" / "openstan"),
 }

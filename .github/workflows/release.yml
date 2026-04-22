@@ -109,10 +109,12 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Windows — produces .msi installer
+  # TEMPORARILY DISABLED — build succeeds; re-enable once macOS is green.
   # ---------------------------------------------------------------------------
   build-windows:
     name: Build Windows installer (.msi)
     runs-on: windows-latest
+    if: false
 
     steps:
       - uses: actions/checkout@v4
