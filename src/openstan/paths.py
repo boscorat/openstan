@@ -3,6 +3,29 @@ import sys
 from pathlib import Path
 
 
+def _user_data_dir() -> Path:
+    """Return the platform-appropriate user data directory for openstan.
+
+    | Platform | Path |
+    |----------|------|
+    | Windows  | ``%APPDATA%\\openstan``  (e.g. C:\\Users\\<user>\\AppData\\Roaming\\openstan) |
+    | macOS    | ``~/Library/Application Support/openstan`` |
+    | Linux    | ``~/.local/share/openstan`` (XDG default) |
+
+    The directory is **not** created here — callers are responsible for
+    calling ``.mkdir(parents=True, exist_ok=True)`` before writing.
+    """
+    if sys.platform == "win32":
+        appdata = os.environ.get("APPDATA")
+        base = Path(appdata) if appdata else Path.home() / "AppData" / "Roaming"
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    else:
+        xdg = os.environ.get("XDG_DATA_HOME")
+        base = Path(xdg) if xdg else Path.home() / ".local" / "share"
+    return base / "openstan"
+
+
 def _base_dir() -> str:
     """Return the root directory that contains the ``openstan`` package data.
 
@@ -98,16 +121,19 @@ class Paths:
 
         When frozen (installed .deb/.rpm/.msi/.dmg) the bundled ``data/``
         directory is inside a read-only system prefix, so databases must live
-        in a user-writable location instead.  We use
-        ``~/.local/share/openstan/`` on all platforms (XDG-compatible on Linux,
-        acceptable on macOS and Windows too).
+        in a user-writable location instead.  The location follows platform
+        conventions:
+
+        * **Windows** — ``%APPDATA%\\openstan\\``
+        * **macOS**   — ``~/Library/Application Support/openstan/``
+        * **Linux**   — ``~/.local/share/openstan/`` (XDG)
 
         In development (unfrozen) we keep the original behaviour of storing
         databases next to the package source so the dev environment stays
         self-contained.
         """
         if getattr(sys, "frozen", False):
-            user_data = Path.home() / ".local" / "share" / "openstan"
+            user_data = _user_data_dir()
             user_data.mkdir(parents=True, exist_ok=True)
             return str(user_data / filename)
         return os.path.join(cls.data, filename)

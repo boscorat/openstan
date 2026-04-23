@@ -5,10 +5,16 @@ third-party packages that read env vars at module-level pick them up correctly.
 
 BSP_DEFAULT_PROJECT_ROOT
     Redirects bank_statement_parser's default project root (used for bundled
-    config templates) to a user-writable location.  Without this, bsp tries to
-    create directories inside its own install prefix on first import, which
-    fails with PermissionError when installed into a read-only system prefix
-    such as /usr/lib (e.g. after installing the .deb or .rpm package).
+    config templates) to a user-writable, platform-appropriate location:
+
+    * **Windows** — ``%APPDATA%\\openstan\\bsp\\``
+    * **macOS**   — ``~/Library/Application Support/openstan/bsp/``
+    * **Linux**   — ``~/.local/share/openstan/bsp/``
+
+    Without this, bsp tries to create directories inside its own install
+    prefix on first import, which fails with PermissionError when installed
+    into a read-only system prefix such as /usr/lib (Linux .deb/.rpm) or
+    the macOS .app bundle.
 
     IMPORTANT: bsp derives BASE_CONFIG_IMPORT/EXPORT/REPORT from this path at
     module-import time, so the redirected directory must be pre-seeded with the
@@ -35,6 +41,8 @@ from pathlib import Path
 # side-effects running before env vars are set).
 import importlib.util as _ilu
 
+from openstan.paths import _user_data_dir
+
 _bsp_spec = _ilu.find_spec("bank_statement_parser")
 _BSP_PKG_PROJECT: Path | None = (
     Path(_bsp_spec.origin).parent / "project"
@@ -46,7 +54,7 @@ _BSP_PKG_PROJECT: Path | None = (
 # Set env vars BEFORE importing bank_statement_parser.
 # ---------------------------------------------------------------------------
 
-_BSP_USER_ROOT = Path.home() / ".local" / "share" / "openstan" / "bsp"
+_BSP_USER_ROOT = _user_data_dir() / "bsp"
 
 os.environ.setdefault("BSP_DEFAULT_PROJECT_ROOT", str(_BSP_USER_ROOT))
 os.environ.setdefault("BSP_SKIP_DEFAULT_PROJECT_INIT", "1")
