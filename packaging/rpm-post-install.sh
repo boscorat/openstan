@@ -6,10 +6,12 @@
 set -e
 
 # cx_Freeze installs to a versioned directory, e.g. /usr/lib/openstan-0.1.2a1.
-# Glob for it; fall back to the unversioned path for manual/legacy installs.
+# Pick the most recently modified one (handles upgrades alongside old versions),
+# falling back to the unversioned path for manual/legacy installs.
 INSTALL_DIR=""
-for _d in /usr/lib/openstan-* /usr/lib/openstan; do
-    if [ -d "$_d" ]; then
+_newest=$(ls -dt /usr/lib/openstan-* 2>/dev/null | head -1)
+for _d in "$_newest" /usr/lib/openstan; do
+    if [ -n "$_d" ] && [ -d "$_d" ]; then
         INSTALL_DIR="$_d"
         break
     fi
