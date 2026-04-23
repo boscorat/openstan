@@ -261,6 +261,15 @@ jobs:
       - name: Build .dmg disk image (cx_Freeze)
         run: uv run python cx_freeze_setup.py bdist_dmg
 
+      # cx_Freeze's bdist_dmg writes to build/*.dmg, not dist/.
+      # Move it into dist/ so the upload step can find it.
+      - name: Move .dmg to dist/
+        run: |
+          mkdir -p dist
+          mv build/*.dmg dist/
+          echo "dist/ contents:"
+          ls -lh dist/
+
       # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
       # - name: Build .app bundle (PyInstaller fallback)
       #   run: uv run pyinstaller openstan.spec
