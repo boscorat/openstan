@@ -87,6 +87,20 @@ jobs:
         run: uv run python cx_freeze_setup.py bdist_deb
         timeout-minutes: 10
 
+      # alien silently drops RPM scriptlets when converting to .deb.
+      # Re-inject the postinst manually by repacking the .deb with dpkg-deb.
+      - name: Inject postinst into .deb
+        run: |
+          DEB=$(ls dist/*.deb | head -1)
+          echo "Repacking $DEB to inject postinst..."
+          WORKDIR=$(mktemp -d)
+          dpkg-deb -R "$DEB" "$WORKDIR"
+          install -Dm755 packaging/rpm-post-install.sh "$WORKDIR/DEBIAN/postinst"
+          install -Dm755 packaging/rpm-post-uninstall.sh "$WORKDIR/DEBIAN/postrm"
+          dpkg-deb -b "$WORKDIR" "$DEB"
+          echo "Repacked: $DEB"
+          dpkg-deb --info "$DEB" | grep -E "postinst|postrm|Package|Version"
+
       # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
       # - name: Build frozen app (PyInstaller fallback)
       #   run: uv run pyinstaller openstan.spec
