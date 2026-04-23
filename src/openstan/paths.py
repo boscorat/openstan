@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 
 
 def _base_dir() -> str:
@@ -93,6 +94,22 @@ class Paths:
 
     @classmethod
     def databases(cls, filename: str) -> str:
+        """Resolve a path for a database file.
+
+        When frozen (installed .deb/.rpm/.msi/.dmg) the bundled ``data/``
+        directory is inside a read-only system prefix, so databases must live
+        in a user-writable location instead.  We use
+        ``~/.local/share/openstan/`` on all platforms (XDG-compatible on Linux,
+        acceptable on macOS and Windows too).
+
+        In development (unfrozen) we keep the original behaviour of storing
+        databases next to the package source so the dev environment stays
+        self-contained.
+        """
+        if getattr(sys, "frozen", False):
+            user_data = Path.home() / ".local" / "share" / "openstan"
+            user_data.mkdir(parents=True, exist_ok=True)
+            return str(user_data / filename)
         return os.path.join(cls.data, filename)
 
     # ------------------------------------------------------------------ #

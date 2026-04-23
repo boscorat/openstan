@@ -1,6 +1,6 @@
 [project]
 name = "openstan"
-version = "0.1.2a5"
+version = "0.1.2a6"
 description = "Open source application for statement analysis and visualization"
 readme = "README.md"
 authors = [
