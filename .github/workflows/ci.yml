@@ -59,3 +59,38 @@ jobs:
         run: uv run pytest tests/ -v
         env:
           QT_QPA_PLATFORM: offscreen
+
+  doc-reminder:
+    # Only runs on pull requests; non-blocking reminder only
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for view file changes
+        id: check
+        run: |
+          changed=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- 'src/openstan/views/*.py' || true)
+          echo "changed<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$changed" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Post documentation reminder
+        if: steps.check.outputs.changed != ''
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: doc-reminder
+          message: |
+            **Documentation reminder**
+
+            The following view file(s) were modified in this PR:
+            ```
+            ${{ steps.check.outputs.changed }}
+            ```
+
+            Please review and update the relevant pages in `docs/screens/` before merging, and re-run `uv run pytest tests/test_screenshots.py` to regenerate any affected screenshots.

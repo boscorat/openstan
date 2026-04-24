@@ -1,0 +1,61 @@
+site_name: openstan
+site_description: User guide for openstan — a desktop application for bank statement analysis and visualisation.
+site_url: https://boscorat.github.io/openstan/
+repo_url: https://github.com/boscorat/openstan
+repo_name: boscorat/openstan
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Quick Start: quickstart.md
+  - Screens:
+      - Project Management: screens/project-management.md
+      - Import Statements: screens/import-statements.md
+      - Import Results: screens/import-results.md
+      - Project Info: screens/project-info.md
+      - Export Data: screens/export-data.md
+      - Advanced Export: screens/advanced-export.md
+      - Run Reports: screens/run-reports.md
+      - Admin: screens/admin.md
+      - About: screens/about.md
