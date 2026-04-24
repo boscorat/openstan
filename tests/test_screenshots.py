@@ -41,6 +41,7 @@ def _get_qapp() -> QApplication:
             _qapp = existing  # type: ignore[assignment]
         else:
             _qapp = QApplication(sys.argv[:1])
+    assert _qapp is not None
     return _qapp
 
 
