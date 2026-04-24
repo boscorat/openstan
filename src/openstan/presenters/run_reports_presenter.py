@@ -57,6 +57,8 @@ from openstan.views.run_reports_view import (
 if TYPE_CHECKING:
     from PyQt6.QtWidgets import QListWidget
 
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
+
 
 # ---------------------------------------------------------------------------
 # Background worker
@@ -108,6 +110,34 @@ class _FetchWorker(QRunnable):
     def run(self) -> None:
         try:
             self.signals.finished.emit(self.fn())
+        except Exception as e:
+            traceback.print_exc()
+            self.signals.error.emit(str(e))
+
+
+# ---------------------------------------------------------------------------
+# Export worker
+# ---------------------------------------------------------------------------
+
+
+class _ReportExportWorkerSignals(QObject):
+    finished: pyqtSignal = pyqtSignal()
+    error: pyqtSignal = pyqtSignal(str)
+
+
+class _ReportExportWorker(QRunnable):
+    """Runs a file-write operation off the main thread."""
+
+    def __init__(self, fn: Any) -> None:
+        super().__init__()
+        self.fn = fn
+        self.signals = _ReportExportWorkerSignals()
+        self.setAutoDelete(True)
+
+    def run(self) -> None:
+        try:
+            self.fn()
+            self.signals.finished.emit()
         except Exception as e:
             traceback.print_exc()
             self.signals.error.emit(str(e))
@@ -169,6 +199,10 @@ class RunReportsPresenter(QObject):
         # Worker in-flight guard
         self._query_running: bool = False
 
+        # Last successful query result — used for export
+        self._current_df: pl.DataFrame | None = None
+        self._current_title: str = ""
+
         # Error dialog
         self._error_dialog = StanErrorMessage(view)
 
@@ -216,6 +250,13 @@ class RunReportsPresenter(QObject):
         # Preview controls
         p.button_run.clicked.connect(self._run_preview)
         p.live_checkbox.toggled.connect(self._on_live_toggled)
+        # Sync initial enabled state (live updates defaults to checked)
+        p.button_run.setEnabled(not p.live_checkbox.isChecked())
+
+        # Export buttons
+        p.button_export_excel.clicked.connect(self._on_export_excel)
+        p.button_export_csv.clicked.connect(self._on_export_csv)
+        p.button_export_json.clicked.connect(self._on_export_json)
 
     # ---------------------------------------------------------------------------
     # Project lifecycle
@@ -234,6 +275,7 @@ class RunReportsPresenter(QObject):
     # ---------------------------------------------------------------------------
 
     def _on_live_toggled(self, checked: bool) -> None:
+        self.view.preview.button_run.setEnabled(not checked)
         if checked:
             self._schedule_preview()
 
@@ -533,14 +575,20 @@ class RunReportsPresenter(QObject):
     @pyqtSlot(object, int)
     def _on_query_finished(self, df: pl.DataFrame, row_count: int) -> None:
         self._query_running = False
-        self.view.preview.set_dataframe(df, self._read_title(), self._read_subtitle())
+        self._current_df = df
+        self._current_title = self._read_title()
+        self.view.preview.set_dataframe(df, self._current_title, self._read_subtitle())
         self.view.preview.set_row_count(row_count)
+        self.view.preview.show_export_buttons(True)
 
     @pyqtSlot(str)
     def _on_query_error(self, message: str) -> None:
         self._query_running = False
+        self._current_df = None
+        self._current_title = ""
         self.view.preview.set_error(message)
         self.view.preview.set_row_count(None)
+        self.view.preview.show_export_buttons(False)
 
     # ---------------------------------------------------------------------------
     # Read builder state
@@ -863,6 +911,91 @@ class RunReportsPresenter(QObject):
 
         self.view.preview.clear()
         self.view.preview.set_row_count(None)
+        self.view.preview.show_export_buttons(False)
+        self._current_df = None
+        self._current_title = ""
+
+    # ---------------------------------------------------------------------------
+    # Report export
+    # ---------------------------------------------------------------------------
+
+    def _set_export_buttons_enabled(self, enabled: bool) -> None:
+        p = self.view.preview
+        p.button_export_excel.setEnabled(enabled)
+        p.button_export_csv.setEnabled(enabled)
+        p.button_export_json.setEnabled(enabled)
+
+    def _do_export(self, suffix: str, write_fn: Any) -> None:  # noqa: ANN401
+        """Shared export helper — opens a save dialog then writes the file."""
+        if self._current_df is None:
+            return
+        if self.project_path is None:
+            return
+
+        default_dir = self.project_path / "reports"
+        default_dir.mkdir(parents=True, exist_ok=True)
+
+        stem = _slugify(self._current_title) if self._current_title else "report"
+        default_path = str(default_dir / f"{stem}{suffix}")
+
+        filter_map = {
+            ".xlsx": "Excel files (*.xlsx)",
+            ".csv": "CSV files (*.csv)",
+            ".json": "JSON files (*.json)",
+        }
+        file_filter = filter_map.get(suffix, "All files (*)")
+
+        dest, _ = QFileDialog.getSaveFileName(
+            self.view,
+            f"Export report as {suffix.lstrip('.')}",
+            default_path,
+            file_filter,
+        )
+        if not dest:
+            return
+
+        dest_path = Path(dest)
+        df = self._current_df  # capture for closure
+
+        self._set_export_buttons_enabled(False)
+
+        worker = _ReportExportWorker(lambda: write_fn(df, dest_path))
+        worker.signals.finished.connect(lambda: self._on_export_finished(dest_path))
+        worker.signals.error.connect(self._on_export_error)
+        self.threadpool.start(worker)
+
+    def _on_export_finished(self, path: Path) -> None:
+        self._set_export_buttons_enabled(True)
+        QMessageBox.information(
+            self.view,
+            "Export complete",
+            f"Report exported successfully to:\n{path}",
+        )
+
+    def _on_export_error(self, message: str) -> None:
+        self._set_export_buttons_enabled(True)
+        self._error_dialog.showMessage(f"Export failed: {message}")
+
+    @pyqtSlot()
+    def _on_export_excel(self) -> None:
+        def _write(df: pl.DataFrame, path: "Path") -> None:
+            df.write_excel(path)
+
+        self._do_export(".xlsx", _write)
+
+    @pyqtSlot()
+    def _on_export_csv(self) -> None:
+        def _write(df: pl.DataFrame, path: "Path") -> None:
+            df.write_csv(path)
+
+        self._do_export(".csv", _write)
+
+    @pyqtSlot()
+    def _on_export_json(self) -> None:
+        def _write(df: pl.DataFrame, path: "Path") -> None:
+            df.write_json(path)
+
+        self._do_export(".json", _write)
 
 
 # ---------------------------------------------------------------------------

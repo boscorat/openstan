@@ -40,6 +40,7 @@ from PyQt6.QtWidgets import (
     QSplitter,
     QStackedWidget,
     QVBoxLayout,
+    QWidget,
 )
 
 from openstan.components import (
@@ -820,6 +821,34 @@ class ReportPreviewPane(StanWidget):
 
         self.button_run = StanButton("Run Now", min_width=90)
         self.button_run.setToolTip("Run the report and refresh the preview")
+        # Run Now is disabled while live updates are active (synced by presenter)
+        self.button_run.setEnabled(False)
+
+        # Vertical separator between run controls and export buttons
+        self._export_separator = QFrame()
+        self._export_separator.setFrameShape(QFrame.Shape.VLine)
+        self._export_separator.setFrameShadow(QFrame.Shadow.Sunken)
+        self._export_separator.hide()
+
+        self.button_export_excel = StanButton("Export Excel")
+        self.button_export_excel.set_themed_icon("excel.svg")
+        self.button_export_excel.setToolTip(
+            "Export the current report to an Excel (.xlsx) file"
+        )
+        self.button_export_excel.setEnabled(False)
+        self.button_export_excel.hide()
+
+        self.button_export_csv = StanButton("Export CSV")
+        self.button_export_csv.set_themed_icon("csv.svg")
+        self.button_export_csv.setToolTip("Export the current report to a CSV file")
+        self.button_export_csv.setEnabled(False)
+        self.button_export_csv.hide()
+
+        self.button_export_json = StanButton("Export JSON")
+        self.button_export_json.set_themed_icon("json.svg")
+        self.button_export_json.setToolTip("Export the current report to a JSON file")
+        self.button_export_json.setEnabled(False)
+        self.button_export_json.hide()
 
         self.row_count_label = StanLabel("")
         self.row_count_label.setAlignment(
@@ -828,8 +857,18 @@ class ReportPreviewPane(StanWidget):
 
         toolbar.addWidget(self.live_checkbox)
         toolbar.addWidget(self.button_run)
+        toolbar.addWidget(self._export_separator)
+        toolbar.addWidget(self.button_export_excel)
+        toolbar.addWidget(self.button_export_csv)
+        toolbar.addWidget(self.button_export_json)
         toolbar.addStretch()
         toolbar.addWidget(self.row_count_label)
+
+        # Tab order: live_checkbox → button_run → export_excel → export_csv → export_json
+        QWidget.setTabOrder(self.live_checkbox, self.button_run)
+        QWidget.setTabOrder(self.button_run, self.button_export_excel)
+        QWidget.setTabOrder(self.button_export_excel, self.button_export_csv)
+        QWidget.setTabOrder(self.button_export_csv, self.button_export_json)
 
         layout.addLayout(toolbar)
 
@@ -919,6 +958,20 @@ class ReportPreviewPane(StanWidget):
         self.subtitle_label.setText("")
         self.row_count_label.setText("")
         self.placeholder_label.show()
+
+    def show_export_buttons(self, visible: bool) -> None:
+        """Show or hide the export button group (separator + all three buttons).
+
+        Call with ``True`` when report results are available, ``False`` when
+        the preview is cleared or an error is shown.
+        """
+        self._export_separator.setVisible(visible)
+        self.button_export_excel.setVisible(visible)
+        self.button_export_excel.setEnabled(visible)
+        self.button_export_csv.setVisible(visible)
+        self.button_export_csv.setEnabled(visible)
+        self.button_export_json.setVisible(visible)
+        self.button_export_json.setEnabled(visible)
 
 
 # ---------------------------------------------------------------------------

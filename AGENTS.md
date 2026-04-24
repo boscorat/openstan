@@ -117,6 +117,68 @@ is correct as written. This has been investigated and confirmed — do not re-fl
 
 ---
 
+## Widget Library
+
+All Qt widgets **must** use the `Stan`-prefixed subclasses from
+`src/openstan/components.py` rather than the raw PyQt6 originals.
+These subclasses set `setAutoFillBackground(True)` and apply any
+app-wide defaults (alternating row colours, selection behaviour, etc.)
+so that every widget inherits the correct appearance on both light and
+dark themes.
+
+### Quick reference — Stan subclass → Qt base
+
+| Stan class | Qt base | Notes |
+|---|---|---|
+| `StanWidget` | `QWidget` | Base for all custom panels/panes |
+| `StanLabel` | `QLabel` | Markdown text format enabled |
+| `StanMutedLabel` | `StanLabel` | De-emphasised colour, theme-aware |
+| `StanHeaderLabel` | `StanLabel` | Bold font weight |
+| `StanThemedPixmapLabel` | `StanLabel` | SVG icon that reloads on theme change |
+| `StanButton` | `QPushButton` | `min_width=200`; use `set_themed_icon()` for SVG icons |
+| `StanHelpIcon` | `QPushButton` | Focusable info-icon with tooltip |
+| `StanToolButton` | `QToolButton` | |
+| `StanCheckBox` | `QCheckBox` | |
+| `StanRadioButton` | `QRadioButton` | |
+| `StanComboBox` | `QComboBox` | |
+| `StanLineEdit` | `QLineEdit` | |
+| `StanDateEdit` | `QDateEdit` | Calendar popup enabled |
+| `StanListWidget` | `QListWidget` | Alternating row colours |
+| `StanTableView` | `QTableView` | No grid, no vertical header, ResizeToContents |
+| `StanTableWidget` | `QTableWidget` | No edit triggers, stretch last section |
+| `StanTreeView` | `QTreeView` | Alternating row colours, uniform row heights |
+| `StanGroupBox` | `QGroupBox` | |
+| `StanScrollArea` | `QScrollArea` | |
+| `StanFrame` | `QFrame` | Panel/Sunken/StyledPanel — **not** for line separators |
+| `StanTabWidget` | `QTabWidget` | |
+| `StanForm` | `QFormLayout` | Right-aligned labels, 15 px spacing |
+| `StanDialog` | `QDialog` | Modal, auto-fill |
+| `StanWizard` | `QWizard` | Modal, auto-fill |
+| `StanWizardPage` | `QWizardPage` | |
+| `StanErrorMessage` | `QDialog` | Modal error dialog — call `.showMessage(str)` |
+| `StanInfoMessage` | `QMessageBox` | For Yes/Cancel confirmations before destructive actions |
+| `StanPolarsModel` | `QAbstractTableModel` | Polars DataFrame table model |
+| `StanProgressBar` | `QProgressBar` | |
+
+### Permitted raw Qt usage
+
+A small number of raw Qt classes are acceptable because no `Stan` subclass
+covers them or the subclass has different semantics:
+
+- **`QFrame` as a line separator** — `StanFrame` has full panel styling;
+  for a `VLine`/`HLine` divider use `QFrame` directly and set shape/shadow
+  manually.
+- **`QWidget.setTabOrder(a, b)`** — static utility call; not a widget
+  instantiation.
+- **`QMessageBox.information / .warning / .critical` (static)** — one-shot
+  non-interactive notifications. Use `StanInfoMessage` for confirmations
+  that require a Yes / Cancel choice.
+- Layout classes (`QHBoxLayout`, `QVBoxLayout`, `QSortFilterProxyModel`,
+  `QStackedWidget`, `QSplitter`, `QSizePolicy`, `QHeaderView`, etc.) — no
+  `Stan` equivalents; use the Qt originals.
+
+---
+
 ## Naming Conventions
 
 ### Files
