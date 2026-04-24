@@ -32,6 +32,7 @@ Notes
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -144,15 +145,273 @@ build_exe_options: dict = {
     "include_files": include_files,
     "zip_include_packages": zip_include_packages,
     "zip_exclude_packages": zip_exclude_packages,
-    # Strip test directories and __pycache__ from the bundle
-    "excludes": ["tkinter", "test", "unittest", "pydoc"],
-    # Exclude Qt SQL drivers we don't use.  cx_Freeze's PyQt6 hook bundles
-    # every Qt SQL plugin it finds, including qsqlmimer (MimerSQL) and
-    # qsqlpsql (PostgreSQL), which depend on system libraries not present on
-    # CI runners.  We only use SQLite — qsqlite is included automatically.
+    # Strip test directories, __pycache__, and unused Python bindings.
+    "excludes": [
+        "tkinter",
+        "test",
+        "unittest",
+        "pydoc",
+        # Unused Qt Python bindings — the app uses only Core/Gui/Widgets/Sql/Svg/SvgWidgets.
+        "PyQt6.QtQml",
+        "PyQt6.QtQuick",
+        "PyQt6.QtQuick3D",
+        "PyQt6.QtQuickWidgets",
+        "PyQt6.QtMultimedia",
+        "PyQt6.QtMultimediaWidgets",
+        "PyQt6.QtBluetooth",
+        "PyQt6.QtRemoteObjects",
+        "PyQt6.QtTextToSpeech",
+        "PyQt6.QtSerialPort",
+        "PyQt6.QtWebChannel",
+        "PyQt6.QtWebSockets",
+        "PyQt6.QtPdf",
+        "PyQt6.QtPdfWidgets",
+        "PyQt6.QtDesigner",
+        "PyQt6.QtOpenGL",
+        "PyQt6.QtOpenGLWidgets",
+        "PyQt6.QtSensors",
+        "PyQt6.QtStateMachine",
+        "PyQt6.QtPositioning",
+        "PyQt6.QtNfc",
+        "PyQt6.QtTest",
+        # CJK codecs — not needed for English/Western locale app.
+        "_codecs_jp",
+        "_codecs_cn",
+        "_codecs_kr",
+        "_codecs_tw",
+        "_codecs_iso2022",
+    ],
+    # Exclude shared libraries / plugins that are not used by the app.
+    # Each entry covers all three platforms: Linux .so*, macOS .dylib, Windows .dll.
+    # We only use SQLite (qsqlite) — all other SQL drivers are excluded.
+    # The app is pure QWidgets — QML/Quick/Quick3D stack is entirely excluded.
+    # Note: libQt6Network and libQt6DBus are intentionally kept — they are
+    # transitive dependencies of QtGui / the xcb platform plugin on Linux.
     "bin_excludes": [
-        "libmimerapi.dylib",  # MimerSQL — not present on macOS runners
-        "libpq.dylib",  # PostgreSQL client — not needed at runtime
+        # ----------------------------------------------------------------
+        # Qt QML / Quick / Quick3D stack
+        # ----------------------------------------------------------------
+        "libQt6Qml.so.6",
+        "libQt6Qml.dylib",
+        "Qt6Qml.dll",
+        "libQt6QmlModels.so.6",
+        "libQt6QmlModels.dylib",
+        "Qt6QmlModels.dll",
+        "libQt6QmlWorkerScript.so.6",
+        "libQt6QmlWorkerScript.dylib",
+        "Qt6QmlWorkerScript.dll",
+        "libQt6Quick.so.6",
+        "libQt6Quick.dylib",
+        "Qt6Quick.dll",
+        "libQt6QuickControls2.so.6",
+        "libQt6QuickControls2.dylib",
+        "Qt6QuickControls2.dll",
+        "libQt6QuickControls2Impl.so.6",
+        "libQt6QuickControls2Impl.dylib",
+        "Qt6QuickControls2Impl.dll",
+        "libQt6QuickControls2Basic.so.6",
+        "libQt6QuickControls2Basic.dylib",
+        "Qt6QuickControls2Basic.dll",
+        "libQt6QuickControls2BasicStyleImpl.so.6",
+        "libQt6QuickControls2BasicStyleImpl.dylib",
+        "Qt6QuickControls2BasicStyleImpl.dll",
+        "libQt6QuickControls2Material.so.6",
+        "libQt6QuickControls2Material.dylib",
+        "Qt6QuickControls2Material.dll",
+        "libQt6QuickControls2MaterialStyleImpl.so.6",
+        "libQt6QuickControls2MaterialStyleImpl.dylib",
+        "Qt6QuickControls2MaterialStyleImpl.dll",
+        "libQt6QuickControls2Fusion.so.6",
+        "libQt6QuickControls2Fusion.dylib",
+        "Qt6QuickControls2Fusion.dll",
+        "libQt6QuickControls2FusionStyleImpl.so.6",
+        "libQt6QuickControls2FusionStyleImpl.dylib",
+        "Qt6QuickControls2FusionStyleImpl.dll",
+        "libQt6QuickControls2Imagine.so.6",
+        "libQt6QuickControls2Imagine.dylib",
+        "Qt6QuickControls2Imagine.dll",
+        "libQt6QuickControls2ImagineStyleImpl.so.6",
+        "libQt6QuickControls2ImagineStyleImpl.dylib",
+        "Qt6QuickControls2ImagineStyleImpl.dll",
+        "libQt6QuickControls2Universal.so.6",
+        "libQt6QuickControls2Universal.dylib",
+        "Qt6QuickControls2Universal.dll",
+        "libQt6QuickControls2UniversalStyleImpl.so.6",
+        "libQt6QuickControls2UniversalStyleImpl.dylib",
+        "Qt6QuickControls2UniversalStyleImpl.dll",
+        "libQt6QuickControls2FluentWinUI3StyleImpl.so.6",
+        "libQt6QuickControls2FluentWinUI3StyleImpl.dylib",
+        "Qt6QuickControls2FluentWinUI3StyleImpl.dll",
+        "libQt6QuickDialogs2.so.6",
+        "libQt6QuickDialogs2.dylib",
+        "Qt6QuickDialogs2.dll",
+        "libQt6QuickDialogs2QuickImpl.so.6",
+        "libQt6QuickDialogs2QuickImpl.dylib",
+        "Qt6QuickDialogs2QuickImpl.dll",
+        "libQt6QuickDialogs2Utils.so.6",
+        "libQt6QuickDialogs2Utils.dylib",
+        "Qt6QuickDialogs2Utils.dll",
+        "libQt6QuickWidgets.so.6",
+        "libQt6QuickWidgets.dylib",
+        "Qt6QuickWidgets.dll",
+        "libQt6QuickTimeline.so.6",
+        "libQt6QuickTimeline.dylib",
+        "Qt6QuickTimeline.dll",
+        "libQt6QuickTimelineBlendTrees.so.6",
+        "libQt6QuickTimelineBlendTrees.dylib",
+        "Qt6QuickTimelineBlendTrees.dll",
+        "libQt6QuickVectorImage.so.6",
+        "libQt6QuickVectorImage.dylib",
+        "Qt6QuickVectorImage.dll",
+        "libQt6Quick3D.so.6",
+        "libQt6Quick3D.dylib",
+        "Qt6Quick3D.dll",
+        "libQt6Quick3DRuntimeRender.so.6",
+        "libQt6Quick3DRuntimeRender.dylib",
+        "Qt6Quick3DRuntimeRender.dll",
+        "libQt6Quick3DParticles.so.6",
+        "libQt6Quick3DParticles.dylib",
+        "Qt6Quick3DParticles.dll",
+        "libQt6Quick3DPhysics.so.6",
+        "libQt6Quick3DPhysics.dylib",
+        "Qt6Quick3DPhysics.dll",
+        "libQt6Quick3DXr.so.6",
+        "libQt6Quick3DXr.dylib",
+        "Qt6Quick3DXr.dll",
+        "libQt6Quick3DAssetImport.so.6",
+        "libQt6Quick3DAssetImport.dylib",
+        "Qt6Quick3DAssetImport.dll",
+        "libQt6Quick3DAssetUtils.so.6",
+        "libQt6Quick3DAssetUtils.dylib",
+        "Qt6Quick3DAssetUtils.dll",
+        "libQt6Quick3DSpatialAudio.so.6",
+        "libQt6Quick3DSpatialAudio.dylib",
+        "Qt6Quick3DSpatialAudio.dll",
+        "libQt6ShaderTools.so.6",
+        "libQt6ShaderTools.dylib",
+        "Qt6ShaderTools.dll",
+        "libQt6StateMachineQml.so.6",
+        "libQt6StateMachineQml.dylib",
+        "Qt6StateMachineQml.dll",
+        "libQt6RemoteObjectsQml.so.6",
+        "libQt6RemoteObjectsQml.dylib",
+        "Qt6RemoteObjectsQml.dll",
+        "libQt6WebChannelQuick.so.6",
+        "libQt6WebChannelQuick.dylib",
+        "Qt6WebChannelQuick.dll",
+        # 3D model importer — only used by QtQuick3D
+        "libassimp.so",
+        "libassimp.dylib",
+        "assimp.dll",
+        # ----------------------------------------------------------------
+        # Qt Multimedia / FFmpeg
+        # ----------------------------------------------------------------
+        "libQt6Multimedia.so.6",
+        "libQt6Multimedia.dylib",
+        "Qt6Multimedia.dll",
+        "libQt6MultimediaWidgets.so.6",
+        "libQt6MultimediaWidgets.dylib",
+        "Qt6MultimediaWidgets.dll",
+        "libavcodec.so.61",
+        "libavcodec.61.dylib",
+        "avcodec-61.dll",
+        "libavformat.so.61",
+        "libavformat.61.dylib",
+        "avformat-61.dll",
+        "libavutil.so.59",
+        "libavutil.59.dylib",
+        "avutil-59.dll",
+        "libswresample.so.5",
+        "libswresample.5.dylib",
+        "swresample-5.dll",
+        "libswscale.so.8",
+        "libswscale.8.dylib",
+        "swscale-8.dll",
+        # ----------------------------------------------------------------
+        # Other unused Qt modules
+        # ----------------------------------------------------------------
+        "libQt6Bluetooth.so.6",
+        "libQt6Bluetooth.dylib",
+        "Qt6Bluetooth.dll",
+        "libQt6RemoteObjects.so.6",
+        "libQt6RemoteObjects.dylib",
+        "Qt6RemoteObjects.dll",
+        "libQt6TextToSpeech.so.6",
+        "libQt6TextToSpeech.dylib",
+        "Qt6TextToSpeech.dll",
+        "libQt6SerialPort.so.6",
+        "libQt6SerialPort.dylib",
+        "Qt6SerialPort.dll",
+        "libQt6WebChannel.so.6",
+        "libQt6WebChannel.dylib",
+        "Qt6WebChannel.dll",
+        "libQt6WebSockets.so.6",
+        "libQt6WebSockets.dylib",
+        "Qt6WebSockets.dll",
+        "libQt6Pdf.so.6",
+        "libQt6Pdf.dylib",
+        "Qt6Pdf.dll",
+        "libQt6PdfWidgets.so.6",
+        "libQt6PdfWidgets.dylib",
+        "Qt6PdfWidgets.dll",
+        "libQt6Designer.so.6",
+        "libQt6Designer.dylib",
+        "Qt6Designer.dll",
+        "libQt6Concurrent.so.6",
+        "libQt6Concurrent.dylib",
+        "Qt6Concurrent.dll",
+        # ----------------------------------------------------------------
+        # Unused Qt SQL driver plugins (keep only qsqlite)
+        # ----------------------------------------------------------------
+        "libqsqlibase.so",
+        "qsqlibase.dylib",
+        "qsqlibase.dll",
+        "libqsqlmimer.so",
+        "qsqlmimer.dylib",
+        "qsqlmimer.dll",
+        "libmimerapi.dylib",  # MimerSQL client lib — macOS runners
+        "libqsqlmysql.so",
+        "qsqlmysql.dylib",
+        "qsqlmysql.dll",
+        "libqsqloci.so",
+        "qsqloci.dylib",
+        "qsqloci.dll",
+        "libqsqlodbc.so",
+        "qsqlodbc.dylib",
+        "qsqlodbc.dll",
+        "libqsqlpsql.so",
+        "qsqlpsql.dylib",
+        "qsqlpsql.dll",
+        "libpq.dylib",  # PostgreSQL client lib — macOS runners
+        # ----------------------------------------------------------------
+        # Unused Qt image format plugins
+        # ----------------------------------------------------------------
+        "libqwebp.so",
+        "qwebp.dylib",
+        "qwebp.dll",
+        "libqtiff.so",
+        "qtiff.dylib",
+        "qtiff.dll",
+        "libqicns.so",
+        "qicns.dylib",
+        "qicns.dll",
+        "libqwbmp.so",
+        "qwbmp.dylib",
+        "qwbmp.dll",
+        "libqtga.so",
+        "qtga.dylib",
+        "qtga.dll",
+        # ----------------------------------------------------------------
+        # Unused Qt plugin directories
+        # ----------------------------------------------------------------
+        "libffmpegmediaplugin.so",
+        "ffmpegmediaplugin.dylib",
+        "ffmpegmediaplugin.dll",
+        # ----------------------------------------------------------------
+        # System libraries not needed in a frozen app
+        # ----------------------------------------------------------------
+        "libreadline.so.8",
+        "libreadline.dylib",
     ],
     "optimize": 1,
     "build_exe": str(HERE / "dist" / "openstan"),
@@ -232,3 +491,16 @@ setup(
     },
     executables=executables,
 )
+
+# ---------------------------------------------------------------------------
+# Post-build cleanup: remove the Qt QML directory tree
+# ---------------------------------------------------------------------------
+# cx_Freeze's PyQt6 hook copies lib/PyQt6/Qt6/qml/ as a directory, so it is
+# not caught by bin_excludes.  The app is pure QWidgets — QML is never used.
+# This runs on all platforms; it is guarded by .exists() so it is safe if
+# cx_Freeze's hook behaviour changes in a future release.
+
+_qml_dir = Path(build_exe_options["build_exe"]) / "lib" / "PyQt6" / "Qt6" / "qml"
+if _qml_dir.exists():
+    shutil.rmtree(_qml_dir)
+    print(f"Post-build: removed unused QML directory tree ({_qml_dir})")
