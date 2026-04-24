@@ -8,6 +8,10 @@ to docs/assets/screenshots/.  Run with:
 
 Screenshots are committed to the repository and referenced by the docs.
 Regenerate them whenever the UI changes.
+
+A QApplication must exist before any view widget is instantiated.  When run
+as part of the full test suite, conftest.py creates one first.  When run
+standalone this module creates one itself.
 """
 
 from __future__ import annotations
@@ -27,7 +31,8 @@ if sys.platform not in ("darwin", "win32"):
 from PyQt6.QtWidgets import QApplication  # noqa: E402
 
 # ---------------------------------------------------------------------------
-# Single QApplication for the session
+# QApplication — reuse existing instance (created by conftest.py when running
+# the full suite) or create one when running this file standalone.
 # ---------------------------------------------------------------------------
 
 _qapp: QApplication | None = None

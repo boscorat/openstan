@@ -42,8 +42,13 @@ if sys.platform not in ("darwin", "win32"):
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 # Qt imports must come after the platform env-var is set
+# QApplication is used instead of QCoreApplication so that view widgets
+# (which require a QApplication) can be instantiated in the same process —
+# e.g. by test_screenshots.py.  QApplication is a subclass of QCoreApplication
+# and satisfies all requirements of the integration test fixtures.
 from PyQt6.QtCore import QCoreApplication  # noqa: E402
 from PyQt6.QtSql import QSqlDatabase  # noqa: E402
+from PyQt6.QtWidgets import QApplication  # noqa: E402
 
 from openstan.data.create_gui_db import create_gui_db  # noqa: E402
 from openstan.models import (  # noqa: E402
@@ -64,20 +69,25 @@ from openstan.presenters.statement_queue_presenter import SQWorker  # noqa: E402
 from openstan.presenters.statement_result_presenter import CommitWorker  # noqa: E402
 
 # ---------------------------------------------------------------------------
-# QCoreApplication — exactly one instance per process
+# QApplication — exactly one instance per process
 # ---------------------------------------------------------------------------
 
 # Instantiate once at module level so every fixture in the session reuses it.
 # pytest collects this module before any fixture runs, so this is safe.
-_qapp: QCoreApplication | None = None
+# QApplication is used (rather than QCoreApplication) so that view widgets
+# can be instantiated in the same pytest process (e.g. test_screenshots.py).
+_qapp: QApplication | None = None
 
 
-def _get_or_create_qapp() -> QCoreApplication:
+def _get_or_create_qapp() -> QApplication:
     global _qapp
     if _qapp is None:
-        _qapp = QCoreApplication.instance()
-        if _qapp is None:
-            _qapp = QCoreApplication(sys.argv[:1])
+        existing = QApplication.instance()
+        if existing is not None:
+            _qapp = existing  # type: ignore[assignment]
+        else:
+            _qapp = QApplication(sys.argv[:1])
+    assert _qapp is not None
     return _qapp
 
 
