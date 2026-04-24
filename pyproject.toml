@@ -3,6 +3,7 @@ name = "openstan"
 version = "0.1.2a8"
 description = "Open source application for statement analysis and visualization"
 readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
 authors = [
     { name = "Jason Farrar", email = "stillwaters.technology@gmail.com" }
 ]
