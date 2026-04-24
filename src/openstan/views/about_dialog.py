@@ -10,11 +10,13 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtSvgWidgets import QSvgWidget
 from PyQt6.QtWidgets import QDialogButtonBox, QVBoxLayout
 
-from openstan.components import StanDialog, StanLabel
+from openstan.components import StanDialog, StanLabel, StanMutedLabel
 from openstan.paths import Paths
 
 _WEBSITE_URL = "https://openstan.org"
 _GITHUB_URL = "https://github.com/boscorat/openstan"
+_LICENSE_URL = "https://www.gnu.org/licenses/gpl-3.0.html"
+_COPYRIGHT = "Copyright \u00a9 2024 Jason Farrar"
 
 
 def _app_version() -> str:
@@ -65,6 +67,19 @@ class AboutDialog(StanDialog):
         github_label.setTextFormat(Qt.TextFormat.RichText)
         github_label.setAccessibleName("openstan GitHub repository")
 
+        # ── Copyright & license ───────────────────────────────────────────
+        copyright_label = StanMutedLabel(_COPYRIGHT)
+        copyright_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        license_label = StanLabel(
+            f'Licensed under the <a href="{_LICENSE_URL}">'
+            "GNU General Public License v3 or later</a>"
+        )
+        license_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        license_label.setOpenExternalLinks(True)
+        license_label.setTextFormat(Qt.TextFormat.RichText)
+        license_label.setAccessibleName("GPL v3 or later license")
+
         # ── Close button ──────────────────────────────────────────────────
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.rejected.connect(self.reject)
@@ -78,6 +93,9 @@ class AboutDialog(StanDialog):
         layout.addWidget(version_label)
         layout.addWidget(website_label)
         layout.addWidget(github_label)
+        layout.addSpacing(4)
+        layout.addWidget(copyright_label)
+        layout.addWidget(license_label)
         layout.addSpacing(4)
         layout.addWidget(buttons)
         self.setLayout(layout)
