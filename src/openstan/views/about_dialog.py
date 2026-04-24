@@ -40,7 +40,7 @@ class AboutDialog(StanDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("About openstan")
-        self.setFixedWidth(360)
+        self.setFixedWidth(480)
         self.setSizeGripEnabled(False)
         # Remove the '?' help button that Qt adds by default on some platforms.
         self.setWindowFlags(
