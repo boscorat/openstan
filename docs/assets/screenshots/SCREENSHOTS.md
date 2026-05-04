@@ -5,6 +5,28 @@ repository. They are referenced directly by the docs pages in `docs/screens/`.
 
 ---
 
+## Light and dark variants
+
+Every screenshot has two versions — one for light mode and one for dark mode.
+
+| Variant | Location | Filename |
+|---|---|---|
+| Light | `docs/assets/screenshots/` | e.g. `statement_queue.png` |
+| Dark | `docs/assets/screenshots/dark/` | e.g. `dark/statement_queue.png` |
+
+The docs use the Material theme `#only-light` / `#only-dark` URL fragment
+convention so the correct variant is shown automatically when the reader
+switches themes:
+
+```markdown
+![Import queue](../assets/screenshots/statement_queue.png#only-light)
+![Import queue](../assets/screenshots/dark/statement_queue.png#only-dark)
+```
+
+Both variants use the **same filename** — the `dark/` subfolder distinguishes them.
+
+---
+
 ## How to replace a screenshot
 
 1. Launch the app: `uv run openstan`  
@@ -12,7 +34,8 @@ repository. They are referenced directly by the docs pages in `docs/screens/`.
 2. Set up the app state described in the table below for the screenshot you want.
 3. Capture exactly the application window at 1280 × 800.
 4. Save the file using the **exact filename** shown in the table (PNG format).
-5. Drop it into this folder, replacing the existing file.
+5. For the **light variant**: drop it into this folder (`docs/assets/screenshots/`).  
+   For the **dark variant**: drop it into `docs/assets/screenshots/dark/`.
 6. Commit — the docs site rebuilds automatically on push to `master`.
 
 ### Capture tips by platform
@@ -43,3 +66,6 @@ repository. They are referenced directly by the docs pages in `docs/screens/`.
 | `run_reports.png` | `screens/run-reports.md` | Run Reports — builder and preview | Builder pane: report title filled, 3+ columns ticked, 1 filter row added, Group By populated; Preview pane: results table showing data |
 | `admin.png` | `screens/admin.md` | Admin dialog | Dialog open (double-click footer); all three sections visible; project drop-downs populated |
 | `about.png` | `screens/about.md` | About dialog | Dialog open; version number, links, and BSP version all visible |
+
+Each of the 14 files above must exist in **both** `docs/assets/screenshots/` (light)
+and `docs/assets/screenshots/dark/` (dark) — 28 PNG files in total.

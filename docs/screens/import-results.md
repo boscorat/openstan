@@ -2,7 +2,8 @@
 
 The **Import Results** panel appears automatically when a batch finishes processing. It summarises what happened and lets you decide what to do next.
 
-![Import results panel](../assets/screenshots/statement_results.png)
+![Import results panel](../assets/screenshots/statement_results.png#only-light)
+![Import results panel](../assets/screenshots/dark/statement_results.png#only-dark)
 
 ---
 
@@ -51,7 +52,8 @@ Lists statements that could not be parsed at all. Common causes:
 
 Click **View Debug Info** to open a dialog showing per-file debug output for all REVIEW and FAILURE statements.
 
-![Debug info dialog](../assets/screenshots/debug_info.png)
+![Debug info dialog](../assets/screenshots/debug_info.png#only-light)
+![Debug info dialog](../assets/screenshots/dark/debug_info.png#only-dark)
 
 | Column | Description |
 |---|---|

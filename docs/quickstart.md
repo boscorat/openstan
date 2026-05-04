@@ -8,7 +8,8 @@ This guide walks you through the full workflow from a fresh installation to your
 
 Open openstan from your application menu or desktop shortcut. On first run you will see an empty project selector and the application header.
 
-![openstan on first launch](assets/screenshots/title.png)
+![openstan on first launch](assets/screenshots/title.png#only-light)
+![openstan on first launch](assets/screenshots/dark/title.png#only-dark)
 
 ---
 
@@ -21,7 +22,8 @@ A **project** is a folder on disk that holds your statement PDFs, configuration 
 3. Click **Choose Folder** and select the parent directory where you want the project folder to be created. openstan will create a subfolder with the project name inside the directory you choose.
 4. Click **Finish**.
 
-![Project creation wizard](assets/screenshots/project_wizard.png)
+![Project creation wizard](assets/screenshots/project_wizard.png#only-light)
+![Project creation wizard](assets/screenshots/dark/project_wizard.png#only-dark)
 
 The new project appears in the **Select an existing project** drop-down and becomes the active project.
 
@@ -36,7 +38,8 @@ The new project appears in the **Select an existing project** drop-down and beco
 2. Use **Add Folders of Statements** to add a whole directory of PDFs at once, or **Add Individual Statement Files** to pick specific files. Files are shown in a tree grouped by folder.
 3. Review the queue. Use **Remove Selected** or **Clear All Statements** to adjust the list.
 
-![Import queue with statements added](assets/screenshots/statement_queue.png)
+![Import queue with statements added](assets/screenshots/statement_queue.png#only-light)
+![Import queue with statements added](assets/screenshots/dark/statement_queue.png#only-dark)
 
 ---
 
@@ -58,7 +61,8 @@ The results panel shows three tabs:
 | **REVIEW** | Statements parsed but the checks-and-balances totals do not match. |
 | **FAILURE** | Statements that could not be parsed at all. |
 
-![Import results panel](assets/screenshots/statement_results.png)
+![Import results panel](assets/screenshots/statement_results.png#only-light)
+![Import results panel](assets/screenshots/dark/statement_results.png#only-dark)
 
 For REVIEW and FAILURE rows, click **View Debug Info** to open a dialog with per-file debug output and the original PDF side by side.
 

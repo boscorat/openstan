@@ -16,7 +16,8 @@ Import and commit at least one batch to populate this panel. See the [Quick Star
 
 ## Summary strip
 
-![Project info panel](../assets/screenshots/project_info.png)
+![Project info panel](../assets/screenshots/project_info.png#only-light)
+![Project info panel](../assets/screenshots/dark/project_info.png#only-dark)
 
 Once data is available, a headline summary is shown at the top:
 
@@ -55,7 +56,8 @@ Click the button to open the **Gap Detail** dialog.
 
 ### Gap Detail dialog
 
-![Gap detail dialog](../assets/screenshots/gap_detail.png)
+![Gap detail dialog](../assets/screenshots/gap_detail.png#only-light)
+![Gap detail dialog](../assets/screenshots/dark/gap_detail.png#only-dark)
 
 The dialog shows a tree grouped by account. Each account node lists the gaps detected:
 

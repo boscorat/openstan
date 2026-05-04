@@ -8,7 +8,8 @@ The **About** dialog shows version information, links, and licence details for o
 
 Click the **About** button in the top-right corner of the application title bar.
 
-![About dialog](../assets/screenshots/about.png)
+![About dialog](../assets/screenshots/about.png#only-light)
+![About dialog](../assets/screenshots/dark/about.png#only-dark)
 
 ---
 

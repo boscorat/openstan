@@ -2,7 +2,8 @@
 
 The **Import Statements** panel (`Alt+I`) is where you build a queue of bank statement PDFs and run the import process.
 
-![Import statements panel](../assets/screenshots/statement_queue.png)
+![Import statements panel](../assets/screenshots/statement_queue.png#only-light)
+![Import statements panel](../assets/screenshots/dark/statement_queue.png#only-dark)
 
 ---
 

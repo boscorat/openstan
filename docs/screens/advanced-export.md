@@ -2,7 +2,8 @@
 
 The **Advanced Export** tab lives inside the [Export Data](export-data.md) panel (`Alt+E`). It provides spec-driven custom exports where you control the account, statement, and date range, and the output format is defined by a TOML export spec file.
 
-![Advanced export tab](../assets/screenshots/advanced_export.png)
+![Advanced export tab](../assets/screenshots/advanced_export.png#only-light)
+![Advanced export tab](../assets/screenshots/dark/advanced_export.png#only-dark)
 
 ---
 

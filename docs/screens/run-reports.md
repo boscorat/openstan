@@ -17,7 +17,8 @@ The panel is split into two panes by a draggable divider:
 - **Left pane** — Report Builder: define and manage reports.
 - **Right pane** — Report Preview: live preview of query results.
 
-![Run reports panel](../assets/screenshots/run_reports.png)
+![Run reports panel](../assets/screenshots/run_reports.png#only-light)
+![Run reports panel](../assets/screenshots/dark/run_reports.png#only-dark)
 
 ---
 

@@ -6,7 +6,8 @@ The project management controls are always visible at the top of the application
 
 ## Project selector bar
 
-![Project selector bar](../assets/screenshots/project_view.png)
+![Project selector bar](../assets/screenshots/project_view.png#only-light)
+![Project selector bar](../assets/screenshots/dark/project_view.png#only-dark)
 
 The project selector bar contains three controls:
 
@@ -24,7 +25,8 @@ Switching projects in the drop-down immediately updates all panels to reflect th
 
 Click **Create New Project** to open the project wizard.
 
-![Project creation wizard](../assets/screenshots/project_wizard.png)
+![Project creation wizard](../assets/screenshots/project_wizard.png#only-light)
+![Project creation wizard](../assets/screenshots/dark/project_wizard.png#only-dark)
 
 | Field | Description |
 |---|---|
@@ -57,7 +59,8 @@ Click **Finish** to register the project. No files are modified on disk.
 
 Once a project is selected, the navigation bar appears below the project selector:
 
-![Navigation bar](../assets/screenshots/project_nav.png)
+![Navigation bar](../assets/screenshots/project_nav.png#only-light)
+![Navigation bar](../assets/screenshots/dark/project_nav.png#only-dark)
 
 | Button | Shortcut | Panel |
 |---|---|---|
