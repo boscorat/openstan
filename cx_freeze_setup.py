@@ -40,6 +40,17 @@ from pathlib import Path
 from cx_Freeze import Executable, setup
 
 # ---------------------------------------------------------------------------
+# Version — resolved early so platform option dicts can reference it
+# ---------------------------------------------------------------------------
+
+try:
+    from importlib.metadata import version as _pkg_version
+
+    _version = _pkg_version("openstan")
+except Exception:
+    _version = "0.0.0"
+
+# ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
 
@@ -431,6 +442,25 @@ bdist_msi_options: dict = {
     },
 }
 
+bdist_mac_options: dict = {
+    # bundle_name becomes the .app directory name: openstan.app
+    "bundle_name": "openstan",
+    # iconfile sets CFBundleIconFile in Info.plist and copies the .icns into
+    # Contents/Resources/ so Finder and the Dock display the correct icon.
+    "iconfile": str(BUILD_ICONS / "openstan.icns") if BUILD_ICONS.exists() else None,
+    # Reverse-DNS identifier required by macOS; also used by Gatekeeper.
+    "bundle_identifier": "org.openstan.app",
+    # Extra Info.plist keys:
+    #   NSHighResolutionCapable — opt in to Retina (HiDPI) rendering
+    #   NSRequiresAquaSystemAppearance — allow the app to follow dark mode
+    #   CFBundleShortVersionString — surface the version in Finder's Get Info
+    "plist_items": [
+        ("NSHighResolutionCapable", True),
+        ("NSRequiresAquaSystemAppearance", False),
+        ("CFBundleShortVersionString", _version),
+    ],
+}
+
 bdist_dmg_options: dict = {
     "volume_label": "openstan",
     "applications_shortcut": True,
@@ -467,15 +497,6 @@ executables: list[Executable] = [
 # setup() call
 # ---------------------------------------------------------------------------
 
-# Read version from the installed package metadata at build time so we never
-# have to maintain it in two places.
-try:
-    from importlib.metadata import version as _pkg_version
-
-    _version = _pkg_version("openstan")
-except Exception:
-    _version = "0.0.0"
-
 setup(
     name="openstan",
     version=_version,
@@ -485,6 +506,7 @@ setup(
     url="https://openstan.org",
     options={
         "build_exe": build_exe_options,
+        "bdist_mac": bdist_mac_options,
         "bdist_msi": bdist_msi_options,
         "bdist_dmg": bdist_dmg_options,
         "bdist_rpm": bdist_rpm_options,
