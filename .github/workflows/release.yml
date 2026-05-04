@@ -258,16 +258,59 @@ jobs:
           echo "Icon written to build/icons/openstan.icns"
 
       # ── cx_Freeze build ────────────────────────────────────────────────────
-      - name: Build .dmg disk image (cx_Freeze)
-        run: uv run python cx_freeze_setup.py bdist_dmg
+      # Step 1: build the .app bundle only (not the DMG yet)
+      - name: Build .app bundle (cx_Freeze bdist_mac)
+        run: uv run python cx_freeze_setup.py bdist_mac
 
-      # cx_Freeze's bdist_dmg writes to build/*.dmg, not dist/.
-      # Move it into dist/ so the upload step can find it.
-      - name: Move .dmg to dist/
+      # Step 2: ad-hoc code-sign the .app bundle.
+      #
+      # "--sign -" uses an ad-hoc identity (no Apple Developer account needed).
+      # This removes the "damaged and can't be opened" Gatekeeper error that
+      # occurs when an unsigned app is downloaded from the internet (quarantine
+      # bit).  Users will still see an "unidentified developer" prompt on first
+      # launch and must approve the app via right-click > Open or via
+      # System Settings > Privacy & Security.
+      # Full notarization (which silences that prompt too) requires an Apple
+      # Developer account and is not performed here.
+      - name: Ad-hoc code-sign .app bundle
         run: |
+          APP=$(find build -maxdepth 3 -name "*.app" | head -1)
+          if [ -z "$APP" ]; then
+            echo "ERROR: no .app bundle found under build/" >&2
+            exit 1
+          fi
+          echo "Signing: $APP"
+          codesign --deep --force --sign - "$APP"
+          codesign --verify --deep --strict "$APP" && echo "Signature OK"
+
+      # Step 3: wrap the signed .app in a DMG.
+      #
+      # We create the DMG manually with hdiutil rather than running bdist_dmg,
+      # because bdist_dmg would call bdist_mac internally again and overwrite
+      # the signed .app with a fresh unsigned one.
+      #
+      # A symlink to /Applications is added inside the staging folder so the
+      # DMG presents the standard drag-to-Applications install experience.
+      - name: Create .dmg from signed .app (hdiutil)
+        run: |
+          APP=$(find build -maxdepth 3 -name "*.app" | head -1)
+          APP_NAME=$(basename "$APP" .app)
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"   # strip leading 'v' from tag
+
+          STAGING=$(mktemp -d)
+          cp -R "$APP" "$STAGING/"
+          ln -s /Applications "$STAGING/Applications"
+
           mkdir -p dist
-          mv build/*.dmg dist/
-          echo "dist/ contents:"
+          DMG="dist/${APP_NAME}-${VERSION}.dmg"
+          hdiutil create \
+            -volname "openstan" \
+            -srcfolder "$STAGING" \
+            -ov \
+            -format UDZO \
+            "$DMG"
+          echo "Created: $DMG"
           ls -lh dist/
 
       # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
