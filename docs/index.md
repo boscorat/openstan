@@ -36,4 +36,4 @@
 ## Licence
 
 openstan is released under the [GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0.html) licence.  
-Copyright © 2024 Jason Farrar.
+Copyright © 2025 Jason Farrar.

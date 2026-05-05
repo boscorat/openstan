@@ -69,7 +69,7 @@ Once a project is selected, the navigation bar appears below the project selecto
 | **Export Data** | `Alt+E` | Standard and advanced data exports |
 | **Run Reports** | `Alt+R` | No-code report builder |
 
-**Project Info**, **Export Data**, and **Run Reports** are hidden until at least one batch has been committed to the project database.
+**Project Info**, **Export Data**, and **Run Reports** are always visible once a project is selected, but display a placeholder message until at least one batch has been committed to the project database.
 
 ---
 
@@ -81,4 +81,4 @@ The footer bar at the bottom of the window shows contextual session information:
 - **Centre**: Active project name and ID.
 - **Right**: Application copyright notice.
 
-Double-clicking anywhere on the footer opens the [Admin dialog](admin.md).
+The [Admin dialog](admin.md) is accessible via the **Admin** button in the top-right corner of the title bar.

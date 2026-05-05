@@ -23,7 +23,7 @@ Click the **About** button in the top-right corner of the application title bar.
 | **GitHub repository** | Link to the openstan source code on GitHub. |
 | **Powered by bank\_statement\_parser** | The version of the underlying parsing library in use. |
 | **bank\_statement\_parser repository** | Link to the BSP source code on GitHub. |
-| **Copyright** | © 2024 Jason Farrar |
+| **Copyright** | © 2025 Jason Farrar |
 | **Licence** | Link to the full GPL v3+ licence text. |
 
 All links open in your system's default web browser.

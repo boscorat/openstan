@@ -17,7 +17,7 @@ _WEBSITE_URL = "https://openstan.org"
 _GITHUB_URL = "https://github.com/boscorat/openstan"
 _LICENSE_URL = "https://www.gnu.org/licenses/gpl-3.0.html"
 _BSP_GITHUB_URL = "https://github.com/boscorat/bank_statement_parser"
-_COPYRIGHT = "Copyright \u00a9 2024 Jason Farrar"
+_COPYRIGHT = "Copyright \u00a9 2025 Jason Farrar"
 
 
 def _app_version() -> str:
