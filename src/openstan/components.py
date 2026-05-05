@@ -438,6 +438,7 @@ class StanDateEdit(QDateEdit):
         super().__init__(parent)
         self.setAutoFillBackground(True)
         self.setCalendarPopup(True)
+        self.setDisplayFormat("yyyy-MM-dd")
 
 
 class StanTabWidget(QTabWidget):

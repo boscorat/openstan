@@ -403,6 +403,15 @@ class StanPresenter(QObject):
         self.statement_queue_presenter.update_view()
         # Refresh project info — the project may now have data for the first time.
         self.__refresh_project_info()
+        # Reload advanced export and run-reports combos — the datamart has just
+        # been rebuilt so account/statement data is now available.
+        if self.stan.current_project_paths is not None:
+            self.advanced_export_presenter.load_project(
+                self.stan.current_project_paths.root
+            )
+            self.run_reports_presenter.load_project(
+                self.stan.current_project_paths.root
+            )
 
     # ---------------------------------------------------------------------------
     # Admin
