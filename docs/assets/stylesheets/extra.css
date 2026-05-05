@@ -1,0 +1,6 @@
+/* Hide dark-mode-only images when the light scheme is active.
+   Zensical's bundled palette CSS already hides #only-light images in dark
+   mode, but the complementary rule for light mode is absent. */
+[data-md-color-scheme=default] img[src$="#only-dark"] {
+    display: none;
+}

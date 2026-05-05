@@ -45,6 +45,9 @@ markdown_extensions:
   - toc:
       permalink: true
 
+extra_css:
+  - assets/stylesheets/extra.css
+
 nav:
   - Home: index.md
   - Installation: installation.md
