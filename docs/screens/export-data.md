@@ -12,7 +12,8 @@ If no statements have been committed yet, the panel shows a placeholder message.
 
 ## Standard Exports tab
 
-![Export data panel — standard exports](../assets/screenshots/export_data.png)
+![Export data panel — standard exports](../assets/screenshots/export_data.png#only-light)
+![Export data panel — standard exports](../assets/screenshots/dark/export_data.png#only-dark)
 
 ### Export parameters
 

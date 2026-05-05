@@ -8,7 +8,8 @@ The **Admin** dialog is used for project management operations that modify or re
 
 Double-click anywhere on the **footer bar** at the bottom of the main window. A confirmation is not required to open the dialog — destructive actions inside the dialog each have their own confirmation step.
 
-![Admin dialog](../assets/screenshots/admin.png)
+![Admin dialog](../assets/screenshots/admin.png#only-light)
+![Admin dialog](../assets/screenshots/dark/admin.png#only-dark)
 
 ---
 
