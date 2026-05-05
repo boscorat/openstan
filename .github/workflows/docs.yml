@@ -4,13 +4,9 @@ on:
   push:
     branches: [master]
     paths:
-      # Rebuild when doc sources change
+      # Rebuild when doc sources or manually committed screenshots change
       - "docs/**"
       - "mkdocs.yml"
-      # Rebuild when the UI changes (screenshots must be regenerated)
-      - "src/openstan/views/**"
-      # Rebuild when screenshot test changes
-      - "tests/test_screenshots.py"
   workflow_dispatch:  # allow manual trigger
 
 # Only one deploy at a time; cancel in-flight runs on new push
@@ -24,7 +20,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -37,33 +33,8 @@ jobs:
         with:
           python-version: "3.14"
 
-      - name: Install Qt system dependencies
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y --no-install-recommends \
-            libegl1 \
-            libgles2 \
-            libxcb-cursor0 \
-            libxcb-icccm4 \
-            libxcb-image0 \
-            libxcb-keysyms1 \
-            libxcb-randr0 \
-            libxcb-render-util0 \
-            libxcb-shape0 \
-            libxcb-xinerama0 \
-            libxcb-xkb1 \
-            libxkbcommon-x11-0 \
-            libdbus-1-3 \
-            libfontconfig1 \
-            libfreetype6
-
       - name: Install dependencies
         run: uv sync --all-groups
-
-      - name: Generate screenshots
-        run: uv run pytest tests/test_screenshots.py -v
-        env:
-          QT_QPA_PLATFORM: offscreen
 
       - name: Build docs
         run: uv run zensical build

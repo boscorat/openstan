@@ -93,4 +93,6 @@ jobs:
             ${{ steps.check.outputs.changed }}
             ```
 
-            Please review and update the relevant pages in `docs/screens/` before merging, and re-run `uv run pytest tests/test_screenshots.py` to regenerate any affected screenshots.
+            Please review and update the relevant pages in `docs/screens/` before merging.
+
+            If the UI has visually changed, capture a new screenshot for the affected screen(s) and commit it to `docs/assets/screenshots/`. See [`docs/assets/screenshots/SCREENSHOTS.md`](../blob/master/docs/assets/screenshots/SCREENSHOTS.md) for the filename, required app state, and capture instructions for each screen.
