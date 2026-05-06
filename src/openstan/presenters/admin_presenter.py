@@ -37,6 +37,7 @@ class AdminPresenter(QObject):
         self.view.button_delete_project.clicked.connect(self.delete_project)
         self.view.button_remove_project.clicked.connect(self.remove_project_from_ui)
         self.view.button_empty_db.clicked.connect(self.empty_gui_db)
+        self.view.button_open_anonymise.clicked.connect(self.open_anonymise_tool)
 
     # ---------------------------------------------------------------------------
     # Public helpers
@@ -174,3 +175,23 @@ class AdminPresenter(QObject):
             )
 
         QApplication.quit()
+
+    @pyqtSlot()
+    def open_anonymise_tool(self) -> None:
+        """Open the Anonymise PDF dialog for the currently active project."""
+        from bank_statement_parser import ProjectPaths
+
+        from openstan.presenters.anonymise_presenter import AnonymisePresenter
+        from openstan.views.anonymise_dialog import AnonymiseDialog
+
+        project_paths: ProjectPaths | None = self.stan.current_project_paths
+        if project_paths is None:
+            StanErrorMessage(parent=self.view).showMessage(
+                "No project is currently active. "
+                "Open a project before using the Anonymise tool."
+            )
+            return
+
+        dlg = AnonymiseDialog(parent=self.view)
+        _presenter = AnonymisePresenter(dialog=dlg, project_paths=project_paths)
+        dlg.exec()
