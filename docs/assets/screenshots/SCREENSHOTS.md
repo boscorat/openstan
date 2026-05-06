@@ -58,14 +58,15 @@ Both variants use the **same filename** — the `dark/` subfolder distinguishes 
 | `project_wizard.png` | `screens/project-management.md` | Create New Project wizard | Wizard open in **new** mode; Project Name field filled in; folder path chosen |
 | `statement_queue.png` | `screens/import-statements.md` | Import queue with files | Queue populated with at least one folder group containing 2–3 PDF files; Run Statement Import button enabled |
 | `statement_results.png` | `screens/import-results.md` | Import results panel | Batch complete; SUCCESS tab active and showing at least 2 rows; summary bar showing counts; Commit Batch button enabled |
-| `debug_info.png` | `screens/import-results.md` | Debug Info dialog | Dialog open; at least one REVIEW or FAILURE row visible; debug status column showing `done`; Open JSON and Open PDF buttons visible |
 | `project_info.png` | `screens/project-info.md` | Project Info panel | At least 2 accounts in the table; date range populated; gap warning button visible |
 | `gap_detail.png` | `screens/project-info.md` | Gap Detail dialog | Dialog open; at least one account node expanded showing a gap description |
 | `export_data.png` | `screens/export-data.md` | Export Data — Standard tab | Standard Exports tab active; Type/Batch/File naming/Folder parameters all visible; export buttons enabled |
 | `advanced_export.png` | `screens/advanced-export.md` | Export Data — Advanced tab | Advanced tab active; Account drop-down populated; at least one export spec button visible |
 | `run_reports.png` | `screens/run-reports.md` | Run Reports — builder and preview | Builder pane: report title filled, 3+ columns ticked, 1 filter row added, Group By populated; Preview pane: results table showing data |
-| `admin.png` | `screens/admin.md` | Admin dialog | Dialog open (double-click footer); all three sections visible; project drop-downs populated |
+| `admin.png` | `screens/admin.md` | Admin dialog | Dialog open; all **four** sections visible (Delete, Remove, Reset, Anonymise PDF); project drop-downs populated |
+| `debug_info.png` | `screens/import-results.md` | Debug Info dialog | Dialog open; at least one REVIEW or FAILURE row visible; debug status column showing `done`; Open JSON, Open PDF, and **Anonymise** buttons all visible |
+| `anonymise.png` | `screens/anonymise.md` | Anonymise PDF dialog | Dialog open; PDF path field populated; TOML editor showing the contents of `anonymise.toml`; status label showing "Ready" or "Done"; Open Anonymised PDF button enabled |
 | `about.png` | `screens/about.md` | About dialog | Dialog open; version number, links, and BSP version all visible |
 
-Each of the 14 files above must exist in **both** `docs/assets/screenshots/` (light)
-and `docs/assets/screenshots/dark/` (dark) — 28 PNG files in total.
+Each of the 15 files above must exist in **both** `docs/assets/screenshots/` (light)
+and `docs/assets/screenshots/dark/` (dark) — 30 PNG files in total.

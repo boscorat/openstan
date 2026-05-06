@@ -107,9 +107,33 @@ class AdminView(StanDialog):
         section_empty.setLayout(layout_empty)
 
         # ------------------------------------------------------------------
+        # Section 4 — Anonymise PDF
+        # ------------------------------------------------------------------
+        section_anon = StanFrame()
+        layout_anon = QVBoxLayout()
+        layout_anon.setSpacing(8)
+
+        lbl_anon_title = StanLabel("##### Anonymise PDF")
+        lbl_anon_info = StanLabel(
+            "Select a PDF, edit the exclusion config, and produce an anonymised copy "
+            "suitable for sharing or attaching to a bug report."
+        )
+        lbl_anon_info.setWordWrap(True)
+
+        self.button_open_anonymise = StanButton("Open Anonymise Tool")
+
+        layout_anon.addWidget(lbl_anon_title)
+        layout_anon.addWidget(lbl_anon_info)
+        layout_anon.addWidget(
+            self.button_open_anonymise, alignment=Qt.AlignmentFlag.AlignLeft
+        )
+        section_anon.setLayout(layout_anon)
+
+        # ------------------------------------------------------------------
         # Assemble outer layout
         # ------------------------------------------------------------------
         outer.addWidget(section_delete)
         outer.addWidget(section_remove)
         outer.addWidget(section_empty)
+        outer.addWidget(section_anon)
         self.setLayout(outer)

@@ -61,4 +61,5 @@ nav:
       - Advanced Export: screens/advanced-export.md
       - Run Reports: screens/run-reports.md
       - Admin: screens/admin.md
+      - Anonymise PDF: screens/anonymise.md
       - About: screens/about.md

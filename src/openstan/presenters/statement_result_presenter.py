@@ -553,7 +553,15 @@ class StatementResultPresenter(QObject):
         if not non_success:
             return
 
-        self._debug_dialog = DebugInfoDialog(rows=non_success, parent=self.view)
+        self._debug_dialog = DebugInfoDialog(
+            rows=non_success,
+            project_paths=(
+                bsp.ProjectPaths.resolve(self.project_path)
+                if self.project_path is not None
+                else None
+            ),
+            parent=self.view,
+        )
         if not self._debug_worker_done:
             self._debug_dialog.update_progress_label(
                 self._debug_done_count, self._debug_total_count

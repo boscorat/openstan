@@ -51,3 +51,18 @@ Click **Empty Database & Restart** to proceed. A confirmation dialog is shown be
 
 !!! warning "Use with care"
     After a reset, all projects must be re-added via **Add Existing Project**. The project data (statements, transactions) stored in each project folder is unaffected.
+
+---
+
+## Anonymise PDF
+
+Opens the [Anonymise PDF](anonymise.md) tool for the currently active project.
+
+| Control | Description |
+|---|---|
+| **Open Anonymise Tool** button | Opens the Anonymise PDF dialog, where you can select a statement, edit the exclusion config, and produce a redacted copy. |
+
+Use this to create an anonymised version of a PDF that is safe to share or attach to a GitHub issue. The tool is also accessible directly from any REVIEW or FAILURE row in the [Debug Info dialog](import-results.md#debug-info-dialog).
+
+!!! info "A project must be active"
+    The button is only useful when a project is open. If no project is selected, an error dialog is shown.

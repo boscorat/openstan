@@ -11,6 +11,7 @@ Each row shows:
   - Debug status
   - "Open JSON" button (enabled once debug_json_path is known)
   - "Open PDF" button (always enabled — uses the original file_path)
+  - "Anonymise" button (enabled when project_paths is available)
 """
 
 from pathlib import Path
@@ -30,6 +31,8 @@ from PyQt6.QtWidgets import (
 from openstan.components import StanButton, StanDialog, StanLabel, StanTableWidget
 
 if TYPE_CHECKING:
+    from bank_statement_parser import ProjectPaths
+
     from openstan.models.statement_result_model import ResultRow
 
 
@@ -39,8 +42,17 @@ _COL_TYPE = 1
 _COL_STATUS = 2
 _COL_JSON = 3
 _COL_PDF = 4
-_COL_MESSAGE = 5
-_HEADERS = ["Statement", "Type", "Debug Status", "Debug JSON", "PDF", "Message"]
+_COL_ANON = 5
+_COL_MESSAGE = 6
+_HEADERS = [
+    "Statement",
+    "Type",
+    "Debug Status",
+    "Debug JSON",
+    "PDF",
+    "Anonymise",
+    "Message",
+]
 
 
 class DebugInfoDialog(StanDialog):
@@ -49,15 +61,31 @@ class DebugInfoDialog(StanDialog):
     Can be opened while the debug worker is still running — rows update
     live via ``update_row()``.  Once all entries are resolved
     ``set_all_done()`` finalises any still-pending status labels.
+
+    Parameters
+    ----------
+    rows:
+        The non-success result rows to display.
+    project_paths:
+        Optional ``ProjectPaths`` for the active project.  When supplied,
+        an "Anonymise" button is shown per row that opens the
+        :class:`AnonymiseDialog` pre-loaded with that PDF.
+    parent:
+        Optional parent widget.
     """
 
-    def __init__(self, rows: "list[ResultRow]", parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        rows: "list[ResultRow]",
+        project_paths: "ProjectPaths | None" = None,
+        parent: QWidget | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Debug Information")
-        self.setMinimumWidth(820)
+        self.setMinimumWidth(900)
         self.setMinimumHeight(400)
 
-        # Map result_id → table row index for fast live updates
+        self._project_paths = project_paths
         self._row_index: dict[str, int] = {}
 
         # Table
@@ -72,6 +100,7 @@ class DebugInfoDialog(StanDialog):
         hdr.setSectionResizeMode(_COL_STATUS, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_JSON, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_PDF, QHeaderView.ResizeMode.ResizeToContents)
+        hdr.setSectionResizeMode(_COL_ANON, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_MESSAGE, QHeaderView.ResizeMode.Stretch)
 
         # Populate initial rows
@@ -176,6 +205,19 @@ class DebugInfoDialog(StanDialog):
         pdf_btn.clicked.connect(lambda _checked, p=pdf_path: self.__open_file(p))
         self._table.setCellWidget(table_row, _COL_PDF, pdf_btn)
 
+        # Anonymise button — opens AnonymiseDialog pre-loaded with this PDF
+        anon_btn = StanButton("Anonymise", min_width=0)
+        anon_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        if self._project_paths is not None:
+            file_path = row.file_path
+            anon_btn.clicked.connect(
+                lambda _checked, p=file_path: self.__open_anonymise(p)
+            )
+        else:
+            anon_btn.setEnabled(False)
+            anon_btn.setToolTip("No active project — cannot open Anonymise tool.")
+        self._table.setCellWidget(table_row, _COL_ANON, anon_btn)
+
         # Message
         self._table.setItem(
             table_row, _COL_MESSAGE, QTableWidgetItem(row.message or "")
@@ -186,6 +228,21 @@ class DebugInfoDialog(StanDialog):
         """Open *path* in the OS default application."""
         if path:
             QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+
+    def __open_anonymise(self, pdf_path: Path) -> None:
+        """Open the AnonymiseDialog pre-loaded with *pdf_path*."""
+        from openstan.presenters.anonymise_presenter import AnonymisePresenter
+        from openstan.views.anonymise_dialog import AnonymiseDialog
+
+        if self._project_paths is None:
+            return
+        dlg = AnonymiseDialog(parent=self)
+        _presenter = AnonymisePresenter(
+            dialog=dlg,
+            project_paths=self._project_paths,
+            initial_pdf=pdf_path,
+        )
+        dlg.exec()
 
     def __update_status_label(self) -> None:
         total = self._table.rowCount()
