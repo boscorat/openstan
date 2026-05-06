@@ -448,13 +448,13 @@ bdist_mac_options: dict = {
     # iconfile sets CFBundleIconFile in Info.plist and copies the .icns into
     # Contents/Resources/ so Finder and the Dock display the correct icon.
     "iconfile": str(BUILD_ICONS / "openstan.icns") if BUILD_ICONS.exists() else None,
-    # Reverse-DNS identifier required by macOS; also used by Gatekeeper.
-    "bundle_identifier": "org.openstan.app",
     # Extra Info.plist keys:
+    #   CFBundleIdentifier — reverse-DNS identifier required by macOS / Gatekeeper
     #   NSHighResolutionCapable — opt in to Retina (HiDPI) rendering
     #   NSRequiresAquaSystemAppearance — allow the app to follow dark mode
     #   CFBundleShortVersionString — surface the version in Finder's Get Info
     "plist_items": [
+        ("CFBundleIdentifier", "org.openstan.app"),
         ("NSHighResolutionCapable", True),
         ("NSRequiresAquaSystemAppearance", False),
         ("CFBundleShortVersionString", _version),
