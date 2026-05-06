@@ -62,6 +62,7 @@ Click **View Debug Info** to open a dialog showing per-file debug output for all
 | **Debug Status** | Processing state: `pending` → `running` → `done` / `error` / `unavailable`. |
 | **Open JSON** | Opens the debug JSON output file in your system's default JSON viewer (enabled once the file is generated). |
 | **Open PDF** | Opens the original PDF in your system's default PDF viewer. |
+| **Anonymise** | Opens the [Anonymise PDF](anonymise.md) tool pre-loaded with this statement's path, so you can produce a redacted copy to attach to a GitHub issue. |
 | **Message** | The error or review message from the parser. |
 
 A progress indicator at the bottom of the dialog shows how many debug files have been generated.
