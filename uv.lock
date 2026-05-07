@@ -468,11 +468,13 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
-dev = [
+build = [
     { name = "cx-freeze" },
-    { name = "ghp-import" },
     { name = "pillow" },
     { name = "pyinstaller" },
+]
+dev = [
+    { name = "ghp-import" },
     { name = "pyrefly" },
     { name = "pytest" },
     { name = "ruff" },
@@ -487,11 +489,13 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [
+build = [
     { name = "cx-freeze", specifier = ">=8.0.0" },
-    { name = "ghp-import", specifier = ">=2.1.0" },
     { name = "pillow", specifier = ">=11.0.0" },
     { name = "pyinstaller", specifier = ">=6.0.0" },
+]
+dev = [
+    { name = "ghp-import", specifier = ">=2.1.0" },
     { name = "pyrefly", specifier = ">=0.50.0" },
     { name = "pytest", specifier = ">=9.0.0" },
     { name = "ruff", specifier = ">=0.14.14" },

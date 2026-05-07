@@ -27,14 +27,20 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "cx-freeze>=8.0.0",
     "ghp-import>=2.1.0",
-    "pillow>=11.0.0",
-    "pyinstaller>=6.0.0",
     "pyrefly>=0.50.0",
     "pytest>=9.0.0",
     "ruff>=0.14.14",
     "zensical>=0.0.24",
+]
+# build group: only what the release CI needs to produce frozen installers.
+# Used with: uv sync --no-dev && uv sync --group build
+# Kept separate from dev so cx_Freeze and Pillow are never packaged into the
+# frozen app alongside dev-only tools (pyrefly, pytest, ruff, zensical, etc.).
+build = [
+    "cx-freeze>=8.0.0",
+    "pillow>=11.0.0",
+    "pyinstaller>=6.0.0",
 ]
 
 # ---------------------------------------------------------------------------
