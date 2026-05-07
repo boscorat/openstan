@@ -21,8 +21,7 @@ on:
     tags:
       - "v*"
 
-permissions:
-  contents: write   # needed to upload release assets
+permissions: {}  # no workflow-level permissions; each job declares its own
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -32,13 +31,20 @@ jobs:
     name: Build Linux packages (.deb / .rpm)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write  # needed to upload release assets
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          persist-credentials: false
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+        with:
+          cache: false
+          enable-cache: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: "3.14"
 
@@ -121,7 +127,7 @@ jobs:
       #         dist/openstan/=/opt/openstan
 
       - name: Upload .deb and .rpm to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65  # v2
         with:
           files: |
             dist/*.deb
@@ -135,13 +141,20 @@ jobs:
   build-windows:
     name: Build Windows installer (.msi)
     runs-on: windows-latest
+    permissions:
+      contents: write  # needed to upload release assets
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          persist-credentials: false
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+        with:
+          cache: false
+          enable-cache: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: "3.14"
 
@@ -184,7 +197,7 @@ jobs:
       #     # See https://wixtoolset.org/
 
       - name: Upload .msi to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65  # v2
         with:
           files: dist/*.msi
         env:
@@ -196,13 +209,20 @@ jobs:
   build-macos:
     name: Build macOS disk image (.dmg)
     runs-on: macos-latest
+    permissions:
+      contents: write  # needed to upload release assets
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          persist-credentials: false
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+        with:
+          cache: false
+          enable-cache: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: "3.14"
 
@@ -292,10 +312,12 @@ jobs:
       # A symlink to /Applications is added inside the staging folder so the
       # DMG presents the standard drag-to-Applications install experience.
       - name: Create .dmg from signed .app (hdiutil)
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
           APP=$(find build -maxdepth 3 -name "*.app" | head -1)
           APP_NAME=$(basename "$APP" .app)
-          VERSION="${{ github.ref_name }}"
+          VERSION="${REF_NAME}"
           VERSION="${VERSION#v}"   # strip leading 'v' from tag
 
           STAGING=$(mktemp -d)
@@ -329,7 +351,7 @@ jobs:
       #       "dist/openstan.app"
 
       - name: Upload .dmg to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65  # v2
         with:
           files: dist/*.dmg
         env:
