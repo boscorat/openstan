@@ -191,6 +191,36 @@ build_exe_options: dict = {
         "_codecs_kr",
         "_codecs_tw",
         "_codecs_iso2022",
+        # ----------------------------------------------------------------
+        # Dev / build tools — must never be bundled into the frozen app.
+        # cx_Freeze packages everything importable from the venv, so these
+        # are listed explicitly as a safety net even when the release CI
+        # runs with a runtime-only venv (uv sync --no-dev).
+        # ----------------------------------------------------------------
+        "ruff",
+        "pytest",
+        "_pytest",
+        "pyrefly",
+        "pyinstaller",
+        "PyInstaller",
+        "cx_Freeze",
+        "freeze_core",
+        "pillow",
+        "PIL",
+        "zensical",
+        "ghp_import",
+        "mkdocs",
+        "markdown",
+        "pymdownx",
+        "pygments",
+        "jinja2",
+        "click",
+        "pyyaml",
+        "deepmerge",
+        "iniconfig",
+        "pluggy",
+        "altgraph",
+        "patchelf",
     ],
     # Exclude shared libraries / plugins that are not used by the app.
     # Each entry covers all three platforms: Linux .so*, macOS .dylib, Windows .dll.

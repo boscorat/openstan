@@ -33,14 +33,13 @@ dev = [
     "ruff>=0.14.14",
     "zensical>=0.0.24",
 ]
-# build group: only what the release CI needs to produce frozen installers.
-# Used with: uv sync --no-dev && uv sync --group build
-# Kept separate from dev so cx_Freeze and Pillow are never packaged into the
-# frozen app alongside dev-only tools (pyrefly, pytest, ruff, zensical, etc.).
+# build group: convenience for running cx_freeze_setup.py locally without
+# needing to pass --with flags.  The release CI does NOT use this group —
+# it injects cx-freeze and pillow ephemerally via 'uv run --with' so that
+# build tools are never present in the app venv and cannot be bundled.
 build = [
     "cx-freeze>=8.0.0",
     "pillow>=11.0.0",
-    "pyinstaller>=6.0.0",
 ]
 
 # ---------------------------------------------------------------------------
