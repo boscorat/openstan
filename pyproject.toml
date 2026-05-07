@@ -59,3 +59,8 @@ build = [
 
 [tool.pyrefly]
 search-path = ["."]
+# cx_freeze_setup.py is a build script that requires cx_Freeze, which is only
+# installed in the 'build' dependency group (not 'dev').  Exclude it from
+# type-checking so CI (which runs uv sync --group dev) doesn't fail on a
+# missing-import error for a file that is never imported by the application.
+project-excludes = ["cx_freeze_setup.py"]
