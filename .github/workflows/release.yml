@@ -59,7 +59,10 @@ jobs:
             inkscape
 
       - name: Install Python dependencies
-        run: uv sync --no-dev && uv sync --group build
+        # Runtime deps only — build tools (cx_Freeze, Pillow) are injected
+        # ephemerally via --with so they are never present in the app venv
+        # and therefore never bundled into the frozen installer.
+        run: uv sync --no-dev
 
       # Inkscape converts SVG → PNG; Pillow (pure Python) converts PNG → .ico.
       # The resulting .png is also placed in the package share/ directory so
@@ -74,7 +77,7 @@ jobs:
 
       # ── cx_Freeze build ────────────────────────────────────────────────────
       - name: Build frozen app (cx_Freeze)
-        run: uv run python cx_freeze_setup.py build
+        run: uv run --with cx-freeze python cx_freeze_setup.py build
 
       - name: Verify icon and .desktop file were bundled
         run: |
@@ -85,11 +88,11 @@ jobs:
           test -f dist/openstan/share/openstan.desktop && echo ".desktop: OK" || echo ".desktop: MISSING"
 
       - name: Build .rpm package
-        run: uv run python cx_freeze_setup.py bdist_rpm
+        run: uv run --with cx-freeze python cx_freeze_setup.py bdist_rpm
         timeout-minutes: 10
 
       - name: Build .deb package
-        run: uv run python cx_freeze_setup.py bdist_deb
+        run: uv run --with cx-freeze python cx_freeze_setup.py bdist_deb
         timeout-minutes: 10
 
       # alien silently drops RPM scriptlets when converting to .deb.
@@ -165,7 +168,8 @@ jobs:
           echo "C:\resvg" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Install Python dependencies
-        run: uv sync --no-dev && uv sync --group build
+        # Runtime deps only — build tools injected ephemerally via --with.
+        run: uv sync --no-dev
 
       # resvg is a headless Rust SVG renderer — works on Windows runners with
       # no display, unlike Inkscape which requires DBus/X11.
@@ -180,11 +184,11 @@ jobs:
                   src\openstan\icons\icon-square.svg `
                   "build\icons\icon_${sz}.png"
           }
-          uv run python .github/scripts/make_ico.py
+          uv run --with pillow python .github/scripts/make_ico.py
 
       # ── cx_Freeze build ────────────────────────────────────────────────────
       - name: Build .msi installer (cx_Freeze)
-        run: uv run python cx_freeze_setup.py bdist_msi
+        run: uv run --with cx-freeze python cx_freeze_setup.py bdist_msi
 
       # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
       # - name: Build frozen app (PyInstaller fallback)
@@ -243,7 +247,8 @@ jobs:
           sudo ln -sf "$BREW_LIBPQ" /Applications/Postgres.app/Contents/Versions/14/lib/libpq.5.dylib
 
       - name: Install Python dependencies
-        run: uv sync --no-dev && uv sync --group build
+        # Runtime deps only — build tools injected ephemerally via --with.
+        run: uv sync --no-dev
 
       # Inkscape converts SVG → PNG at each size.
       # Pillow assembles the PNGs into an iconset; iconutil (macOS built-in)
@@ -277,7 +282,7 @@ jobs:
       # ── cx_Freeze build ────────────────────────────────────────────────────
       # Step 1: build the .app bundle only (not the DMG yet)
       - name: Build .app bundle (cx_Freeze bdist_mac)
-        run: uv run python cx_freeze_setup.py bdist_mac
+        run: uv run --with cx-freeze python cx_freeze_setup.py bdist_mac
 
       # Step 2: ad-hoc code-sign the .app bundle.
       #
