@@ -864,12 +864,6 @@ class ReportPreviewPane(StanWidget):
         toolbar.addStretch()
         toolbar.addWidget(self.row_count_label)
 
-        # Tab order: live_checkbox → button_run → export_excel → export_csv → export_json
-        QWidget.setTabOrder(self.live_checkbox, self.button_run)
-        QWidget.setTabOrder(self.button_run, self.button_export_excel)
-        QWidget.setTabOrder(self.button_export_excel, self.button_export_csv)
-        QWidget.setTabOrder(self.button_export_csv, self.button_export_json)
-
         layout.addLayout(toolbar)
 
         # Title / subtitle labels
@@ -913,6 +907,17 @@ class ReportPreviewPane(StanWidget):
         layout.addWidget(self.error_label, stretch=1)
 
         self.setLayout(layout)
+
+    def setup_tab_order(self) -> None:
+        """Establish an explicit Tab key traversal order for the preview toolbar.
+
+        Must be called after this pane has been added to its parent window so
+        that all widgets share the same top-level window (Qt requirement).
+        """
+        QWidget.setTabOrder(self.live_checkbox, self.button_run)
+        QWidget.setTabOrder(self.button_run, self.button_export_excel)
+        QWidget.setTabOrder(self.button_export_excel, self.button_export_csv)
+        QWidget.setTabOrder(self.button_export_csv, self.button_export_json)
 
     def set_dataframe(self, df: pl.DataFrame, title: str, subtitle: str) -> None:
         """Display a polars DataFrame in the table view."""
@@ -1041,6 +1046,10 @@ class RunReportsView(StanWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self._stack)
         self.setLayout(layout)
+
+        # Tab order must be set after both panes are parented into this widget
+        self.builder.setup_tab_order()
+        self.preview.setup_tab_order()
 
     # ---------------------------------------------------------------------------
     # Public API

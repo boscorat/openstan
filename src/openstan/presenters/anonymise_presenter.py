@@ -7,6 +7,7 @@ Owns all logic for the anonymisation workflow:
   - opening the original / anonymised PDFs via the OS viewer
 """
 
+import shutil
 import tomllib
 import traceback
 from pathlib import Path
@@ -110,7 +111,22 @@ class AnonymisePresenter(QObject):
     # ---------------------------------------------------------------------------
 
     def _load_toml(self) -> None:
-        """Read ``anonymise.toml`` and populate the text editor."""
+        """Read ``anonymise.toml`` and populate the text editor.
+
+        On first use, if ``anonymise.toml`` does not yet exist but
+        ``anonymise_example.toml`` is present in the same directory, the
+        example is copied to ``anonymise.toml`` so the user has a working
+        starting point to modify.
+        """
+        if not self._toml_path.exists():
+            example_path = self._toml_path.parent / "anonymise_example.toml"
+            if example_path.exists():
+                try:
+                    self._toml_path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(example_path, self._toml_path)
+                except Exception:
+                    traceback.print_exc()
+
         if self._toml_path.exists():
             try:
                 self.dialog.text_edit_toml.setPlainText(
