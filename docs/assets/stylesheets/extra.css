@@ -5,11 +5,4 @@
     display: none;
 }
 
-/* Theme-aware nav-bar logo.
-   The logo partial renders two <img> elements with .stan-logo-light and
-   .stan-logo-dark. We show the correct one for each scheme and hide the other.
-   This works across all browsers (no content-replacement needed). */
-.stan-logo-dark  { display: none; }
 
-[data-md-color-scheme=slate] .stan-logo-light { display: none; }
-[data-md-color-scheme=slate] .stan-logo-dark  { display: inline; }
