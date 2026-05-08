@@ -339,6 +339,67 @@ uncomment or extend — it is scheduled for deletion (D004).
 
 ---
 
+## Docs Site — Logo & Image Theme Switching
+
+The docs site (`docs/`) uses [Zensical](https://github.com/zensical/zensical) (a
+MkDocs Material fork). Two independent mechanisms handle theme-aware assets:
+
+### Nav-bar logo
+
+**How it works:**
+
+- `docs/overrides/partials/logo.html` overrides the theme's built-in `logo.html`
+  partial. It unconditionally renders **two `<img>` elements**:
+  - `.stan-logo-light` — `docs/assets/logo-light.svg` (book icon + dark text, for light mode)
+  - `.stan-logo-dark`  — `docs/assets/logo-dark.svg`  (book icon + light text, for dark mode)
+- The partial is included at **two** sites: `header.html` (top bar) and `nav.html`
+  (mobile drawer title). This produces **4 `<img>` elements** on the page — 2 per
+  location. This is intentional; do not try to "fix" it.
+- `docs/assets/stylesheets/extra.css` shows exactly one per location via
+  `[data-md-color-scheme]` selectors:
+  - Light scheme: `.stan-logo-dark { display: none }`
+  - Dark scheme: `.stan-logo-light { display: none }`
+
+**Critical rule — do NOT set `theme.logo` in `mkdocs.yml`:**
+
+If `theme.logo` is set, Zensical's built-in `logo.html` would normally render
+`<img src="{{ config.theme.logo }}">`. Our partial override replaces that built-in
+entirely, so `theme.logo` has no effect on rendering — but some Zensical versions
+also use `config.theme.logo` in *other* template locations (e.g. the nav title
+label), which can inject a plain `<img>` alongside our partial's output, producing a
+visible duplicate. Keep `theme.logo` absent from `mkdocs.yml` at all times.
+
+The partial is **unconditional** (no `{% if config.theme.logo %}` guard) precisely
+because we never want it to fall through to the built-in icon-SVG fallback.
+
+**Logo source files:**
+
+`docs/assets/logo-light.svg` and `docs/assets/logo-dark.svg` are copies of the
+canonical sources at `src/openstan/icons/logo-light.svg` and `logo-dark.svg`. If
+the icon or wordmark changes, update both locations.
+
+---
+
+### Page screenshots (`#only-light` / `#only-dark`)
+
+All screenshots in `docs/` follow this pattern:
+
+```markdown
+![Alt text — light](assets/screenshots/foo.png#only-light)
+![Alt text — dark](assets/screenshots/dark/foo.png#only-dark)
+```
+
+- Light variants live at `assets/screenshots/<name>.png`
+- Dark variants live at `assets/screenshots/dark/<name>.png`
+- Zensical's palette CSS hides `#only-light` images in dark mode automatically.
+- `extra.css` adds the complementary rule to hide `#only-dark` images in light mode
+  (Zensical omits this direction).
+
+Do not use inline `style` attributes or JavaScript for theme-conditional images —
+the fragment + CSS approach is sufficient and consistent across all pages.
+
+---
+
 ## Dead Code — Do Not Extend
 
 - `src/openstan/data/ops.py` — legacy raw `QSqlQuery` helpers; references an
