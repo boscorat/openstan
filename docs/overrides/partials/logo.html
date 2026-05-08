@@ -1,0 +1,7 @@
+{% if config.theme.logo %}
+  <img src="{{ 'assets/logo-light.svg' | url }}" alt="{{ config.site_name }}" class="stan-logo-light">
+  <img src="{{ 'assets/logo-dark.svg' | url }}" alt="{{ config.site_name }}" class="stan-logo-dark">
+{% else %}
+  {% set icon = config.theme.icon.logo or "material/library" %}
+  {% include ".icons/" ~ icon ~ ".svg" %}
+{% endif %}

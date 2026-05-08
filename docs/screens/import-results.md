@@ -67,6 +67,18 @@ Click **View Debug Info** to open a dialog showing per-file debug output for all
 
 A progress indicator at the bottom of the dialog shows how many debug files have been generated.
 
+!!! tip "Getting help with a failing statement"
+    If a statement fails or produces unexpected results, the **Anonymise** button pre-loads the failing
+    file into the [Anonymise PDF](anonymise.md) tool so you can produce a safe, redacted copy to share.
+
+    - **Existing supported bank — unexpected result:** open a
+      [parsing issue](https://github.com/boscorat/bank_statement_parser/issues/new?template=parsing-issue.yml)
+      on the bank_statement_parser repo and attach the anonymised statement.
+    - **Bank not yet supported:** open a
+      [new bank request](https://github.com/boscorat/bank_statement_parser/issues/new?template=new-bank-request.yml)
+      or follow the [Adding a new bank](https://boscorat.github.io/bank_statement_parser/guides/new-bank-config/)
+      guide if you'd like to configure it yourself.
+
 ---
 
 ## Action buttons
