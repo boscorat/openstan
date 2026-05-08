@@ -1,8 +1,11 @@
 # openstan
 
-**openstan** is a free, open-source desktop application for importing, organising, and analysing your bank statements. It provides a graphical interface for the [bank\_statement\_parser](https://boscorat.github.io/bank_statement_parser/) library, letting you work with your financial data without writing any code.
+**openstan** is a free, open-source desktop application for importing, organising, and analysing
+your bank statements. It provides a graphical interface for the bank_statement_parser library,
+letting you work with your financial data without writing any code.
 
----
+[![Import results — light](assets/screenshots/statement_results.png#only-light)](assets/screenshots/statement_results.png)
+[![Import results — dark](assets/screenshots/dark/statement_results.png#only-dark)](assets/screenshots/dark/statement_results.png)
 
 ## What openstan does
 
@@ -19,6 +22,27 @@
 1. [Install openstan](installation.md) for your operating system.
 2. Follow the [Quick Start guide](quickstart.md) to create your first project and import your first statements.
 3. Browse the [Screens](screens/project-management.md) section for a comprehensive guide to every panel and option.
+
+---
+
+## Supported banks
+
+openstan parses statements using the [bank_statement_parser](https://boscorat.github.io/bank_statement_parser/)
+library. The following banks and account types are currently supported:
+
+| Bank | Supported account types |
+|---|---|
+| **HSBC UK** | Bank Account (Current), HSBC Advance, Flexible Saver, Online Bonus Saver, Rewards Credit Card |
+| **TSB UK** | Spend & Save (Current Account) |
+| **NatWest UK** | *(coming soon)* |
+
+For the authoritative and up-to-date list, see the
+[bank_statement_parser supported banks](https://boscorat.github.io/bank_statement_parser/#supported-banks-and-accounts)
+documentation.
+
+Additional banks can be added by creating a TOML configuration file — see the
+[Adding a new bank](https://boscorat.github.io/bank_statement_parser/guides/new-bank-config/)
+guide in the bank_statement_parser docs.
 
 ---
 

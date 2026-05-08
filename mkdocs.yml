@@ -6,6 +6,8 @@ repo_name: boscorat/openstan
 
 theme:
   name: material
+  logo: assets/logo-light.svg
+  favicon: assets/favicon.svg
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default

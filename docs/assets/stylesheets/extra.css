@@ -4,3 +4,10 @@
 [data-md-color-scheme=default] img[src$="#only-dark"] {
     display: none;
 }
+
+/* Swap the nav-bar logo for its dark-background variant when the slate
+   (dark) scheme is active. MkDocs Material sets a single logo via
+   theme.logo; we override it with content-replacement on the img element. */
+[data-md-color-scheme=slate] .md-header__button.md-logo img {
+    content: url("../logo-dark.svg");
+}
