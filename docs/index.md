@@ -42,7 +42,10 @@ documentation.
 
 Additional banks can be added by creating a TOML configuration file — see the
 [Adding a new bank](https://boscorat.github.io/bank_statement_parser/guides/new-bank-config/)
-guide in the bank_statement_parser docs.
+guide in the bank_statement_parser docs. If you'd prefer to request support rather than
+configure it yourself, open a
+[new bank request](https://github.com/boscorat/bank_statement_parser/issues/new?template=new-bank-request.yml)
+on the bank_statement_parser issue tracker.
 
 ---
 
