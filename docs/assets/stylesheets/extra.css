@@ -10,10 +10,11 @@
    elements — .stan-logo-light and .stan-logo-dark — at each of the two
    include sites (header and nav drawer). That gives 4 elements total; the
    rules below ensure exactly one per site is visible at any time.
+   !important is required to override the theme's own .md-logo img { display: block }
+   rule which has higher specificity and would otherwise force both visible.
    NOTE: do not set theme.logo in mkdocs.yml — see AGENTS.md. */
-.stan-logo-dark  { display: none; }
-
-[data-md-color-scheme=slate] .stan-logo-light { display: none; }
-[data-md-color-scheme=slate] .stan-logo-dark  { display: inline; }
+.stan-logo-dark                                        { display: none !important; }
+[data-md-color-scheme=slate] .stan-logo-light          { display: none !important; }
+[data-md-color-scheme=slate] .stan-logo-dark           { display: block !important; }
 
 

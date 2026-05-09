@@ -356,9 +356,11 @@ MkDocs Material fork). Two independent mechanisms handle theme-aware assets:
   (mobile drawer title). This produces **4 `<img>` elements** on the page — 2 per
   location. This is intentional; do not try to "fix" it.
 - `docs/assets/stylesheets/extra.css` shows exactly one per location via
-  `[data-md-color-scheme]` selectors:
-  - Light scheme: `.stan-logo-dark { display: none }`
-  - Dark scheme: `.stan-logo-light { display: none }`
+  `[data-md-color-scheme]` selectors. `!important` is required because the
+  theme's own `.md-logo img { display: block }` rule has higher specificity
+  and would otherwise force both images visible simultaneously:
+  - Light scheme: `.stan-logo-dark { display: none !important }`
+  - Dark scheme: `.stan-logo-light { display: none !important }`
 
 **Critical rule — do NOT set `theme.logo` in `mkdocs.yml`:**
 
