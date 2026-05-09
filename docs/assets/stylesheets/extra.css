@@ -5,4 +5,15 @@
     display: none;
 }
 
+/* Theme-aware nav-bar logo.
+   The logo partial (docs/overrides/partials/logo.html) renders two <img>
+   elements — .stan-logo-light and .stan-logo-dark — at each of the two
+   include sites (header and nav drawer). That gives 4 elements total; the
+   rules below ensure exactly one per site is visible at any time.
+   NOTE: do not set theme.logo in mkdocs.yml — see AGENTS.md. */
+.stan-logo-dark  { display: none; }
+
+[data-md-color-scheme=slate] .stan-logo-light { display: none; }
+[data-md-color-scheme=slate] .stan-logo-dark  { display: inline; }
+
 
