@@ -41,6 +41,8 @@ jobs:
 
       - name: Build docs
         run: uv run zensical build
+        env:
+          GOATCOUNTER_URL: ${{ secrets.GOATCOUNTER_URL }}
 
       - name: Deploy to GitHub Pages
         run: |

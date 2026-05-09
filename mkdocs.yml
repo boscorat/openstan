@@ -50,6 +50,9 @@ markdown_extensions:
 extra_css:
   - assets/stylesheets/extra.css
 
+extra:
+  goatcounter_url: !ENV [GOATCOUNTER_URL, '']
+
 nav:
   - Home: index.md
   - Installation: installation.md
