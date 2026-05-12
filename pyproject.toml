@@ -11,7 +11,7 @@ requires-python = ">=3.14"
 dependencies = [
     "pyqt6>=6.10.2",
     "tomli-w>=1.2.0",
-    "uk-bank-statement-parser==0.2.1b2",
+    "uk-bank-statement-parser==0.2.1b3",
 ]
 
 [project.urls]
