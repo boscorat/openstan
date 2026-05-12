@@ -5,20 +5,22 @@ from uuid import uuid4
 
 from bank_statement_parser import ProjectPaths
 from PyQt6.QtCore import QSysInfo, QThreadPool, qDebug
-from PyQt6.QtGui import QFontDatabase, QIcon
+from PyQt6.QtGui import QFontDatabase, QIcon, QKeySequence, QShortcut
 from PyQt6.QtSql import QSqlDatabase
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
     QStackedWidget,
     QVBoxLayout,
+    QWhatsThis,
 )
 
 from openstan.components import (  # mostly widget subclasses
     Qt,
-    QWidget,
     StanErrorMessage,
+    StanInfoMessage,
     StanLabel,
+    StanWidget,
 )
 from openstan.data.create_gui_db import create_gui_db
 from openstan.models import (
@@ -61,6 +63,7 @@ from openstan.views import (
     StatementQueueView,
     StatementResultView,
     TitleView,
+    WelcomeView,
 )
 
 
@@ -137,7 +140,7 @@ class Stan(QMainWindow):
         self.report_model = ReportModel()
 
         # ── Views ─────────────────────────────────────────────────────────
-        self.stan = QWidget()
+        self.stan = StanWidget()
         self.title_view = TitleView()
         self.project_view = ProjectView(parent=self)
         self.project_nav_view = ProjectNavView()
@@ -149,6 +152,7 @@ class Stan(QMainWindow):
         self.export_data_view = ExportDataView()
         self.run_reports_view = RunReportsView()
         self.statement_result_view = StatementResultView()
+        self.welcome_view = WelcomeView()
 
         # Each panel is wrapped in a ContentFrameView (header label + content).
         # Index constants mirror the order panels are added to the stacked widget.
@@ -191,6 +195,7 @@ class Stan(QMainWindow):
         # Stacked widget — one slot per panel.
         # nav_idx_* constants are used by StanPresenter to switch panels.
         self.content_stack = QStackedWidget()
+        self.nav_idx_welcome: int = self.content_stack.addWidget(self.welcome_view)
         self.nav_idx_info: int = self.content_stack.addWidget(self.project_info_block)
         self.nav_idx_import: int = self.content_stack.addWidget(
             self.statement_queue_block
@@ -271,7 +276,32 @@ class Stan(QMainWindow):
         self.setMinimumSize(1100, 700)
         self.resize(1280, 800)
 
+        # Status bar — used by StanPresenter to display transient contextual messages.
+        status_bar = self.statusBar()
+        assert status_bar is not None
+        status_bar.setSizeGripEnabled(False)
+
+        # Shift+F1 activates What's This? mode (standard Qt convention).
+        whats_this_shortcut = QShortcut(QKeySequence("Shift+F1"), self)
+        whats_this_shortcut.activated.connect(QWhatsThis.enterWhatsThisMode)
+
     def closeEvent(self, a0) -> None:
+        # Warn the user if an import is currently in progress
+        if self.stan_presenter.statement_result_presenter._importing:  # noqa: SLF001
+            warn = StanInfoMessage(self)
+            warn.setText(
+                "An import is currently in progress.\n\n"
+                "Closing now will abandon the current batch. Are you sure?"
+            )
+            warn.setStandardButtons(
+                StanInfoMessage.StandardButton.Yes
+                | StanInfoMessage.StandardButton.Cancel
+            )
+            warn.setDefaultButton(StanInfoMessage.StandardButton.Cancel)
+            if warn.exec() != StanInfoMessage.StandardButton.Yes:
+                if a0:
+                    a0.ignore()
+                return
         if self.sessionID:
             self.stan_presenter.cleanup_before_exit()
         if a0:

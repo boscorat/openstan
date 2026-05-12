@@ -106,14 +106,14 @@ class StanDialog(QDialog):
 class StanCheckBox(QCheckBox):
     def __init__(self, text="Checkbox") -> None:
         super().__init__(text)
-        # self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAutoFillBackground(True)
 
 
 class StanRadioButton(QRadioButton):
     def __init__(self, text="Radio Button") -> None:
         super().__init__(text)
-        # self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAutoFillBackground(True)
 
 
@@ -157,6 +157,8 @@ class StanInfoMessage(QMessageBox):
         self.setWindowTitle("Information")
         self.setModal(True)
         self.setWindowModality(Qt.WindowModality.WindowModal)
+        self.setStandardButtons(QMessageBox.StandardButton.Ok)
+        self.setDefaultButton(QMessageBox.StandardButton.Ok)
 
 
 class StanForm(QFormLayout):
@@ -297,7 +299,7 @@ class StanThemedPixmapLabel(StanLabel):
 class StanButton(QPushButton):
     def __init__(self, text="Button", min_width: int = 200) -> None:
         super().__init__(text)
-        # self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAutoFillBackground(True)
         self.setIconSize(QSize(16, 16))
         self.setMinimumWidth(min_width)

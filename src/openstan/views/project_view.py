@@ -103,8 +103,14 @@ class ProjectPageBasic(StanWizardPage):
 
         if mode == "existing":
             self.location_button = StanButton("Select Existing Project Folder")
+            self.location_button.setToolTip(
+                "Select the root folder of an existing openstan project"
+            )
         else:
             self.location_button = StanButton("Select Project Folder Location")
+            self.location_button.setToolTip(
+                "Select the parent folder where the new project folder will be created"
+            )
         self.location_button.set_themed_icon("folder_add.svg")
         self.location_label = StanLineEdit()
         self.location_label.setReadOnly(True)
@@ -262,24 +268,32 @@ class ProjectNavView(StanWidget):
             "project.svg",
             "View project summary, account list and gap report (Alt+P)",
             QKeySequence("Alt+P"),
+            "Shows transaction counts, statement counts, account details, "
+            "and any detected gaps between imported statements for the current project.",
         )
         self.button_import = self.__make_button(
             "Import Statements",
             "file_add.svg",
             "Add and import bank statement PDF files (Alt+I)",
             QKeySequence("Alt+I"),
+            "Add folders of PDF bank statements to the import queue, "
+            "then run the import to parse them into transactions.",
         )
         self.button_export = self.__make_button(
             "Export Data",
             "export.svg",
             "Export transactions to Excel, CSV or JSON (Alt+E)",
             QKeySequence("Alt+E"),
+            "Export the project's transaction data to Excel, CSV, or JSON. "
+            "Use the Advanced tab for filtered or custom-spec exports.",
         )
         self.button_reports = self.__make_button(
             "Run Reports",
             "run.svg",
             "Build and preview custom transaction reports (Alt+R)",
             QKeySequence("Alt+R"),
+            "Build and preview custom summary reports with grouping, "
+            "aggregation, date filters, and live preview.",
         )
 
         # Mutually exclusive checked state
@@ -319,6 +333,7 @@ class ProjectNavView(StanWidget):
         icon_filename: str,
         tooltip: str = "",
         shortcut: QKeySequence | None = None,
+        whats_this: str = "",
     ) -> StanButton:
         btn = StanButton(text)
         btn.set_themed_icon(icon_filename)
@@ -329,4 +344,6 @@ class ProjectNavView(StanWidget):
             btn.setToolTip(tooltip)
         if shortcut is not None:
             btn.setShortcut(shortcut)
+        if whats_this:
+            btn.setWhatsThis(whats_this)
         return btn

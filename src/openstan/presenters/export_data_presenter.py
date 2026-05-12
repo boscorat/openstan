@@ -99,7 +99,7 @@ class ExportDataPresenter(QObject):
     def _start_export(self, worker: ExportWorker) -> None:
         """Disable UI, show progress bar, and dispatch the worker."""
         self._set_buttons_enabled(False)
-        self.view.label_status.setText("")
+        self.view.label_status.setText("Exporting…")
         self.view.progress_bar.setVisible(True)
         worker.signals.finished.connect(self._on_export_finished)
         worker.signals.error.connect(self._on_export_error)

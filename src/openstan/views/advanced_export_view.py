@@ -37,8 +37,7 @@ from openstan.components import (
 _HELP_ACCOUNT = (
     "The account to export data for.  Corresponds to ``DimAccount.id_account`` "
     "in the project datamart.  Select '<all accounts>' to pass ``account_key=None`` "
-    "to ``export_spec`` — note this currently requires a BSP update to function "
-    "without error."
+    "to ``export_spec``."
 )
 
 _HELP_STATEMENT = (
@@ -148,9 +147,11 @@ class AdvancedExportView(StanWidget):
         self.date_from.setEnabled(False)  # starts disabled — "No date" is default
         self.date_from.setAccessibleName("Date from")
 
-        self.check_date_from_none = StanCheckBox("No date")
+        self.check_date_from_none = StanCheckBox("All dates")
         self.check_date_from_none.setChecked(True)
-        self.check_date_from_none.setAccessibleName("No start date")
+        self.check_date_from_none.setAccessibleName(
+            "No start date filter — include all dates"
+        )
         self.check_date_from_none.toggled.connect(
             lambda checked: self.date_from.setEnabled(not checked)
         )
@@ -175,9 +176,11 @@ class AdvancedExportView(StanWidget):
         self.date_to.setEnabled(False)  # starts disabled — "No date" is default
         self.date_to.setAccessibleName("Date to")
 
-        self.check_date_to_none = StanCheckBox("No date")
+        self.check_date_to_none = StanCheckBox("All dates")
         self.check_date_to_none.setChecked(True)
-        self.check_date_to_none.setAccessibleName("No end date")
+        self.check_date_to_none.setAccessibleName(
+            "No end date filter — include all dates"
+        )
         self.check_date_to_none.toggled.connect(
             lambda checked: self.date_to.setEnabled(not checked)
         )

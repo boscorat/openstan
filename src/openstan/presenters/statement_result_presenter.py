@@ -491,7 +491,19 @@ class StatementResultPresenter(QObject):
 
     @pyqtSlot()
     def __on_abandon_batch(self) -> None:
-        """Cancel any running debug worker, delete all DB rows, unlock queue."""
+        """Confirm with the user, then cancel debug worker, delete DB rows, unlock queue."""
+        confirm = StanInfoMessage(parent=self.view)
+        confirm.setText(
+            "Are you sure you want to abandon this batch?\n\n"
+            "All imported results will be discarded and the queue will be unlocked."
+        )
+        confirm.setStandardButtons(
+            StanInfoMessage.StandardButton.Yes | StanInfoMessage.StandardButton.Cancel
+        )
+        confirm.setDefaultButton(StanInfoMessage.StandardButton.Cancel)
+        if confirm.exec() != StanInfoMessage.StandardButton.Yes:
+            return
+
         # Signal the debug worker to stop at its next iteration
         if self._debug_cancel is not None:
             self._debug_cancel.set()
@@ -781,6 +793,7 @@ class StatementResultPresenter(QObject):
     @pyqtSlot()
     def __on_commit_finished(self) -> None:
         """All three bsp calls succeeded — soft-delete results, show summary, close."""
+        self.view.progressBar.setValue(100)
         batch_id = self._current_batch_id
         project_id = self._current_project_id
 

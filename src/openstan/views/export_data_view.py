@@ -149,8 +149,8 @@ class ExportDataView(StanWidget):
         # Row 1 spans the full width for the folder selector.
 
         # -- Row 0, Col 0-1: Type ----------------------------------------
-        self.radio_type_single = StanRadioButton("Single")
-        self.radio_type_multi = StanRadioButton("Multi")
+        self.radio_type_single = StanRadioButton("Flat table")
+        self.radio_type_multi = StanRadioButton("Star schema")
         self.radio_type_single.setChecked(True)
         self.radio_type_single.setAccessibleName("Export type: Single flat table")
         self.radio_type_multi.setAccessibleName("Export type: Multi star-schema tables")
@@ -314,6 +314,10 @@ class ExportDataView(StanWidget):
         outer_layout.addWidget(self._stack)
 
         self.setLayout(outer_layout)
+
+        # Tab order must be set after all widgets are parented
+        self.setup_tab_order()
+        self.advanced.setup_tab_order()
 
     # ---------------------------------------------------------------------------
     # Public API
