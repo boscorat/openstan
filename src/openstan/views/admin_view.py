@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QVBoxLayout
+from PyQt6.QtWidgets import QDialogButtonBox, QVBoxLayout
 
 from openstan.components import (
     Qt,
@@ -43,10 +43,18 @@ class AdminView(StanDialog):
         lbl_delete_info.setWordWrap(True)
 
         self.combo_delete = StanComboBox()
+        self.combo_delete.setToolTip("Select the project to delete")
         self.check_delete_folder = StanCheckBox(
             "Also delete the project folder from disk"
         )
+        self.check_delete_folder.setToolTip(
+            "If checked, the project folder and all its contents will be permanently "
+            "deleted from disk in addition to the database record"
+        )
         self.button_delete_project = StanButton("Delete Project")
+        self.button_delete_project.setToolTip(
+            "Permanently delete the selected project — requires confirmation"
+        )
 
         layout_delete.addWidget(lbl_delete_title)
         layout_delete.addWidget(lbl_delete_info)
@@ -72,7 +80,11 @@ class AdminView(StanDialog):
         lbl_remove_info.setWordWrap(True)
 
         self.combo_remove = StanComboBox()
+        self.combo_remove.setToolTip("Select the project to remove from the UI")
         self.button_remove_project = StanButton("Remove from UI")
+        self.button_remove_project.setToolTip(
+            "Remove the project record from the database without touching files on disk"
+        )
 
         layout_remove.addWidget(lbl_remove_title)
         layout_remove.addWidget(lbl_remove_info)
@@ -98,6 +110,13 @@ class AdminView(StanDialog):
         lbl_empty_info.setWordWrap(True)
 
         self.button_empty_db = StanButton("Empty Database && Restart")
+        self.button_empty_db.setToolTip(
+            "Delete and recreate gui.db, then restart the application — "
+            "all projects, sessions, and users will be permanently lost"
+        )
+        self.button_empty_db.setStyleSheet(
+            "StanButton { color: #c0392b; font-weight: bold; }"
+        )
 
         layout_empty.addWidget(lbl_empty_title)
         layout_empty.addWidget(lbl_empty_info)
@@ -121,6 +140,10 @@ class AdminView(StanDialog):
         lbl_anon_info.setWordWrap(True)
 
         self.button_open_anonymise = StanButton("Open Anonymise Tool")
+        self.button_open_anonymise.setToolTip(
+            "Open the PDF anonymisation tool to produce a redacted copy "
+            "suitable for sharing or attaching to a bug report"
+        )
 
         layout_anon.addWidget(lbl_anon_title)
         layout_anon.addWidget(lbl_anon_info)
@@ -132,8 +155,12 @@ class AdminView(StanDialog):
         # ------------------------------------------------------------------
         # Assemble outer layout
         # ------------------------------------------------------------------
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        button_box.rejected.connect(self.reject)
+
         outer.addWidget(section_delete)
         outer.addWidget(section_remove)
         outer.addWidget(section_empty)
         outer.addWidget(section_anon)
+        outer.addWidget(button_box)
         self.setLayout(outer)

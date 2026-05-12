@@ -19,9 +19,9 @@ A drop-down that updates automatically when you change the **Account** selection
 
 ### Date from / Date to
 
-Date range filters. By default, both are disabled (the **No date** checkbox is ticked), meaning no date filtering is applied.
+Date range filters. By default, both are disabled (the **All dates** checkbox is ticked), meaning no date filtering is applied.
 
-- Untick **No date** to enable the date picker and set a specific start or end date.
+- Untick **All dates** to enable the date picker and set a specific start or end date.
 - You can set one or both limits independently.
 
 ---

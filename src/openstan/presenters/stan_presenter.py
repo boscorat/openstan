@@ -52,6 +52,14 @@ class StanPresenter(QObject):
         self.export_data_presenter.review_pending_batch.connect(self.show_results)
         self.title_view.admin_requested.connect(self.open_admin_dialog)
 
+        # Welcome panel CTA buttons
+        self.stan.welcome_view.button_new.clicked.connect(
+            self.project_presenter.open_new_project_wizard
+        )
+        self.stan.welcome_view.button_existing.clicked.connect(
+            self.project_presenter.open_existing_project_wizard
+        )
+
         # Nav button clicks
         self.nav_view.button_info.clicked.connect(self.__nav_to_info)
         self.nav_view.button_import.clicked.connect(self.__nav_to_import)
@@ -85,10 +93,8 @@ class StanPresenter(QObject):
                     f"{msg}\nThe application will close shortly."
                 )
 
-        # Update footer label with username and sessionID
-        self.footer_view.labelUser.setText(
-            f"##### User: {self.stan.username} | Session: {self.stan.sessionID}"
-        )
+        # Update footer label with username
+        self.footer_view.labelUser.setText(f"##### User: {self.stan.username}")
 
         # Pass sessionID to other presenters
         self.project_presenter.sessionID = self.stan.sessionID
@@ -136,7 +142,11 @@ class StanPresenter(QObject):
     def __update_chrome_for_selection(self, *, has_project: bool) -> None:
         """Show or hide the nav bar and content stack based on project presence."""
         self.stan.project_nav_view.setVisible(has_project)
-        self.stan.content_stack.setVisible(has_project)
+        if not has_project:
+            # Show the welcome panel and keep the content stack visible
+            self.stan.content_stack.setVisible(True)
+            self.stan.content_stack.setCurrentIndex(self.stan.nav_idx_welcome)
+        # When has_project=True, navigation helpers handle visibility/index.
 
     def cleanup_before_exit(self) -> None:
         # Cancel any in-progress debug worker so it stops at its next iteration
@@ -243,25 +253,35 @@ class StanPresenter(QObject):
         """Switch the stacked content widget to the given index."""
         self.stan.content_stack.setCurrentIndex(idx)
 
+    def __show_status(self, message: str, timeout: int = 3000) -> None:
+        """Show a transient message in the main window's status bar."""
+        sb = self.stan.statusBar()
+        if sb is not None:
+            sb.showMessage(message, timeout)
+
     @pyqtSlot()
     def __nav_to_info(self) -> None:
         self.nav_view.button_info.setChecked(True)
         self.__set_panel(self.stan.nav_idx_info)
+        self.__show_status("Project Information")
 
     @pyqtSlot()
     def __nav_to_import(self) -> None:
         self.nav_view.button_import.setChecked(True)
         self.__set_panel(self.stan.nav_idx_import)
+        self.__show_status("Import Statements")
 
     @pyqtSlot()
     def __nav_to_export(self) -> None:
         self.nav_view.button_export.setChecked(True)
         self.__set_panel(self.stan.nav_idx_export)
+        self.__show_status("Export Data")
 
     @pyqtSlot()
     def __nav_to_reports(self) -> None:
         self.nav_view.button_reports.setChecked(True)
         self.__set_panel(self.stan.nav_idx_reports)
+        self.__show_status("Run Reports")
 
     # ---------------------------------------------------------------------------
     # Results panel (import flow — overlays import panel)
@@ -399,7 +419,7 @@ class StanPresenter(QObject):
         # Re-enable nav and return to the import panel before anything else,
         # so the nav buttons are not left in a disabled state.
         self.hide_results()
-        self.statement_queue_presenter.clear_all_items()
+        self.statement_queue_presenter.clear_all_items(confirm=False)
         self.statement_queue_presenter.update_view()
         # Refresh project info — the project may now have data for the first time.
         self.__refresh_project_info()

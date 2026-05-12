@@ -1,6 +1,6 @@
 from PyQt6.QtCore import QEvent, pyqtSignal
 from PyQt6.QtSvgWidgets import QSvgWidget
-from PyQt6.QtWidgets import QHBoxLayout
+from PyQt6.QtWidgets import QHBoxLayout, QWhatsThis
 
 from openstan.components import StanButton, StanWidget
 from openstan.paths import Paths
@@ -18,6 +18,14 @@ class TitleView(StanWidget):
         self._wordmark.setFixedSize(200, 56)
         # Accessible name for screen readers in place of SVG alt text.
         self._wordmark.setAccessibleName("openstan — secure statement analysis")
+
+        whats_this_btn = StanButton("?", min_width=36)
+        whats_this_btn.setFixedWidth(36)
+        whats_this_btn.setToolTip(
+            "What's This? — click then hover over a control (Shift+F1)"
+        )
+        whats_this_btn.setAccessibleName("What's This help mode")
+        whats_this_btn.clicked.connect(QWhatsThis.enterWhatsThisMode)
 
         about_btn = StanButton("About", min_width=70)
         about_btn.setFixedWidth(70)
@@ -37,8 +45,9 @@ class TitleView(StanWidget):
         layout.setContentsMargins(8, 4, 8, 4)
         layout.addWidget(self._wordmark)
         layout.addStretch()
-        layout.addWidget(admin_btn)
+        layout.addWidget(whats_this_btn)
         layout.addWidget(about_btn)
+        layout.addWidget(admin_btn)
         self.setLayout(layout)
         self.setMaximumHeight(72)
 

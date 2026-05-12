@@ -157,6 +157,9 @@ class ProjectInfoView(StanWidget):
 
         # ── Account table ─────────────────────────────────────────────────────
         self._acc_table_header = StanHeaderLabel("Accounts")
+        self._acc_table_currency_note = StanMutedLabel(
+            "Monetary values are in the currency recorded in each statement."
+        )
         self._acc_table = StanTableView()
         self._acc_table.horizontalHeader().setSectionResizeMode(  # type: ignore[union-attr]
             self._acc_table.horizontalHeader().ResizeMode.ResizeToContents  # type: ignore[union-attr]
@@ -192,6 +195,7 @@ class ProjectInfoView(StanWidget):
         content_layout.setSpacing(12)
         content_layout.addLayout(summary_row)
         content_layout.addWidget(self._acc_table_header)
+        content_layout.addWidget(self._acc_table_currency_note)
         content_layout.addWidget(self._acc_table)
         content_layout.addWidget(self._gap_button)
         content_layout.addStretch()
@@ -253,6 +257,7 @@ class ProjectInfoView(StanWidget):
             self._gap_button.hide()
 
         self._acc_table_header.show()
+        self._acc_table_currency_note.show()
         self._acc_table.show()
 
     # ---------------------------------------------------------------------------
@@ -268,4 +273,5 @@ class ProjectInfoView(StanWidget):
         self._acc_table.setModel(None)
         self._gap_button.hide()
         self._acc_table_header.hide()
+        self._acc_table_currency_note.hide()
         self._acc_table.hide()

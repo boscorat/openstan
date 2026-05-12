@@ -7,7 +7,7 @@ class FooterView(StanWidget):
     def __init__(self) -> None:
         super().__init__()
         self.labelCopy = StanLabel("##### © 2025 Jason Farrar")
-        self.labelUser = StanLabel("##### User: None | Session: None")
+        self.labelUser = StanLabel("##### User: None")
         self.labelProject = StanLabel("##### Project: None (ID: None)")
 
         layout = QGridLayout()

@@ -29,6 +29,16 @@ from uuid import uuid4
 
 import bank_statement_parser as bsp
 from PyQt6.QtCore import QObject, QRunnable, Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtWidgets import QDialogButtonBox, QVBoxLayout
+
+from openstan.components import (
+    StanCheckBox,
+    StanDialog,
+    StanInfoMessage,
+    StanLabel,
+    StanScrollArea,
+    StanWidget,
+)
 
 if TYPE_CHECKING:
     from PyQt6.QtCore import QThreadPool
@@ -141,6 +151,7 @@ class StatementQueuePresenter(QObject):
         self.view.buttonClear.clicked.connect(self.clear_all_items)
         self.view.buttonRunImport.clicked.connect(self.run_import)
         self.view.buttonViewResults.clicked.connect(self.__on_view_results_clicked)
+        self.view.paths_dropped.connect(self.__on_paths_dropped)
 
         # Update Remove/Clear enabled state whenever the tree selection changes
         sel_model = self.view.tree.selectionModel()
@@ -211,21 +222,138 @@ class StatementQueuePresenter(QObject):
 
     @pyqtSlot()
     def open_folder_dialog(self) -> None:
-        if self.view.folder_dialog.exec():
-            selected_folder: str = self.view.folder_dialog.selectedFiles()[0]
-            print("Selected folder:", selected_folder)
-            folder_id: str = uuid4().hex
-            folder_path = Path(selected_folder)
-            self.add_record(
-                queue_id=folder_id, parent_id=folder_id, path=folder_path, is_folder=1
+        if not self.view.folder_dialog.exec():
+            return
+        selected_folder: str = self.view.folder_dialog.selectedFiles()[0]
+        print("Selected folder:", selected_folder)
+        root_path = Path(selected_folder)
+
+        # Discover all PDFs recursively under the selected root
+        all_pdfs = list(root_path.rglob("*.pdf"))
+
+        if not all_pdfs:
+            warn = StanInfoMessage(parent=self.view)
+            warn.setText(
+                f"No PDF files were found in:\n{root_path}\n\n"
+                "Nothing was added to the queue."
             )
-            for file in folder_path.iterdir():
-                if file.is_file() and file.suffix.lower() == ".pdf":
-                    file_id: str = uuid4().hex
-                    self.add_record(
-                        queue_id=file_id, parent_id=folder_id, path=file, is_folder=0
-                    )
-            self.update_view()
+            warn.exec()
+            return
+
+        # Group PDFs by their immediate parent directory
+        dirs_with_pdfs: dict[Path, list[Path]] = {}
+        for pdf in all_pdfs:
+            dirs_with_pdfs.setdefault(pdf.parent, []).append(pdf)
+
+        # Determine whether subfolders (directories other than root) contain PDFs
+        sub_dirs = [d for d in dirs_with_pdfs if d != root_path]
+
+        # Determine which directories to actually import
+        if sub_dirs:
+            selected_dirs = self.__ask_subfolder_selection(
+                root_path, dirs_with_pdfs, sub_dirs
+            )
+            if selected_dirs is None:
+                # User cancelled
+                return
+        else:
+            # Only root folder has PDFs — no dialog needed
+            selected_dirs = {root_path}
+
+        expanded_paths, scroll_pos = self.__save_tree_state()
+
+        for folder_path in sorted(selected_dirs):
+            pdfs_in_folder = dirs_with_pdfs.get(folder_path, [])
+            if not pdfs_in_folder:
+                continue
+            folder_id = uuid4().hex
+            self.add_record(
+                queue_id=folder_id,
+                parent_id=folder_id,
+                path=folder_path,
+                is_folder=1,
+            )
+            for file in sorted(pdfs_in_folder):
+                file_id = uuid4().hex
+                self.add_record(
+                    queue_id=file_id,
+                    parent_id=folder_id,
+                    path=file,
+                    is_folder=0,
+                )
+
+        self.update_view()
+        self.__restore_tree_state(expanded_paths, scroll_pos)
+
+    def __ask_subfolder_selection(
+        self,
+        root_path: Path,
+        dirs_with_pdfs: "dict[Path, list[Path]]",
+        sub_dirs: "list[Path]",
+    ) -> "set[Path] | None":
+        """Show a checkbox dialog for subfolder selection.
+
+        Returns the set of selected ``Path`` objects, or ``None`` if cancelled.
+        The root folder is offered as an option only when it directly contains PDFs.
+        """
+        dlg = StanDialog(parent=self.view)
+        dlg.setWindowTitle("Select Subfolders")
+        dlg.setMinimumWidth(480)
+
+        intro = StanLabel(
+            f"The selected folder contains subfolders with PDF files.\n"
+            f"Root: {root_path}\n\n"
+            "Choose which folders to add to the queue:"
+        )
+        intro.setWordWrap(True)
+
+        checkboxes: list[tuple[StanCheckBox, Path]] = []
+
+        root_pdfs = dirs_with_pdfs.get(root_path, [])
+        if root_pdfs:
+            cb_root = StanCheckBox(
+                f"{root_path.name}/ (root — {len(root_pdfs)} PDF(s))"
+            )
+            cb_root.setChecked(True)
+            checkboxes.append((cb_root, root_path))
+
+        for sub in sorted(sub_dirs):
+            n = len(dirs_with_pdfs.get(sub, []))
+            cb = StanCheckBox(f"{sub.relative_to(root_path)} — {n} PDF(s)")
+            cb.setChecked(True)
+            checkboxes.append((cb, sub))
+
+        cb_widget_layout = QVBoxLayout()
+        cb_widget_layout.setSpacing(4)
+        for cb, _ in checkboxes:
+            cb_widget_layout.addWidget(cb)
+
+        cb_container = StanWidget()
+        cb_container.setLayout(cb_widget_layout)
+
+        scroll = StanScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(cb_container)
+        scroll.setMaximumHeight(300)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(dlg.accept)
+        buttons.rejected.connect(dlg.reject)
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(12)
+        layout.addWidget(intro)
+        layout.addWidget(scroll)
+        layout.addWidget(buttons)
+        dlg.setLayout(layout)
+
+        if dlg.exec() != StanDialog.DialogCode.Accepted:
+            return None
+
+        return {path for cb, path in checkboxes if cb.isChecked()}
 
     @pyqtSlot()
     def open_file_dialog(self) -> None:
@@ -238,6 +366,50 @@ class StatementQueuePresenter(QObject):
                 self.add_record(
                     queue_id=file_id, parent_id=file_id, path=Path(file), is_folder=0
                 )
+            self.update_view()
+            self.__restore_tree_state(expanded_paths, scroll_pos)
+
+    @pyqtSlot(list)
+    def __on_paths_dropped(self, paths: list[str]) -> None:
+        """Handle PDF files and folders dropped onto the queue view."""
+        expanded_paths, scroll_pos = self.__save_tree_state()
+        added = False
+
+        for raw in paths:
+            p = Path(raw)
+            if p.is_dir():
+                # Treat as folder — discover PDFs recursively (same as open_folder_dialog)
+                all_pdfs = list(p.rglob("*.pdf"))
+                if not all_pdfs:
+                    continue
+                dirs_with_pdfs: dict[Path, list[Path]] = {}
+                for pdf in all_pdfs:
+                    dirs_with_pdfs.setdefault(pdf.parent, []).append(pdf)
+                for folder_path in sorted(dirs_with_pdfs):
+                    folder_id = uuid4().hex
+                    self.add_record(
+                        queue_id=folder_id,
+                        parent_id=folder_id,
+                        path=folder_path,
+                        is_folder=1,
+                    )
+                    for file in sorted(dirs_with_pdfs[folder_path]):
+                        file_id = uuid4().hex
+                        self.add_record(
+                            queue_id=file_id,
+                            parent_id=folder_id,
+                            path=file,
+                            is_folder=0,
+                        )
+                added = True
+            elif p.is_file() and p.suffix.lower() == ".pdf":
+                file_id = uuid4().hex
+                self.add_record(
+                    queue_id=file_id, parent_id=file_id, path=p, is_folder=0
+                )
+                added = True
+
+        if added:
             self.update_view()
             self.__restore_tree_state(expanded_paths, scroll_pos)
 
@@ -255,7 +427,20 @@ class StatementQueuePresenter(QObject):
         self.__restore_tree_state(expanded_paths, scroll_pos)
 
     @pyqtSlot()
-    def clear_all_items(self) -> None:
+    def clear_all_items(self, *, confirm: bool = True) -> None:
+        if confirm:
+            dlg = StanInfoMessage(parent=self.view)
+            dlg.setText(
+                "Are you sure you want to clear all items from the queue?\n\n"
+                "This will remove all folders and files currently listed."
+            )
+            dlg.setStandardButtons(
+                StanInfoMessage.StandardButton.Yes
+                | StanInfoMessage.StandardButton.Cancel
+            )
+            dlg.setDefaultButton(StanInfoMessage.StandardButton.Cancel)
+            if dlg.exec() != StanInfoMessage.StandardButton.Yes:
+                return
         result: tuple[bool, list[str], str] = self.model.clear_records()
         print(result)
         self.update_view()

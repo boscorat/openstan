@@ -32,9 +32,10 @@ class StatementResultView(StanWidget):
 
     # Tab indices — kept as class constants so the presenter can reference them
     # without hard-coding magic numbers.
-    TAB_SUCCESS = 0
+    # Order: FAILURE first so attention goes to errors immediately.
+    TAB_FAILURE = 0
     TAB_REVIEW = 1
-    TAB_FAILURE = 2
+    TAB_SUCCESS = 2
 
     def __init__(self) -> None:
         super().__init__()
@@ -42,7 +43,6 @@ class StatementResultView(StanWidget):
 
         # ── Progress Bar ───────────────────────────────────────────────────
         self.progressBar = StanProgressBar()
-        self.progressBar.setMinimumWidth(800)
         outer_layout.addWidget(self.progressBar, alignment=Qt.AlignmentFlag.AlignTop)
 
         # ── Summary label ──────────────────────────────────────────────────
@@ -55,20 +55,19 @@ class StatementResultView(StanWidget):
 
         # ── Tabbed result sections ─────────────────────────────────────────
         self.results_tabs = StanTabWidget()
-        self.results_tabs.setMinimumWidth(800)
         self.results_tabs.setAccessibleName("Import results")
 
-        # SUCCESS tab
-        self.success_table = StanTableView()
-        self.results_tabs.addTab(self.success_table, "SUCCESS (0)")
+        # FAILURE tab
+        self.failure_table = StanTableView()
+        self.results_tabs.addTab(self.failure_table, "FAILURE (0)")
 
         # REVIEW tab
         self.review_table = StanTableView()
         self.results_tabs.addTab(self.review_table, "REVIEW (0)")
 
-        # FAILURE tab
-        self.failure_table = StanTableView()
-        self.results_tabs.addTab(self.failure_table, "FAILURE (0)")
+        # SUCCESS tab
+        self.success_table = StanTableView()
+        self.results_tabs.addTab(self.success_table, "SUCCESS (0)")
 
         # All tabs start hidden; the presenter shows them as rows arrive
         self.results_tabs.setTabVisible(self.TAB_SUCCESS, False)

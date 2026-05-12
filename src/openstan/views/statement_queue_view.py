@@ -1,4 +1,5 @@
-from PyQt6.QtCore import QStandardPaths
+from PyQt6.QtCore import QStandardPaths, pyqtSignal
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 from PyQt6.QtWidgets import QFileDialog, QGridLayout, QSizePolicy
 
 from openstan.components import Qt, StanButton, StanLabel, StanTreeView, StanWidget
@@ -42,8 +43,13 @@ class StatementQueueView(StanWidget):
         "#### Statement Queue - Select any new pdf statements to add to your project"
     )
 
+    # Emitted when the user drops PDF files or folders onto the view.
+    # Carries a list of Path-like strings (files and/or directories).
+    paths_dropped: pyqtSignal = pyqtSignal(list)
+
     def __init__(self) -> None:
         super().__init__()
+        self.setAcceptDrops(True)
         self.file_dialog = FileDialog()
         self.folder_dialog = FolderDialog()
         layout = QGridLayout()
@@ -129,3 +135,38 @@ class StatementQueueView(StanWidget):
         )
 
         self.setLayout(layout)
+
+    # ---------------------------------------------------------------------------
+    # Drag-and-drop support — accept PDF files and folders
+    # ---------------------------------------------------------------------------
+
+    def dragEnterEvent(self, a0: QDragEnterEvent | None) -> None:  # noqa: N802
+        if a0 is None:
+            return
+        mime = a0.mimeData()
+        if mime is not None and mime.hasUrls():
+            urls = mime.urls()
+            # Accept if any dropped item is a directory or a PDF file
+            if any(
+                u.isLocalFile()
+                and (
+                    u.toLocalFile().lower().endswith(".pdf")
+                    or not u.toLocalFile().lower().endswith(".")
+                )
+                for u in urls
+            ):
+                a0.acceptProposedAction()
+                return
+        a0.ignore()
+
+    def dropEvent(self, a0: QDropEvent | None) -> None:  # noqa: N802
+        if a0 is None:
+            return
+        mime = a0.mimeData()
+        if mime is not None and mime.hasUrls():
+            paths = [u.toLocalFile() for u in mime.urls() if u.isLocalFile()]
+            if paths:
+                self.paths_dropped.emit(paths)
+                a0.acceptProposedAction()
+                return
+        a0.ignore()

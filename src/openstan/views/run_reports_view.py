@@ -30,6 +30,7 @@ if TYPE_CHECKING:
     import polars as pl
 
 from PyQt6.QtCore import QDate, QSortFilterProxyModel, Qt, pyqtSignal
+from PyQt6.QtGui import QKeySequence
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -818,9 +819,13 @@ class ReportPreviewPane(StanWidget):
             "When checked, the preview updates automatically as you make changes.\n"
             "Uncheck to defer updates and use 'Run Now' manually."
         )
+        self.live_checkbox.setAccessibleName("Live preview updates")
 
         self.button_run = StanButton("Run Now", min_width=90)
-        self.button_run.setToolTip("Run the report and refresh the preview")
+        self.button_run.setToolTip(
+            "Run the report and refresh the preview (Alt+Return)"
+        )
+        self.button_run.setShortcut(QKeySequence("Alt+Return"))
         # Run Now is disabled while live updates are active (synced by presenter)
         self.button_run.setEnabled(False)
 

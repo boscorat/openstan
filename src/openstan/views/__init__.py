@@ -13,6 +13,7 @@ from openstan.views.statement_queue_view import StatementQueueView
 from openstan.views.statement_result_view import StatementResultView
 from openstan.views.run_reports_view import RunReportsView
 from openstan.views.title import TitleView
+from openstan.views.welcome_view import WelcomeView
 
 __all__: list[str] = [
     "AboutDialog",
@@ -30,4 +31,5 @@ __all__: list[str] = [
     "TitleView",
     "FooterView",
     "ContentFrameView",
+    "WelcomeView",
 ]
