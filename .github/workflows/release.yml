@@ -247,7 +247,6 @@ jobs:
             packaging/windows/files.wxs `
             -ext WixToolset.UI.wixext `
             -d AppDir=dist\openstan `
-            -d WixSourceDir=. `
             -o $msi_out
           Write-Host "Built: $msi_out"
           Get-ChildItem dist\*.msi | Format-Table Name, Length

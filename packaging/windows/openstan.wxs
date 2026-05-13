@@ -147,11 +147,11 @@
         dialog.bmp   493 x 312 px - full background on Welcome and Finish pages
     -->
     <WixVariable Id="WixUIBannerBmp"
-                 Value="!(wix.WixSourceDir)\packaging\windows\banner.bmp" />
+                 Value="packaging\windows\banner.bmp" />
     <WixVariable Id="WixUIDialogBmp"
-                 Value="!(wix.WixSourceDir)\packaging\windows\dialog.bmp" />
+                 Value="packaging\windows\dialog.bmp" />
     <WixVariable Id="WixUILicenseRtf"
-                 Value="!(wix.WixSourceDir)\packaging\windows\license.rtf" />
+                 Value="packaging\windows\license.rtf" />
 
     <!--
       "Launch openstan" checkbox on Finish page.
