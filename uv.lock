@@ -438,7 +438,7 @@ wheels = [
 
 [[package]]
 name = "openstan"
-version = "0.1.6"
+version = "0.1.7a1"
 source = { editable = "." }
 dependencies = [
     { name = "pyqt6" },
