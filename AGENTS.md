@@ -409,3 +409,172 @@ the fragment + CSS approach is sufficient and consistent across all pages.
 - `src/openstan/data/duck.py` — commented-out DuckDB experiments (D004).
 - `src/openstan/models/event_log_model.py` — `EventLogModel` is imported nowhere;
   audit log is trigger-driven.
+
+---
+
+## Pending: Code Signing Setup
+
+Both signing pipelines are partially complete but blocked on account approval.
+Do not attempt to implement these steps until the relevant account is confirmed.
+
+---
+
+### Windows — SignPath Foundation
+
+**Status:** Application submitted at `https://signpath.org/apply`; approval pending.
+
+**URLs referenced in the application:**
+- Download URL: `https://openstan.org/installation/`
+- Privacy Policy: `https://openstan.org/privacy/`
+- Code Signing Policy: `https://openstan.org/codesigning/`
+
+**What needs implementing once approved:**
+
+1. SignPath will provide an **Organisation slug** and **Project slug** — note these down.
+2. Generate a **CI User token** in the SignPath dashboard and add it as a GitHub Actions
+   secret: `SIGNPATH_API_TOKEN`.
+3. Note the **Signing Policy name** (e.g. `release-signing`) from the SignPath project.
+4. Restructure the Windows job in `.github/workflows/release.yml`:
+   - Upload the unsigned MSI as a GitHub Actions artifact
+   - Add a SignPath signing step using the official action:
+     ```yaml
+     - name: Sign MSI (SignPath)
+       uses: signpath/github-action-submit-signing-request@v1
+       with:
+         api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+         organization-id: '<org-slug>'
+         project-slug: 'openstan'
+         signing-policy-slug: 'release-signing'
+         artifact-configuration-slug: 'msi'
+         github-artifact-id: '<artifact-id>'
+         wait-for-completion: true
+         output-artifact-directory: dist/
+     ```
+   - Attach the downloaded signed MSI to the release instead of the unsigned one.
+5. Every release requires **manual approval** in the SignPath dashboard before signing
+   proceeds — this is by design for the free Foundation tier.
+
+**Critical notes:**
+- Unsigned bundled DLLs (PyQt6, Polars, etc.) are explicitly permitted under the
+  Code Signing Policy at `docs/codesigning.md` — do not change this policy.
+- MFA must be enabled on the GitHub account linked to SignPath (verify before first use).
+- SignPath Foundation is free for OSS projects; do not upgrade to a paid tier.
+
+---
+
+### macOS — Apple Developer ID + Notarisation
+
+**Status:** Apple Developer Program purchased (£79/year); certificate issuance
+pending (up to 48 hours from purchase).
+
+**What to collect from Apple once the account is active:**
+
+1. **Developer ID Application certificate** — issue at
+   developer.apple.com → Certificates → "+" → "Developer ID Application".
+   Download, double-click to install into Keychain on a Mac.
+   Export from Keychain Access as a `.p12` file with a strong password.
+   Base64-encode it for the GitHub secret:
+   ```bash
+   base64 -i DeveloperIDApplication.p12 | pbcopy
+   ```
+2. **Team ID** — 10-character alphanumeric string shown at
+   developer.apple.com top-right under your name (e.g. `AB12CD34EF`).
+3. **App-specific password** — generate at appleid.apple.com →
+   Sign-In & Security → App-Specific Passwords. Label it "openstan CI".
+
+**GitHub Actions secrets to add** (Settings → Secrets and variables → Actions):
+
+| Secret name | Value |
+|---|---|
+| `APPLE_CERTIFICATE_P12` | Base64-encoded `.p12` file (see above) |
+| `APPLE_CERTIFICATE_PASSWORD` | Password set when exporting the `.p12` |
+| `APPLE_ID` | Apple ID email address |
+| `APPLE_APP_PASSWORD` | App-specific password generated above |
+| `APPLE_TEAM_ID` | 10-character Team ID |
+
+**New file to create:** `packaging/macos/entitlements.plist`
+
+PyQt6 requires the `allow-unsigned-executable-memory` entitlement to run
+under Apple's hardened runtime (required for notarisation):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+</dict>
+</plist>
+```
+
+**Steps to add to the macOS job in `.github/workflows/release.yml`**
+(insert after `bdist_dmg` produces `dist/*.dmg`, before the upload step):
+
+```yaml
+- name: Import Apple Developer ID certificate
+  env:
+    APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+    APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+  run: |
+    echo "$APPLE_CERTIFICATE_P12" | base64 --decode > certificate.p12
+    security create-keychain -p "" build.keychain
+    security default-keychain -s build.keychain
+    security unlock-keychain -p "" build.keychain
+    security import certificate.p12 -k build.keychain \
+      -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+    security set-key-partition-list -S apple-tool:,apple: \
+      -s -k "" build.keychain
+    rm certificate.p12
+
+- name: Sign .app bundle
+  env:
+    APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+  run: |
+    APP=$(find dist -name "*.app" | head -1)
+    codesign --deep --force --options runtime \
+      --entitlements packaging/macos/entitlements.plist \
+      --sign "Developer ID Application: Jason Farrar ($APPLE_TEAM_ID)" \
+      "$APP"
+
+- name: Sign .dmg
+  env:
+    APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+  run: |
+    DMG=$(find dist -name "*.dmg" | head -1)
+    codesign --force --sign \
+      "Developer ID Application: Jason Farrar ($APPLE_TEAM_ID)" \
+      "$DMG"
+
+- name: Notarise .dmg
+  env:
+    APPLE_ID: ${{ secrets.APPLE_ID }}
+    APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+    APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+  run: |
+    DMG=$(find dist -name "*.dmg" | head -1)
+    xcrun notarytool submit "$DMG" \
+      --apple-id "$APPLE_ID" \
+      --password "$APPLE_APP_PASSWORD" \
+      --team-id "$APPLE_TEAM_ID" \
+      --wait
+
+- name: Staple notarisation ticket to .dmg
+  run: |
+    DMG=$(find dist -name "*.dmg" | head -1)
+    xcrun stapler staple "$DMG"
+```
+
+**Critical notes:**
+- The `.app` bundle must be signed before it is repacked into the `.dmg`. Check
+  whether cx_Freeze's `bdist_dmg` creates the DMG from a pre-existing `.app` or
+  builds `.app` and `.dmg` together — if the latter, the `.app` signing step must
+  come before `bdist_dmg` runs, or the DMG must be manually repacked after signing.
+- `codesign --deep` signs all nested binaries (`.dylib`, `.so`, Python extensions).
+  If any nested binary fails to sign, notarisation will be rejected.
+- If notarisation is rejected, retrieve the full log with:
+  `xcrun notarytool log <submission-id> --apple-id ... --password ... --team-id ...`
+- The Developer ID certificate expires after 5 years — set a calendar reminder.
+- Annual Apple Developer Program renewal (£79/year) is required to keep the
+  certificate trusted; lapsed membership revokes notarisation.
