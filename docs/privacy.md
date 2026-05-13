@@ -46,6 +46,23 @@ No other network requests are made by openstan.
 
 ---
 
+## Optional exchange rate data
+
+openstan may in a future release offer an **opt-in** feature to retrieve currency
+exchange rates from a third-party API. This feature:
+
+- Is strictly optional and disabled by default — it will only make network
+  requests if you explicitly enable it
+- Will send only the currency codes required to fetch a rate (e.g. `GBP`, `USD`)
+  — no personal data, transaction amounts, or account details are transmitted
+- Will be clearly labelled in the application settings with a description of what
+  data is sent and to which service
+
+This section will be updated with the specific API provider and its privacy policy
+when the feature is released.
+
+---
+
 ## Telemetry and analytics
 
 openstan contains no telemetry, crash reporting, usage analytics, or any other
