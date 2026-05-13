@@ -3,35 +3,35 @@
   openstan.wxs — WiX Toolset v4 installer source for openstan on Windows.
 
   Build pipeline
-  --------------
+  ==============
   1. cx_Freeze produces dist/openstan/ (the frozen application directory).
   2. The CI release workflow calls make_wix_fragments.py to generate
-     packaging/windows/files.wxs — a heat-harvested component group that
+     packaging/windows/files.wxs - a heat-harvested component group that
      references every file in dist/openstan/.
   3. WiX compiles this source + the fragment into dist/openstan-<version>.msi.
 
   Upgrade strategy
-  ----------------
+  ================
   The UpgradeCode GUID is the permanent identity of this product family.
   It must never change across releases.  The ProductCode is auto-generated
   per build by WiX (AllowSameVersionUpgrades="no" + MajorUpgrade) so every
   new version replaces the previous one cleanly.
 
   Installer UI
-  ------------
+  ============
   WixUI_InstallDir provides:
-    • Welcome page
-    • License agreement page  (packaging/windows/license.rtf)
-    • Installation folder selection
-    • Ready-to-install confirmation
-    • Progress page
-    • Finish page with "Launch openstan" checkbox
+    - Welcome page
+    - License agreement page  (packaging/windows/license.rtf)
+    - Installation folder selection
+    - Ready-to-install confirmation
+    - Progress page
+    - Finish page with "Launch openstan" checkbox
 
   Installer branding
-  ------------------
+  ==================
   Two bitmaps customise the installer appearance:
-    • packaging/windows/banner.bmp   (493 × 58 px)  — top banner on inner pages
-    • packaging/windows/dialog.bmp   (493 × 312 px) — full background on Welcome/Finish
+    - packaging/windows/banner.bmp   (493 x 58 px)  - top banner on inner pages
+    - packaging/windows/dialog.bmp   (493 x 312 px) - full background on Welcome/Finish
   Both are generated from the app SVG by make_installer_bitmaps.py during CI.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
@@ -47,21 +47,15 @@
     Compressed="yes"
     Description="Open source bank statement analysis and visualization">
 
-    <!-- ------------------------------------------------------------------ -->
-    <!-- Media / cabinet                                                       -->
-    <!-- ------------------------------------------------------------------ -->
+    <!-- Media / cabinet -->
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 
-    <!-- ------------------------------------------------------------------ -->
-    <!-- Upgrade table — silently replaces any earlier version               -->
-    <!-- ------------------------------------------------------------------ -->
+    <!-- Upgrade table: silently replaces any earlier version -->
     <MajorUpgrade
       Schedule="afterInstallInitialize"
       DowngradeErrorMessage="A newer version of openstan is already installed." />
 
-    <!-- ------------------------------------------------------------------ -->
-    <!-- Properties                                                           -->
-    <!-- ------------------------------------------------------------------ -->
+    <!-- Properties -->
     <!-- Default launch checkbox state on Finish page: 1 = checked -->
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT"
               Value="Launch openstan" />
@@ -70,9 +64,7 @@
     <!-- Default install directory -->
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
 
-    <!-- ------------------------------------------------------------------ -->
-    <!-- Directory structure                                                  -->
-    <!-- ------------------------------------------------------------------ -->
+    <!-- Directory structure -->
     <StandardDirectory Id="ProgramFilesFolder">
       <Directory Id="INSTALLFOLDER" Name="openstan" />
     </StandardDirectory>
@@ -83,9 +75,7 @@
 
     <StandardDirectory Id="DesktopFolder" />
 
-    <!-- ------------------------------------------------------------------ -->
-    <!-- Components                                                           -->
-    <!-- ------------------------------------------------------------------ -->
+    <!-- Components -->
 
     <!--
       The bulk of the file components are harvested by make_wix_fragments.py
@@ -134,9 +124,7 @@
       </Component>
     </ComponentGroup>
 
-    <!-- ------------------------------------------------------------------ -->
-    <!-- Features                                                             -->
-    <!-- ------------------------------------------------------------------ -->
+    <!-- Features -->
     <Feature Id="MainApplication" Title="openstan" Level="1">
       <!-- Harvested file components from make_wix_fragments.py output -->
       <ComponentGroupRef Id="ApplicationFiles" />
@@ -144,9 +132,7 @@
       <ComponentGroupRef Id="DesktopShortcuts" />
     </Feature>
 
-    <!-- ------------------------------------------------------------------ -->
-    <!-- Icon — used in Add/Remove Programs and shortcuts                    -->
-    <!-- ------------------------------------------------------------------ -->
+    <!-- Icon: used in Add/Remove Programs and shortcuts -->
     <Icon Id="openstan.exe" SourceFile="$(var.AppDir)\openstan.exe" />
 
     <Property Id="ARPPRODUCTICON" Value="openstan.exe" />
@@ -154,15 +140,13 @@
     <Property Id="ARPHELPLINK" Value="https://openstan.org/docs" />
     <Property Id="ARPNOREPAIR" Value="1" />
 
-    <!-- ------------------------------------------------------------------ -->
-    <!-- UI — WixUI_InstallDir with branding bitmaps                        -->
-    <!-- ------------------------------------------------------------------ -->
+    <!-- UI: WixUI_InstallDir with branding bitmaps -->
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
 
     <!--
       Branding bitmaps (generated from SVG by make_installer_bitmaps.py):
-        banner.bmp   493 × 58 px  — banner on all inner wizard pages
-        dialog.bmp   493 × 312 px — full background on Welcome and Finish pages
+        banner.bmp   493 x 58 px  - banner on all inner wizard pages
+        dialog.bmp   493 x 312 px - full background on Welcome and Finish pages
     -->
     <WixVariable Id="WixUIBannerBmp"
                  Value="!(wix.WixSourceDir)\packaging\windows\banner.bmp" />

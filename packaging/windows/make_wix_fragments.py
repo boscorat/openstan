@@ -42,26 +42,45 @@ def _component_guid(rel_path: str) -> str:
     return "{" + str(uuid.uuid5(_OPENSTAN_NS, rel_path.lower())).upper() + "}"
 
 
+_MAX_ID_LEN = 72
+
+
+def _sanitise(rel_path: str) -> str:
+    """Replace all characters illegal in WiX identifiers with underscores."""
+    return (
+        rel_path.replace("\\", "_")
+        .replace("/", "_")
+        .replace(".", "_")
+        .replace("-", "_")
+    )
+
+
+def _cap(prefix: str, safe: str) -> str:
+    """Cap the identifier at _MAX_ID_LEN using a short hash suffix if needed."""
+    ident = prefix + safe
+    if len(ident) <= _MAX_ID_LEN:
+        return ident
+    # Truncate and append an 8-hex-char UUID v5 digest so the ID stays unique.
+    digest = uuid.uuid5(_OPENSTAN_NS, safe).hex[:8]
+    keep = _MAX_ID_LEN - len(prefix) - 9  # 1 underscore + 8 hex chars
+    return prefix + safe[:keep] + "_" + digest
+
+
 def _component_id(rel_path: str) -> str:
     """Return a WiX-safe component identifier derived from *rel_path*."""
-    # Replace path separators and dots with underscores; prefix with 'c_' to
-    # ensure the identifier starts with a letter (WiX requirement).
-    safe = rel_path.replace("\\", "_").replace("/", "_").replace(".", "_")
-    return "c_" + safe
+    return _cap("c_", _sanitise(rel_path))
 
 
 def _file_id(rel_path: str) -> str:
     """Return a WiX-safe file identifier derived from *rel_path*."""
-    safe = rel_path.replace("\\", "_").replace("/", "_").replace(".", "_")
-    return "f_" + safe
+    return _cap("f_", _sanitise(rel_path))
 
 
 def _dir_id(rel_path: str) -> str:
     """Return a WiX-safe directory identifier derived from *rel_path*."""
     if not rel_path:
         return "INSTALLFOLDER"
-    safe = rel_path.replace("\\", "_").replace("/", "_").replace(".", "_")
-    return "d_" + safe
+    return _cap("d_", _sanitise(rel_path))
 
 
 def harvest(app_dir: Path, out_path: Path) -> None:

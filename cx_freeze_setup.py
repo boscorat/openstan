@@ -651,3 +651,14 @@ _qml_dir = Path(build_exe_options["build_exe"]) / "lib" / "PyQt6" / "Qt6" / "qml
 if _qml_dir.exists():
     shutil.rmtree(_qml_dir)
     print(f"Post-build: removed unused QML directory tree ({_qml_dir})")
+
+# bank_statement_parser bundles a test_data/ tree (anonymised PDF fixtures for
+# its own test suite).  That data is not needed at runtime and should not be
+# shipped in the production installer.  Strip it here so it never reaches the
+# WiX harvester.
+_bsp_test_data = (
+    Path(build_exe_options["build_exe"]) / "lib" / "bank_statement_parser" / "test_data"
+)
+if _bsp_test_data.exists():
+    shutil.rmtree(_bsp_test_data)
+    print(f"Post-build: removed BSP test_data directory ({_bsp_test_data})")
