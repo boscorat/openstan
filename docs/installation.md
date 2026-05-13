@@ -12,7 +12,9 @@ openstan is distributed as a self-contained native installer for each supported 
 4. Launch **openstan** from the Start menu or desktop shortcut.
 
 !!! note "Windows SmartScreen"
-    On first run, Windows may show a SmartScreen warning because the installer is not yet signed with a paid certificate. Click **More info → Run anyway** to proceed.
+    Windows installers are code-signed via [SignPath Foundation](https://signpath.org)
+    *(approval pending)*. Until signing is active, Windows may show a SmartScreen warning
+    on first run. Click **More info → Run anyway** to proceed.
 
 ---
 
@@ -118,3 +120,13 @@ To upgrade to a newer version, download the new installer and run it — it will
 
 !!! warning "Project data"
     Uninstalling openstan does **not** delete your project folders or data. These are stored wherever you chose when creating each project.
+
+---
+
+## Code signing
+
+Windows installers for openstan are code-signed through the
+[SignPath Foundation](https://signpath.org), which provides free code signing for
+open-source projects. SignPath Foundation is a non-profit organisation that issues
+certificates on behalf of open-source maintainers to help users verify the
+authenticity and integrity of downloaded software.
