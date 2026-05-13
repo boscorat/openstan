@@ -111,7 +111,6 @@ _required_openstan_data: list[tuple[Path, str]] = [
     (_PKG_DATA / "icons", "lib/openstan/icons"),
     (_PKG_DATA / "data" / "fonts", "lib/openstan/data/fonts"),
     (_PKG_DATA / "data" / "sql_files", "lib/openstan/data/sql_files"),
-    (_PKG_DATA / "data" / "gui.db", "lib/openstan/data/gui.db"),
 ]
 
 for _src, _dst in _required_openstan_data:
@@ -121,6 +120,17 @@ for _src, _dst in _required_openstan_data:
             "Ensure the repository is fully checked out before building."
         )
     include_files.append((str(_src), _dst))
+
+# gui.db is gitignored because the local copy may contain dev/test data.
+# If it is absent (always the case on CI), generate a fresh empty seed db
+# using the same function the app uses at first-run bootstrap.
+_gui_db_src = _PKG_DATA / "data" / "gui.db"
+if not _gui_db_src.exists():
+    from openstan.data.create_gui_db import create_gui_db as _create_gui_db
+
+    _create_gui_db(_gui_db_src)
+    print(f"cx_freeze_setup: generated seed gui.db at {_gui_db_src}")
+include_files.append((str(_gui_db_src), "lib/openstan/data/gui.db"))
 
 # ---------------------------------------------------------------------------
 # Explicit bank_statement_parser project data files
