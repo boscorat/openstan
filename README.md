@@ -12,7 +12,7 @@ no account, no cloud, no data leaves your device.
 It provides a no-code workflow: import PDFs, review parse results, build reports, and export
 data to Excel, CSV, or JSON — no Python or database knowledge required.
 
-![Import results](https://raw.githubusercontent.com/boscorat/openstan/main/docs/assets/screenshots/dark/statement_results.png)
+![Import results](https://raw.githubusercontent.com/boscorat/openstan/master/docs/assets/screenshots/dark/statement_results.png)
 
 > Full documentation: **[openstan.org](https://openstan.org)**
 
