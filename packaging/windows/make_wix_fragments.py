@@ -74,7 +74,7 @@ def harvest(app_dir: Path, out_path: Path) -> None:
         print(f"ERROR: No files found in {app_dir}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Harvesting {len(all_files)} files from {app_dir} → {out_path}")
+    print(f"Harvesting {len(all_files)} files from {app_dir} -> {out_path}")
 
     # Build directory tree so we can emit <DirectoryRef> elements per unique dir.
     dirs_seen: set[str] = set()
