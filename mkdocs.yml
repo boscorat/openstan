@@ -69,3 +69,4 @@ nav:
       - Anonymise PDF: screens/anonymise.md
       - About: screens/about.md
   - Privacy Policy: privacy.md
+  - Code Signing Policy: codesigning.md

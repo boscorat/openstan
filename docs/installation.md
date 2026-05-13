@@ -15,6 +15,7 @@ openstan is distributed as a self-contained native installer for each supported 
     Windows installers are code-signed via [SignPath Foundation](https://signpath.org)
     *(approval pending)*. Until signing is active, Windows may show a SmartScreen warning
     on first run. Click **More info → Run anyway** to proceed.
+    See the [Code signing policy](codesigning.md) for details.
 
 ---
 

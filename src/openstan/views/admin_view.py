@@ -153,6 +153,32 @@ class AdminView(StanDialog):
         section_anon.setLayout(layout_anon)
 
         # ------------------------------------------------------------------
+        # Section 5 — Privacy / update check
+        # ------------------------------------------------------------------
+        section_privacy = StanFrame()
+        layout_privacy = QVBoxLayout()
+        layout_privacy.setSpacing(8)
+
+        lbl_privacy_title = StanLabel("##### Privacy")
+        lbl_privacy_info = StanLabel(
+            "On startup, openstan checks for a newer release by querying the "
+            "GitHub Releases API (HTTPS). No personal data is transmitted. "
+            "Uncheck below to disable this check."
+        )
+        lbl_privacy_info.setWordWrap(True)
+
+        self.check_update_check = StanCheckBox("Enable update check on startup")
+        self.check_update_check.setToolTip(
+            "When checked, openstan silently queries api.github.com on startup "
+            "to see if a newer version is available. No personal data is sent."
+        )
+
+        layout_privacy.addWidget(lbl_privacy_title)
+        layout_privacy.addWidget(lbl_privacy_info)
+        layout_privacy.addWidget(self.check_update_check)
+        section_privacy.setLayout(layout_privacy)
+
+        # ------------------------------------------------------------------
         # Assemble outer layout
         # ------------------------------------------------------------------
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
@@ -162,5 +188,6 @@ class AdminView(StanDialog):
         outer.addWidget(section_remove)
         outer.addWidget(section_empty)
         outer.addWidget(section_anon)
+        outer.addWidget(section_privacy)
         outer.addWidget(button_box)
         self.setLayout(outer)

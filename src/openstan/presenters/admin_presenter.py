@@ -3,7 +3,7 @@ import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QObject, pyqtSlot
+from PyQt6.QtCore import QObject, QSettings, pyqtSlot
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from openstan.components import StanErrorMessage, StanInfoMessage
@@ -14,6 +14,10 @@ if TYPE_CHECKING:
     from openstan.main import Stan
     from openstan.models.project_model import ProjectModel
     from openstan.views.admin_view import AdminView
+
+_SETTINGS_ORG = "openstan"
+_SETTINGS_APP = "openstan"
+_KEY_UPDATE_CHECK = "privacy/update_check_enabled"
 
 
 class AdminPresenter(QObject):
@@ -38,10 +42,17 @@ class AdminPresenter(QObject):
         self.view.button_remove_project.clicked.connect(self.remove_project_from_ui)
         self.view.button_empty_db.clicked.connect(self.empty_gui_db)
         self.view.button_open_anonymise.clicked.connect(self.open_anonymise_tool)
+        self.view.check_update_check.stateChanged.connect(self._on_update_check_changed)
 
     # ---------------------------------------------------------------------------
     # Public helpers
     # ---------------------------------------------------------------------------
+
+    @staticmethod
+    def is_update_check_enabled() -> bool:
+        """Return True (default) unless the user has explicitly disabled the check."""
+        settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
+        return bool(settings.value(_KEY_UPDATE_CHECK, defaultValue=True, type=bool))
 
     def refresh_combos(self) -> None:
         """Repopulate both project combo boxes from the current model data.
@@ -57,6 +68,12 @@ class AdminPresenter(QObject):
             name: str = str(record.value("project_name"))
             self.view.combo_delete.addItem(name, userData=row)
             self.view.combo_remove.addItem(name, userData=row)
+
+        # Sync the update-check checkbox with the persisted setting, blocking
+        # the stateChanged signal to avoid a redundant write-back.
+        self.view.check_update_check.blockSignals(True)
+        self.view.check_update_check.setChecked(self.is_update_check_enabled())
+        self.view.check_update_check.blockSignals(False)
 
     def _confirm(
         self,
@@ -78,6 +95,15 @@ class AdminPresenter(QObject):
     # ---------------------------------------------------------------------------
     # Slots
     # ---------------------------------------------------------------------------
+
+    @pyqtSlot(int)
+    def _on_update_check_changed(self, state: int) -> None:
+        """Persist the update-check preference whenever the checkbox changes."""
+        from PyQt6.QtCore import Qt as _Qt
+
+        enabled = state == _Qt.CheckState.Checked.value
+        settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
+        settings.setValue(_KEY_UPDATE_CHECK, enabled)
 
     @pyqtSlot()
     def delete_project(self) -> None:

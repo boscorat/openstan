@@ -6,6 +6,7 @@ from bank_statement_parser import ProjectPaths
 from PyQt6.QtCore import QObject, pyqtSlot
 
 from openstan.models.statement_result_model import ResultRow
+from openstan.presenters.admin_presenter import AdminPresenter
 from openstan.presenters.project_presenter import get_project_info
 from openstan.updater import UpdateChecker
 
@@ -110,9 +111,11 @@ class StanPresenter(QObject):
         # ── Update check ───────────────────────────────────────────────────────
         # Silent background check; shows a user-prompted dialog only if a
         # newer release is found on GitHub.  Network errors are silently ignored.
-        self._update_checker = UpdateChecker(parent=self)
-        self._update_checker.update_available.connect(self._on_update_available)
-        self._update_checker.check_async()
+        # Disabled if the user has opted out via Admin > Privacy settings.
+        if AdminPresenter.is_update_check_enabled():
+            self._update_checker = UpdateChecker(parent=self)
+            self._update_checker.update_available.connect(self._on_update_available)
+            self._update_checker.check_async()
 
     # ---------------------------------------------------------------------------
     # DB lock
