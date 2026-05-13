@@ -584,25 +584,39 @@ bdist_rpm_options: dict = {
 # ---------------------------------------------------------------------------
 # Executable definition
 # ---------------------------------------------------------------------------
+# On Windows two Executable entries are needed to create both a Desktop and a
+# Start Menu shortcut via the bdist_msi shortcut mechanism.  On macOS and
+# Linux only one entry is used — duplicate target_name entries cause
+# bdist_mac to fail with "can't move: not a regular file".
 
-executables: list[Executable] = [
-    Executable(
-        script=str(SRC_PKG / "__main__.py"),
-        target_name="openstan",
-        base=base,
-        icon=icon_path,
-        shortcut_name="openstan",
-        shortcut_dir="DesktopFolder",
-    ),
-    Executable(
-        script=str(SRC_PKG / "__main__.py"),
-        target_name="openstan",
-        base=base,
-        icon=icon_path,
-        shortcut_name="openstan",
-        shortcut_dir="ProgramMenuFolder",
-    ),
-]
+if sys.platform == "win32":
+    executables: list[Executable] = [
+        Executable(
+            script=str(SRC_PKG / "__main__.py"),
+            target_name="openstan",
+            base=base,
+            icon=icon_path,
+            shortcut_name="openstan",
+            shortcut_dir="DesktopFolder",
+        ),
+        Executable(
+            script=str(SRC_PKG / "__main__.py"),
+            target_name="openstan",
+            base=base,
+            icon=icon_path,
+            shortcut_name="openstan",
+            shortcut_dir="ProgramMenuFolder",
+        ),
+    ]
+else:
+    executables = [
+        Executable(
+            script=str(SRC_PKG / "__main__.py"),
+            target_name="openstan",
+            base=base,
+            icon=icon_path,
+        ),
+    ]
 
 # ---------------------------------------------------------------------------
 # setup() call
