@@ -186,6 +186,7 @@ jobs:
         shell: pwsh
         run: |
           dotnet tool install --global wix --version 4.0.5
+          wix extension add --global WixToolset.UI.wixext/4.0.5
           echo "$env:USERPROFILE\.dotnet\tools" | `
             Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
@@ -244,6 +245,7 @@ jobs:
           wix build `
             packaging/windows/openstan.wxs `
             packaging/windows/files.wxs `
+            -ext WixToolset.UI.wixext `
             -d AppDir=dist\openstan `
             -d WixSourceDir=. `
             -o $msi_out

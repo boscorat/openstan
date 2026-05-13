@@ -172,9 +172,8 @@
 
     <InstallExecuteSequence>
       <Custom Action="LaunchApplication"
-              After="InstallFinalize">
-        WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed
-      </Custom>
+              After="InstallFinalize"
+              Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
     </InstallExecuteSequence>
 
   </Package>
