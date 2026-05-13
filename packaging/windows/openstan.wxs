@@ -62,9 +62,6 @@
               Value="Launch openstan" />
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
 
-    <!-- Default install directory -->
-    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
-
     <!-- Directory structure -->
     <StandardDirectory Id="ProgramFilesFolder">
       <Directory Id="INSTALLFOLDER" Name="openstan" />
