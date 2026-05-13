@@ -73,6 +73,25 @@ def _seed_bsp_default_project() -> None:
     user edits.
     """
     if _BSP_PKG_PROJECT is None or not _BSP_PKG_PROJECT.exists():
+        # In a frozen build this means the bank_statement_parser/project/ data
+        # tree was not included in the installer image.  Statement processing
+        # will fail at runtime.  Emit a loud warning so the problem is visible
+        # in the debug log rather than silently producing "all failed" results.
+        import warnings
+
+        warnings.warn(
+            f"BSP project data directory not found: {_BSP_PKG_PROJECT!r}. "
+            "Config templates cannot be seeded into the user data directory. "
+            "Statement processing will fail until this is resolved. "
+            "If running a frozen/installed build, the bank_statement_parser "
+            "package data was likely not included in the installer image.",
+            RuntimeWarning,
+            stacklevel=1,
+        )
+        print(
+            f"[openstan] WARNING: BSP project data missing at {_BSP_PKG_PROJECT}",
+            flush=True,
+        )
         return  # can't locate package source; nothing to seed
 
     for src in _BSP_PKG_PROJECT.rglob("*"):

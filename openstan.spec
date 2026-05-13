@@ -27,10 +27,19 @@ Notes
 
 import sys
 from pathlib import Path
+import importlib.metadata as _meta
 
 HERE = Path(SPECPATH)  # noqa: F821 — SPECPATH is injected by PyInstaller
 SRC_PKG = HERE / "src" / "openstan"
 BUILD_ICONS = HERE / "build" / "icons"
+
+# ---------------------------------------------------------------------------
+# Version — resolved from installed package metadata (same as cx_freeze_setup)
+# ---------------------------------------------------------------------------
+try:
+    _version = _meta.version("openstan")
+except Exception:
+    _version = "0.0.0"
 
 # ---------------------------------------------------------------------------
 # Data files
@@ -130,9 +139,10 @@ app = BUNDLE(  # noqa: F821
     name="openstan.app",
     icon=icon,
     bundle_identifier="org.openstan.app",
+    version=_version,
     info_plist={
         "CFBundleDisplayName": "openstan",
-        "CFBundleShortVersionString": "0.1.0",
+        "CFBundleShortVersionString": _version,
         "NSHighResolutionCapable": True,
         "NSRequiresAquaSystemAppearance": False,  # allow dark mode
     },

@@ -1,8 +1,8 @@
 # openstan
 
 **openstan** is a free, open-source desktop application for importing, organising, and analysing
-your bank statements. It provides a graphical interface for the bank_statement_parser library,
-letting you work with your financial data without writing any code.
+your bank statements — no Python or database knowledge required. All data is stored locally on
+your own machine; no account or internet connection is needed.
 
 [![Import results — light](assets/screenshots/statement_results.png#only-light)](assets/screenshots/statement_results.png)
 [![Import results — dark](assets/screenshots/dark/statement_results.png#only-dark)](assets/screenshots/dark/statement_results.png)

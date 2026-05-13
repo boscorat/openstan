@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # Keep GitHub Actions SHA-pinned action references up to date.
+  # Dependabot will open PRs updating the pinned SHAs when new versions are
+  # released, ensuring all three workflow files stay in sync automatically.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/London"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci"
+    # Only open one PR per ecosystem at a time to avoid noise.
+    open-pull-requests-limit: 5

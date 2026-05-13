@@ -138,7 +138,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ---------------------------------------------------------------------------
-  # Windows — produces .msi installer
+  # Windows — produces .msi installer (WiX v4)
+  # ---------------------------------------------------------------------------
+  #
+  # Pipeline:
+  #   1. cx_Freeze builds the frozen application directory (dist/openstan/)
+  #   2. make_installer_bitmaps.py generates branding BMPs from the app SVG
+  #   3. make_wix_fragments.py harvests dist/openstan/ into files.wxs
+  #   4. WiX compiles openstan.wxs + files.wxs into the final .msi
+  #
+  # The resulting MSI provides:
+  #   • Welcome page with branding
+  #   • License agreement page
+  #   • Install-folder selection
+  #   • Progress and Finish pages with "Launch openstan" checkbox
+  #   • Desktop and Start Menu shortcuts
+  #   • Clean major-upgrade (previous version replaced automatically)
   # ---------------------------------------------------------------------------
   build-windows:
     name: Build Windows installer (.msi)
@@ -167,6 +182,13 @@ jobs:
           Expand-Archive resvg.zip -DestinationPath C:\resvg
           echo "C:\resvg" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      - name: Install WiX Toolset v4
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 4.0.5
+          echo "$env:USERPROFILE\.dotnet\tools" | `
+            Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Install Python dependencies
         # Runtime deps only — build tools injected ephemerally via --with.
         run: uv sync --no-dev
@@ -186,17 +208,60 @@ jobs:
           }
           uv run --with pillow python .github/scripts/make_ico.py
 
-      # ── cx_Freeze build ────────────────────────────────────────────────────
-      - name: Build .msi installer (cx_Freeze)
-        run: uv run --with cx-freeze python cx_freeze_setup.py bdist_msi
+      # Generate the WiX installer branding bitmaps (banner + dialog background)
+      # from the app SVG using resvg (already on PATH) and Pillow.
+      - name: Generate installer branding bitmaps
+        run: |
+          uv run --with pillow python packaging/windows/make_installer_bitmaps.py `
+            --svg src/openstan/icons/icon-square.svg `
+            --resvg resvg `
+            --out-dir packaging/windows
+        shell: pwsh
+
+      # ── cx_Freeze frozen app build ─────────────────────────────────────────
+      - name: Build frozen app (cx_Freeze)
+        run: uv run --with cx-freeze python cx_freeze_setup.py build
+
+      # Harvest the frozen app directory into a WiX component fragment.
+      # make_wix_fragments.py walks dist/openstan/ and emits
+      # packaging/windows/files.wxs with deterministic component GUIDs
+      # (UUID v5, stable across builds of the same version).
+      - name: Harvest frozen app into WiX component fragment
+        run: python packaging/windows/make_wix_fragments.py
+
+      # ── WiX build ──────────────────────────────────────────────────────────
+      # Compile openstan.wxs + files.wxs into the final MSI.
+      # The version is taken from the openstan.exe file version embedded by
+      # cx_Freeze (!(bind.FileVersion.openstan.exe) in openstan.wxs).
+      - name: Build .msi installer (WiX v4)
+        shell: pwsh
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          $version = $env:REF_NAME -replace '^v', ''
+          $msi_out = "dist\openstan-${version}.msi"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          wix build `
+            packaging/windows/openstan.wxs `
+            packaging/windows/files.wxs `
+            -d AppDir=dist\openstan `
+            -d WixSourceDir=. `
+            -o $msi_out
+          Write-Host "Built: $msi_out"
+          Get-ChildItem dist\*.msi | Format-Table Name, Length
 
       # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
       # - name: Build frozen app (PyInstaller fallback)
       #   run: uv run pyinstaller openstan.spec
-      # - name: Build .msi with WiX (PyInstaller fallback)
+      # - name: Harvest PyInstaller output into WiX fragment
+      #   run: python packaging/windows/make_wix_fragments.py --app-dir dist/openstan
+      # - name: Build .msi installer (WiX v4, PyInstaller fallback)
+      #   shell: pwsh
       #   run: |
-      #     # Requires WiX Toolset installed on the runner
-      #     # See https://wixtoolset.org/
+      #     $version = "${{ github.ref_name }}" -replace '^v', ''
+      #     wix build packaging/windows/openstan.wxs packaging/windows/files.wxs `
+      #       -d AppDir=dist\openstan -d WixSourceDir=. `
+      #       -o "dist\openstan-${version}.msi"
 
       - name: Upload .msi to release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda  # v3.0.0

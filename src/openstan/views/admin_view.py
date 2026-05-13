@@ -115,7 +115,7 @@ class AdminView(StanDialog):
             "all projects, sessions, and users will be permanently lost"
         )
         self.button_empty_db.setStyleSheet(
-            "StanButton { color: #c0392b; font-weight: bold; }"
+            "StanButton { color: palette(highlight); font-weight: bold; }"
         )
 
         layout_empty.addWidget(lbl_empty_title)
