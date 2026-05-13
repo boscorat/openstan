@@ -44,8 +44,9 @@
     UpgradeCode="{304AF32E-E6AD-4F92-80DA-F8A9359FE5B5}"
     Scope="perMachine"
     InstallerVersion="500"
-    Compressed="yes"
-    Description="Open source bank statement analysis and visualization">
+    Compressed="yes">
+
+    <SummaryInformation Description="Open source bank statement analysis and visualization" />
 
     <!-- Media / cabinet -->
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
