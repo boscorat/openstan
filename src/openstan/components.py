@@ -353,6 +353,12 @@ class StanWizard(QWizard):
         self.setAutoFillBackground(True)
         self.setModal(True)
         self.setWindowModality(Qt.WindowModality.WindowModal)
+        # ModernStyle renders entirely via Qt's style engine and therefore
+        # respects the application palette on all platforms including Windows
+        # dark mode.  The Windows default (AeroStyle) hard-paints a white
+        # gradient header at the OS compositor level, bypassing the palette
+        # and making the wizard header unreadable in dark mode.
+        self.setWizardStyle(QWizard.WizardStyle.ModernStyle)
 
 
 class StanHelpIcon(QPushButton):

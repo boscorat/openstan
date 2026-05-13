@@ -165,6 +165,22 @@ class StatementQueuePresenter(QObject):
     @pyqtSlot()
     def run_import(self) -> None:
         """Lock the queue and start the background import worker."""
+        # Guard: refuse to start if StanPresenter has not set a real project path.
+        # The sentinel value is set in __init__; any valid project path replaces it.
+        if str(self.projectPath) == "<<NO PROJECT PATH>>":
+            from openstan.components import StanErrorMessage
+
+            err = StanErrorMessage(parent=self.view)
+            err.showMessage(
+                "No project is currently open.\n\n"
+                "Please open or create a project before running an import."
+            )
+            print(
+                "[openstan] ERROR: run_import called with no project path set.",
+                flush=True,
+            )
+            return
+
         batch_id: str = uuid4().hex
         print(f"Running statement import — batch_id: {batch_id}")
 

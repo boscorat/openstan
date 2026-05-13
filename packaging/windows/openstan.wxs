@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  openstan.wxs — WiX Toolset v4 installer source for openstan on Windows.
+
+  Build pipeline
+  --------------
+  1. cx_Freeze produces dist/openstan/ (the frozen application directory).
+  2. The CI release workflow calls make_wix_fragments.py to generate
+     packaging/windows/files.wxs — a heat-harvested component group that
+     references every file in dist/openstan/.
+  3. WiX compiles this source + the fragment into dist/openstan-<version>.msi.
+
+  Upgrade strategy
+  ----------------
+  The UpgradeCode GUID is the permanent identity of this product family.
+  It must never change across releases.  The ProductCode is auto-generated
+  per build by WiX (AllowSameVersionUpgrades="no" + MajorUpgrade) so every
+  new version replaces the previous one cleanly.
+
+  Installer UI
+  ------------
+  WixUI_InstallDir provides:
+    • Welcome page
+    • License agreement page  (packaging/windows/license.rtf)
+    • Installation folder selection
+    • Ready-to-install confirmation
+    • Progress page
+    • Finish page with "Launch openstan" checkbox
+
+  Installer branding
+  ------------------
+  Two bitmaps customise the installer appearance:
+    • packaging/windows/banner.bmp   (493 × 58 px)  — top banner on inner pages
+    • packaging/windows/dialog.bmp   (493 × 312 px) — full background on Welcome/Finish
+  Both are generated from the app SVG by make_installer_bitmaps.py during CI.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package
+    Name="openstan"
+    Manufacturer="Jason Farrar"
+    Version="!(bind.FileVersion.openstan.exe)"
+    UpgradeCode="{304AF32E-E6AD-4F92-80DA-F8A9359FE5B5}"
+    Scope="perMachine"
+    InstallerVersion="500"
+    Compressed="yes"
+    Description="Open source bank statement analysis and visualization">
+
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Media / cabinet                                                       -->
+    <!-- ------------------------------------------------------------------ -->
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Upgrade table — silently replaces any earlier version               -->
+    <!-- ------------------------------------------------------------------ -->
+    <MajorUpgrade
+      Schedule="afterInstallInitialize"
+      DowngradeErrorMessage="A newer version of openstan is already installed." />
+
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Properties                                                           -->
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Default launch checkbox state on Finish page: 1 = checked -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT"
+              Value="Launch openstan" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+
+    <!-- Default install directory -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Directory structure                                                  -->
+    <!-- ------------------------------------------------------------------ -->
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Id="INSTALLFOLDER" Name="openstan" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="openstan" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Components                                                           -->
+    <!-- ------------------------------------------------------------------ -->
+
+    <!--
+      The bulk of the file components are harvested by make_wix_fragments.py
+      into packaging/windows/files.wxs and referenced via the ComponentGroupRef
+      below.  Only the shortcuts and a single anchor component are defined here.
+    -->
+
+    <ComponentGroup Id="ApplicationShortcuts" Directory="ApplicationProgramsFolder">
+      <Component Id="StartMenuShortcut" Guid="{B8E1A2F3-C4D5-6789-ABCD-EF0123456789}">
+        <Shortcut
+          Id="StartMenuShortcutEntry"
+          Name="openstan"
+          Description="Open source bank statement analysis and visualization"
+          Target="[INSTALLFOLDER]openstan.exe"
+          WorkingDirectory="INSTALLFOLDER"
+          Icon="openstan.exe" />
+        <RemoveFolder Id="RemoveApplicationProgramsFolder"
+                      Directory="ApplicationProgramsFolder"
+                      On="uninstall" />
+        <RegistryValue
+          Root="HKCU"
+          Key="Software\openstan\openstan"
+          Name="StartMenuShortcut"
+          Type="integer"
+          Value="1"
+          KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="DesktopShortcuts" Directory="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="{C9F2B3E4-D5A6-789B-CDEF-012345678901}">
+        <Shortcut
+          Id="DesktopShortcutEntry"
+          Name="openstan"
+          Description="Open source bank statement analysis and visualization"
+          Target="[INSTALLFOLDER]openstan.exe"
+          WorkingDirectory="INSTALLFOLDER"
+          Icon="openstan.exe" />
+        <RegistryValue
+          Root="HKCU"
+          Key="Software\openstan\openstan"
+          Name="DesktopShortcut"
+          Type="integer"
+          Value="1"
+          KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Features                                                             -->
+    <!-- ------------------------------------------------------------------ -->
+    <Feature Id="MainApplication" Title="openstan" Level="1">
+      <!-- Harvested file components from make_wix_fragments.py output -->
+      <ComponentGroupRef Id="ApplicationFiles" />
+      <ComponentGroupRef Id="ApplicationShortcuts" />
+      <ComponentGroupRef Id="DesktopShortcuts" />
+    </Feature>
+
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Icon — used in Add/Remove Programs and shortcuts                    -->
+    <!-- ------------------------------------------------------------------ -->
+    <Icon Id="openstan.exe" SourceFile="$(var.AppDir)\openstan.exe" />
+
+    <Property Id="ARPPRODUCTICON" Value="openstan.exe" />
+    <Property Id="ARPURLINFOABOUT" Value="https://openstan.org" />
+    <Property Id="ARPHELPLINK" Value="https://openstan.org/docs" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+
+    <!-- ------------------------------------------------------------------ -->
+    <!-- UI — WixUI_InstallDir with branding bitmaps                        -->
+    <!-- ------------------------------------------------------------------ -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+
+    <!--
+      Branding bitmaps (generated from SVG by make_installer_bitmaps.py):
+        banner.bmp   493 × 58 px  — banner on all inner wizard pages
+        dialog.bmp   493 × 312 px — full background on Welcome and Finish pages
+    -->
+    <WixVariable Id="WixUIBannerBmp"
+                 Value="!(wix.WixSourceDir)\packaging\windows\banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp"
+                 Value="!(wix.WixSourceDir)\packaging\windows\dialog.bmp" />
+    <WixVariable Id="WixUILicenseRtf"
+                 Value="!(wix.WixSourceDir)\packaging\windows\license.rtf" />
+
+    <!--
+      "Launch openstan" checkbox on Finish page.
+      WixUI_InstallDir automatically hooks WIXUI_EXITDIALOGOPTIONALCHECKBOX
+      and WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT when the property is set.
+      The custom action below runs the executable when the checkbox is ticked.
+    -->
+    <CustomAction
+      Id="LaunchApplication"
+      FileRef="openstan.exe"
+      ExeCommand=""
+      Execute="immediate"
+      Impersonate="yes"
+      Return="asyncNoWait" />
+
+    <InstallExecuteSequence>
+      <Custom Action="LaunchApplication"
+              After="InstallFinalize">
+        WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed
+      </Custom>
+    </InstallExecuteSequence>
+
+  </Package>
+</Wix>
