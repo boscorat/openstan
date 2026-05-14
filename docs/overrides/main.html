@@ -7,3 +7,64 @@
           async src="//gc.zgo.at/count.js"></script>
   {% endif %}
 {% endblock %}
+
+{% block extrahead %}
+  {{ super() }}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "openstan",
+    "url": "https://openstan.org",
+    "downloadUrl": "https://github.com/boscorat/openstan/releases",
+    "applicationCategory": "FinanceApplication",
+    "applicationSubCategory": "Bank Statement Analyser",
+    "operatingSystem": "Windows 10, Windows 11, macOS 12, macOS 13, macOS 14, macOS 15, Ubuntu, Debian, Fedora",
+    "softwareVersion": "0.1.4",
+    "releaseNotes": "https://github.com/boscorat/openstan/releases",
+    "description": "openstan is a free, open-source desktop application for importing, analysing, and exporting UK bank statement PDFs. Parse HSBC, TSB, and NatWest statements entirely offline — no account, no cloud, no data leaves your machine. Export to Excel, CSV, or JSON. Build no-code reports with filters and aggregations. 200 statements processed in under 60 seconds.",
+    "keywords": "bank statement analyser, UK bank statement PDF, HSBC statement parser, TSB statement parser, NatWest statement parser, convert bank statement to Excel, bank statement to CSV, self assessment tax return, free bank statement software, offline bank statement tool, open source bank statement analyser",
+    "screenshot": "https://openstan.org/assets/screenshots/statement_results.png",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "GBP"
+    },
+    "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+    "isAccessibleForFree": true,
+    "author": {
+      "@type": "Person",
+      "name": "Jason Farrar",
+      "url": "https://github.com/boscorat"
+    },
+    "publisher": {
+      "@type": "Person",
+      "name": "Jason Farrar",
+      "url": "https://github.com/boscorat"
+    },
+    "maintainer": {
+      "@type": "Person",
+      "name": "Jason Farrar",
+      "url": "https://github.com/boscorat"
+    },
+    "codeRepository": "https://github.com/boscorat/openstan",
+    "programmingLanguage": "Python",
+    "featureList": [
+      "Import UK bank statement PDFs — one file or entire folders",
+      "Supports HSBC UK, TSB UK, NatWest UK",
+      "Parse 200 statements in under 60 seconds",
+      "100% offline — no internet connection required",
+      "Export to Excel, CSV, or JSON",
+      "Flat table or full star-schema dataset export",
+      "No-code report builder with filters, grouping, and aggregations",
+      "Automatic detection of statement coverage gaps",
+      "Light and dark theme",
+      "Extensible via TOML bank definition files",
+      "Anonymise PDFs for safe sharing",
+      "Free and open source — GPL-3.0"
+    ],
+    "countriesSupported": "GB",
+    "inLanguage": "en-GB"
+  }
+  </script>
+{% endblock %}
