@@ -472,8 +472,15 @@ pending (up to 48 hours from purchase).
 1. **Developer ID Application certificate** — issue at
    developer.apple.com → Certificates → "+" → "Developer ID Application".
    Download, double-click to install into Keychain on a Mac.
-   Export from Keychain Access as a `.p12` file with a strong password.
-   Base64-encode it for the GitHub secret:
+
+   If the certificate shows a red cross ("not trusted") in Keychain Access,
+   you are missing the intermediate certificate. Download and install the
+   **"Developer ID Certification Authority"** certificate from
+   https://www.apple.com/certificateauthority/ — this is the one that clears
+   the error (not "Apple Worldwide Developer Relations CA - G2").
+
+   Once trusted, export from Keychain Access as a `.p12` file with a strong
+   password. Base64-encode it for the GitHub secret:
    ```bash
    base64 -i DeveloperIDApplication.p12 | pbcopy
    ```
