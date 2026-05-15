@@ -1,6 +1,6 @@
 site_name: openstan
 site_description: User guide for openstan — a desktop application for bank statement analysis and visualisation.
-site_url: https://boscorat.github.io/openstan/
+site_url: https://openstan.org
 repo_url: https://github.com/boscorat/openstan
 repo_name: boscorat/openstan
 
