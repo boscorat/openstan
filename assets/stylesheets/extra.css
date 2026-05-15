@@ -1,0 +1,20 @@
+/* Hide dark-mode-only images when the light scheme is active.
+   Zensical's bundled palette CSS already hides #only-light images in dark
+   mode, but the complementary rule for light mode is absent. */
+[data-md-color-scheme=default] img[src$="#only-dark"] {
+    display: none;
+}
+
+/* Theme-aware nav-bar logo.
+   The logo partial (docs/overrides/partials/logo.html) renders two <img>
+   elements — .stan-logo-light and .stan-logo-dark — at each of the two
+   include sites (header and nav drawer). That gives 4 elements total; the
+   rules below ensure exactly one per site is visible at any time.
+   !important is required to override the theme's own .md-logo img { display: block }
+   rule which has higher specificity and would otherwise force both visible.
+   NOTE: do not set theme.logo in mkdocs.yml — see AGENTS.md. */
+.stan-logo-dark                                        { display: none !important; }
+[data-md-color-scheme=slate] .stan-logo-light          { display: none !important; }
+[data-md-color-scheme=slate] .stan-logo-dark           { display: block !important; }
+
+
