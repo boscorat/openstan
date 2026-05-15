@@ -447,11 +447,17 @@ jobs:
 
       # Step 7: staple the notarisation ticket to the DMG so Gatekeeper can
       # verify it offline (without contacting Apple's servers).
+      # Apple's CloudKit CDN can take a short while to propagate the ticket
+      # after notarytool returns success, so we retry up to 3 times with a
+      # 30-second pause between attempts before failing.
       - name: Staple notarisation ticket to .dmg
         run: |
           DMG=$(find dist -name "*.dmg" | head -1)
-          xcrun stapler staple "$DMG"
-          echo "Stapled: $DMG"
+          for i in 1 2 3; do
+            xcrun stapler staple "$DMG" && break
+            echo "Staple attempt $i failed, retrying in 30s..."
+            sleep 30
+          done
 
       # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
       # - name: Build .app bundle (PyInstaller fallback)
