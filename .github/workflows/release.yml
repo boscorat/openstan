@@ -432,12 +432,14 @@ jobs:
 
           codesign --verify --deep --strict "$APP" && echo "Signature OK"
 
-      # Step 4: notarise the signed .app with Apple's notarisation service
-      # and wait for the result.  We notarise the .app directly (not the DMG)
-      # so the ticket can be stapled to the .app bundle before it is packaged.
-      # This is Apple's recommended workflow and is more reliable than
-      # notarising and stapling the DMG directly.
-      - name: Notarise .app
+      # Step 4a: submit the signed .app to Apple's notarisation service.
+      # We use --no-progress and capture the submission ID into GITHUB_ENV
+      # so the next step can poll for the result independently.  Separating
+      # submit from polling gives each phase its own timeout and makes hangs
+      # easy to diagnose (a hang here = network issue before Apple ACKs the
+      # upload; a hang in step 4b = Apple's service is slow/unresponsive).
+      - name: Submit .app for notarisation
+        timeout-minutes: 5
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
@@ -446,30 +448,71 @@ jobs:
           APP=$(find build -maxdepth 3 -name "*.app" | head -1)
           # zip the .app for submission (notarytool requires a zip, dmg, or pkg)
           ditto -c -k --keepParent "$APP" /tmp/openstan_notarise.zip
-          # capture the full output so we can extract the submission ID on failure
-          NOTARY_OUT=$(xcrun notarytool submit /tmp/openstan_notarise.zip \
+          echo "Submitting to Apple notarisation service..."
+          SUBMIT_OUT=$(xcrun notarytool submit /tmp/openstan_notarise.zip \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait \
-            --verbose 2>&1)
-          echo "$NOTARY_OUT"
+            --no-progress 2>&1)
+          echo "$SUBMIT_OUT"
           rm /tmp/openstan_notarise.zip
-          # Fail loudly if Apple did not accept the submission
-          if ! echo "$NOTARY_OUT" | grep -q "status: Accepted"; then
-            echo "ERROR: notarisation was not accepted by Apple" >&2
-            # Extract submission ID and fetch the full log for diagnosis
-            SUBMISSION_ID=$(echo "$NOTARY_OUT" | grep "id:" | head -1 | awk '{print $2}')
-            if [ -n "$SUBMISSION_ID" ]; then
-              echo "Fetching notarisation log for submission $SUBMISSION_ID..." >&2
-              xcrun notarytool log "$SUBMISSION_ID" \
-                --apple-id "$APPLE_ID" \
-                --password "$APPLE_APP_PASSWORD" \
-                --team-id "$APPLE_TEAM_ID" >&2 || true
-            fi
+          SUBMISSION_ID=$(echo "$SUBMIT_OUT" | grep "  id:" | head -1 | awk '{print $2}')
+          if [ -z "$SUBMISSION_ID" ]; then
+            echo "ERROR: failed to obtain submission ID from notarytool" >&2
             exit 1
           fi
-          echo "Notarisation accepted."
+          echo "Submission ID: $SUBMISSION_ID"
+          echo "NOTARY_SUBMISSION_ID=$SUBMISSION_ID" >> "$GITHUB_ENV"
+
+      # Step 4b: poll Apple's notarisation service until the submission is
+      # accepted or rejected.  Each poll call is wrapped with gtimeout 30 so
+      # a stalled network connection fails fast.  The step itself has a
+      # timeout-minutes guard as a belt-and-braces backstop.
+      # On any failure the full Apple notarisation log is fetched for diagnosis.
+      - name: Wait for notarisation
+        timeout-minutes: 15
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          SUBMISSION_ID="$NOTARY_SUBMISSION_ID"
+          echo "Polling for submission: $SUBMISSION_ID"
+          fetch_log() {
+            echo "Fetching Apple notarisation log for $SUBMISSION_ID..." >&2
+            gtimeout 60 xcrun notarytool log "$SUBMISSION_ID" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_APP_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" >&2 || true
+          }
+          MAX=20
+          for i in $(seq 1 $MAX); do
+            echo "Poll attempt $i / $MAX..."
+            INFO=$(gtimeout 30 xcrun notarytool info "$SUBMISSION_ID" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_APP_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" 2>&1) || {
+              echo "ERROR: notarytool info timed out or failed on attempt $i" >&2
+              exit 1
+            }
+            echo "$INFO"
+            if echo "$INFO" | grep -q "status: Accepted"; then
+              echo "Notarisation accepted."
+              exit 0
+            fi
+            if echo "$INFO" | grep -q "status: Invalid"; then
+              echo "ERROR: notarisation rejected by Apple" >&2
+              fetch_log
+              exit 1
+            fi
+            if [ "$i" -eq "$MAX" ]; then
+              echo "ERROR: notarisation did not complete after $MAX polls (~$((MAX / 2)) min)" >&2
+              fetch_log
+              exit 1
+            fi
+            echo "Status not final yet, waiting 30s..."
+            sleep 30
+          done
 
       # Step 5: staple the notarisation ticket to the .app bundle.
       # We wait 60s upfront for Apple's CloudKit CDN to propagate the ticket,
