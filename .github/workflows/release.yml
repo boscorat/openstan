@@ -470,7 +470,7 @@ jobs:
       # timeout-minutes guard as a belt-and-braces backstop.
       # On any failure the full Apple notarisation log is fetched for diagnosis.
       - name: Wait for notarisation
-        timeout-minutes: 35
+        timeout-minutes: 45
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
@@ -565,12 +565,16 @@ jobs:
 
       # Step 7: sign the DMG itself for integrity.  The .app inside is already
       # notarised and stapled; Gatekeeper will verify the .app ticket on install.
+      # --timestamp is required for Developer ID signatures.
+      # gtimeout 120 guards against a stalled TSA connection (same failure mode
+      # observed on the .app sign step).
       - name: Sign .dmg (Developer ID)
+        timeout-minutes: 5
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           DMG=$(find dist -name "*.dmg" | head -1)
-          codesign --force \
+          gtimeout 120 codesign --force --timestamp \
             --sign "Developer ID Application: Jason Farrar ($APPLE_TEAM_ID)" \
             "$DMG"
           echo "DMG signed: $DMG"
