@@ -470,7 +470,7 @@ jobs:
       # timeout-minutes guard as a belt-and-braces backstop.
       # On any failure the full Apple notarisation log is fetched for diagnosis.
       - name: Wait for notarisation
-        timeout-minutes: 45
+        timeout-minutes: 75
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
@@ -485,7 +485,7 @@ jobs:
               --password "$APPLE_APP_PASSWORD" \
               --team-id "$APPLE_TEAM_ID" >&2 || true
           }
-          MAX=60
+          MAX=120
           for i in $(seq 1 $MAX); do
             echo "Poll attempt $i / $MAX..."
             INFO=$(gtimeout 30 xcrun notarytool info "$SUBMISSION_ID" \
