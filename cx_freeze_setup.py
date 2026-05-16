@@ -245,6 +245,8 @@ build_exe_options: dict = {
         "PyQt6.QtPdf",
         "PyQt6.QtPdfWidgets",
         "PyQt6.QtDesigner",
+        "PyQt6.QtHelp",
+        "PyQt6.QtDBus",
         "PyQt6.QtOpenGL",
         "PyQt6.QtOpenGLWidgets",
         "PyQt6.QtSensors",

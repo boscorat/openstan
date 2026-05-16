@@ -566,18 +566,26 @@ jobs:
       # Step 7: sign the DMG itself for integrity.  The .app inside is already
       # notarised and stapled; Gatekeeper will verify the .app ticket on install.
       # --timestamp is required for Developer ID signatures.
-      # gtimeout 120 guards against a stalled TSA connection (same failure mode
-      # observed on the .app sign step).
+      # Apple's TSA can stall for several minutes; we retry up to 3 times with
+      # a 180s per-attempt timeout and a 30s gap between attempts.
       - name: Sign .dmg (Developer ID)
-        timeout-minutes: 5
+        timeout-minutes: 10
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           DMG=$(find dist -name "*.dmg" | head -1)
-          gtimeout 120 codesign --force --timestamp \
-            --sign "Developer ID Application: Jason Farrar ($APPLE_TEAM_ID)" \
-            "$DMG"
-          echo "DMG signed: $DMG"
+          for attempt in 1 2 3; do
+            echo "DMG sign attempt $attempt / 3..."
+            gtimeout 180 codesign --force --timestamp \
+              --sign "Developer ID Application: Jason Farrar ($APPLE_TEAM_ID)" \
+              "$DMG" && { echo "DMG signed: $DMG"; break; }
+            if [ "$attempt" -eq 3 ]; then
+              echo "ERROR: DMG signing failed after 3 attempts" >&2
+              exit 1
+            fi
+            echo "Attempt $attempt failed (TSA stall), retrying in 30s..."
+            sleep 30
+          done
 
       # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
       # - name: Build .app bundle (PyInstaller fallback)
