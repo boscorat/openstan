@@ -401,13 +401,30 @@ jobs:
           APP=$(find build -maxdepth 3 -name "*.app" | head -1)
           # zip the .app for submission (notarytool requires a zip, dmg, or pkg)
           ditto -c -k --keepParent "$APP" /tmp/openstan_notarise.zip
-          xcrun notarytool submit /tmp/openstan_notarise.zip \
+          # capture the full output so we can extract the submission ID on failure
+          NOTARY_OUT=$(xcrun notarytool submit /tmp/openstan_notarise.zip \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
             --wait \
-            --verbose
+            --verbose 2>&1)
+          echo "$NOTARY_OUT"
           rm /tmp/openstan_notarise.zip
+          # Fail loudly if Apple did not accept the submission
+          if ! echo "$NOTARY_OUT" | grep -q "status: Accepted"; then
+            echo "ERROR: notarisation was not accepted by Apple" >&2
+            # Extract submission ID and fetch the full log for diagnosis
+            SUBMISSION_ID=$(echo "$NOTARY_OUT" | grep "id:" | head -1 | awk '{print $2}')
+            if [ -n "$SUBMISSION_ID" ]; then
+              echo "Fetching notarisation log for submission $SUBMISSION_ID..." >&2
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --apple-id "$APPLE_ID" \
+                --password "$APPLE_APP_PASSWORD" \
+                --team-id "$APPLE_TEAM_ID" >&2 || true
+            fi
+            exit 1
+          fi
+          echo "Notarisation accepted."
 
       # Step 5: staple the notarisation ticket to the .app bundle.
       # We wait 60s upfront for Apple's CloudKit CDN to propagate the ticket,
