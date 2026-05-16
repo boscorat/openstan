@@ -387,12 +387,54 @@ jobs:
             "$APP"
           codesign --verify --deep --strict "$APP" && echo "Signature OK"
 
-      # Step 4: wrap the signed .app in a DMG using hdiutil.
-      # We do not use bdist_dmg because it would call bdist_mac internally
-      # again and overwrite the signed .app with a fresh unsigned one.
-      # A symlink to /Applications is added so the DMG presents the standard
-      # drag-to-Applications install experience.
-      - name: Create .dmg from signed .app (hdiutil)
+      # Step 4: notarise the signed .app with Apple's notarisation service
+      # and wait for the result.  We notarise the .app directly (not the DMG)
+      # so the ticket can be stapled to the .app bundle before it is packaged.
+      # This is Apple's recommended workflow and is more reliable than
+      # notarising and stapling the DMG directly.
+      - name: Notarise .app
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          APP=$(find build -maxdepth 3 -name "*.app" | head -1)
+          # zip the .app for submission (notarytool requires a zip, dmg, or pkg)
+          ditto -c -k --keepParent "$APP" /tmp/openstan_notarise.zip
+          xcrun notarytool submit /tmp/openstan_notarise.zip \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait \
+            --verbose
+          rm /tmp/openstan_notarise.zip
+
+      # Step 5: staple the notarisation ticket to the .app bundle.
+      # We wait 60s upfront for Apple's CloudKit CDN to propagate the ticket,
+      # then retry up to 3 more times with 30s gaps.  Exits loudly if all
+      # attempts fail so the workflow never packages an unstapled .app.
+      - name: Staple notarisation ticket to .app
+        run: |
+          APP=$(find build -maxdepth 3 -name "*.app" | head -1)
+          echo "Waiting 60s for notarisation ticket to propagate to CloudKit..."
+          sleep 60
+          for i in 1 2 3; do
+            xcrun stapler staple "$APP" && { echo "Stapled: $APP"; break; }
+            if [ "$i" -eq 3 ]; then
+              echo "ERROR: stapling failed after 3 attempts" >&2
+              exit 1
+            fi
+            echo "Staple attempt $i failed, retrying in 30s..."
+            sleep 30
+          done
+          xcrun stapler validate "$APP"
+          echo "Staple validated OK"
+
+      # Step 6: wrap the stapled .app in a DMG using hdiutil.
+      # The .app is already notarised and stapled at this point; the DMG is
+      # purely a delivery container.  A symlink to /Applications is added so
+      # the DMG presents the standard drag-to-Applications install experience.
+      - name: Create .dmg from stapled .app (hdiutil)
         env:
           REF_NAME: ${{ github.ref_name }}
         run: |
@@ -416,7 +458,8 @@ jobs:
           echo "Created: $DMG"
           ls -lh dist/
 
-      # Step 5: sign the DMG itself with the Developer ID certificate.
+      # Step 7: sign the DMG itself for integrity.  The .app inside is already
+      # notarised and stapled; Gatekeeper will verify the .app ticket on install.
       - name: Sign .dmg (Developer ID)
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -426,48 +469,6 @@ jobs:
             --sign "Developer ID Application: Jason Farrar ($APPLE_TEAM_ID)" \
             "$DMG"
           echo "DMG signed: $DMG"
-
-      # Step 6: submit the DMG to Apple's notarisation service and wait for
-      # the result.  xcrun notarytool --wait blocks until Apple's scan is
-      # complete (typically 1-5 minutes).  If Apple rejects notarisation,
-      # retrieve the full log with:
-      #   xcrun notarytool log <id> --apple-id ... --password ... --team-id ...
-      - name: Notarise .dmg
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          DMG=$(find dist -name "*.dmg" | head -1)
-          xcrun notarytool submit "$DMG" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_APP_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --wait
-
-      # Step 7: staple the notarisation ticket to the DMG so Gatekeeper can
-      # verify it offline (without contacting Apple's servers).
-      # We wait 60s upfront for Apple's CloudKit CDN to propagate the ticket,
-      # then retry up to 3 more times with 30s gaps.  The loop exits 1 loudly
-      # if all attempts fail so the workflow does not silently upload an
-      # unstapled DMG.  A final spctl check confirms Gatekeeper is satisfied.
-      - name: Staple notarisation ticket to .dmg
-        run: |
-          DMG=$(find dist -name "*.dmg" | head -1)
-          echo "Waiting 60s for notarisation ticket to propagate to CloudKit..."
-          sleep 60
-          for i in 1 2 3; do
-            xcrun stapler staple "$DMG" && { echo "Stapled: $DMG"; break; }
-            if [ "$i" -eq 3 ]; then
-              echo "ERROR: stapling failed after 3 attempts" >&2
-              exit 1
-            fi
-            echo "Staple attempt $i failed, retrying in 30s..."
-            sleep 30
-          done
-          echo "Validating stapled ticket..."
-          xcrun stapler validate "$DMG"
-          spctl --assess --type open --context context:primary-signature -v "$DMG"
 
       # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
       # - name: Build .app bundle (PyInstaller fallback)
