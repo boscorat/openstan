@@ -365,6 +365,10 @@ jobs:
             -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: \
             -s -k "" build.keychain
+          # Prevent the keychain auto-locking during the ~35 min notarisation
+          # wait (default lock timeout is 300s inactivity).  3600s covers the
+          # full job comfortably; -u disables the lock-on-sleep setting.
+          security set-keychain-settings -t 3600 -u build.keychain
           rm certificate.p12
 
       # Step 3: sign the .app bundle with the Developer ID Application
@@ -574,6 +578,10 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           DMG=$(find dist -name "*.dmg" | head -1)
+          # Re-unlock the build keychain — it may have auto-locked during the
+          # ~35 min notarisation wait despite the 3600s timeout set at import
+          # time (belt-and-braces; costs nothing).
+          security unlock-keychain -p "" build.keychain
           for attempt in 1 2 3; do
             echo "DMG sign attempt $attempt / 3..."
             gtimeout 180 codesign --force --timestamp \
