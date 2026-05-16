@@ -402,6 +402,45 @@ the fragment + CSS approach is sufficient and consistent across all pages.
 
 ---
 
+## Qt Plugin Exclusions
+
+`cx_freeze_setup.py` excludes a large set of Qt plugins that are never used by
+the app. The list uses all three filename variants per plugin (`.so` / `.dylib` /
+`.dll`) so the same `bin_excludes` dict applies across all three platforms without
+conditional logic.
+
+### Feature → plugin mapping
+
+| Feature / category | Plugins excluded | Notes |
+|---|---|---|
+| **TLS backends** | `libqopensslbackend`, `libqcertonlybackend`, `libqsecuretransport` (macOS), `qschannel` (Windows) | `UpdateChecker` uses Python `urllib`/`ssl` — **not** `QNetworkAccessManager`. **If the update checker is ever rewritten to use `QNetworkAccessManager`, these must be re-enabled.** |
+| **Network information** | `libqandroidnetworkinformation`, `libqglib2networkinformation`, `libqnetworkmanagernetworkinformation`, `libqscnetworkinformation`, `qwinnetworkinformation` | Reports connectivity state; unused |
+| **Platform input contexts** | `libqcomposeplatforminputcontextplugin`, `libqibusplatforminputcontextplugin` | IBus / Compose key input methods; only needed for CJK/complex-script input |
+| **Positioning** | `libqtpositioning`, `libqgeopositioninfosource_geoclue2`, `libqgeopositioninfosource_serialnmea` | GPS / geolocation; not used |
+| **Sensors** | `libqtsensors_generic`, `libqtsensors_iio-sensor-proxy`, `libqtsensors_linuxsys` | Accelerometer / gyroscope etc.; not used |
+| **Text-to-speech** | `libqtexttospeech_*` variants | Not used |
+| **Help plugin** | `libqhelpplugin` | Qt Designer / Qt Assistant integration; not used |
+| **SCXML ecmascript** | `libqscxmlecmascriptdatamodel` | State-machine QML scripting; not used |
+| **WebView** | `libqwebview_webengine` | Not used |
+| **Print support** | `libcupsprintersupport` (Linux), `libqcocoaprintersupport` (macOS) | Printing not implemented |
+| **JPEG 2000** | `libqmacjp2` (macOS only) | Niche image format; not used |
+| **TUIO touch** | `libqtuiotouch` | External touch-table hardware protocol; not used |
+| **QML / Quick stack** | All `libQt6Qml*`, `libQt6Quick*`, `libQt6Quick3D*`, `libQt6ShaderTools` etc. | App is pure QWidgets |
+| **Multimedia / FFmpeg** | `libQt6Multimedia*`, `libavcodec`, `libavformat`, `libavutil`, `libswresample`, `libswscale`, `libffmpegmediaplugin` | No audio/video |
+| **Unused SQL drivers** | `libqsqlibase`, `libqsqlmimer`, `libqsqlmysql`, `libqsqloci`, `libqsqlodbc`, `libqsqlpsql` | Only SQLite is used |
+| **Unused image formats** | `libqwebp`, `libqtiff`, `libqicns`, `libqwbmp`, `libqtga` | App only uses JPEG/PNG/GIF/SVG/ICO |
+
+### Safe to keep
+
+- Platform plugins: `libqcocoa` (macOS), `qwindows` (Windows), `libqxcb` (Linux)
+- `styles/qwindowsvistastyle.dll` — native Windows look
+- `imageformats`: jpeg, png, gif, svg, ico
+- `iconengines/libqsvgicon` — SVG icon rendering
+- `sqldrivers/libqsqlite` — the only DB backend used
+- `accessibilitymacbridge` — macOS accessibility
+
+---
+
 ## Dead Code — Do Not Extend
 
 - `src/openstan/data/ops.py` — legacy raw `QSqlQuery` helpers; references an

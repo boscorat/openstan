@@ -516,6 +516,91 @@ build_exe_options: dict = {
         "ffmpegmediaplugin.dylib",
         "ffmpegmediaplugin.dll",
         # ----------------------------------------------------------------
+        # TLS backend plugins
+        # UpdateChecker uses Python urllib/ssl — not QNetworkAccessManager.
+        # If that ever changes, remove these three groups and re-test.
+        # ----------------------------------------------------------------
+        "libqopensslbackend.so",
+        "libqopensslbackend.dylib",
+        "qopensslbackend.dll",
+        "libqcertonlybackend.so",
+        "libqcertonlybackend.dylib",
+        "qcertonlybackend.dll",
+        "libqsecuretransport.dylib",  # macOS built-in TLS backend
+        "qschannel.dll",  # Windows Schannel TLS backend
+        # ----------------------------------------------------------------
+        # Network information plugins
+        # ----------------------------------------------------------------
+        "libqandroidnetworkinformation.so",
+        "libqglib2networkinformation.so",
+        "libqnetworkmanagernetworkinformation.so",
+        "libqscnetworkinformation.dylib",
+        "qwinnetworkinformation.dll",
+        # ----------------------------------------------------------------
+        # Platform input context plugins (IBus / Compose)
+        # ----------------------------------------------------------------
+        "libqcomposeplatforminputcontextplugin.so",
+        "libqibusplatforminputcontextplugin.so",
+        # ----------------------------------------------------------------
+        # Positioning / geo-location plugins
+        # ----------------------------------------------------------------
+        "libqtpositioning.so",
+        "libqtpositioning.dylib",
+        "Qt6Positioning.dll",
+        "libqgeopositioninfosource_geoclue2.so",
+        "libqgeopositioninfosource_serialnmea.so",
+        # ----------------------------------------------------------------
+        # Sensor plugins
+        # ----------------------------------------------------------------
+        "libqtsensors_generic.so",
+        "libqtsensors_generic.dylib",
+        "qtsensors_generic.dll",
+        "libqtsensors_iio-sensor-proxy.so",
+        "libqtsensors_linuxsys.so",
+        # ----------------------------------------------------------------
+        # Text-to-speech plugins
+        # ----------------------------------------------------------------
+        "libqtexttospeech_flite.so",
+        "libqtexttospeech_speechd.so",
+        "libqtexttospeech_mock.so",
+        "libqtexttospeech_mock.dylib",
+        "qtexttospeech_mock.dll",
+        "libqtexttospeech_darwin.dylib",
+        "qtexttospeech_sapi.dll",
+        # ----------------------------------------------------------------
+        # Qt Designer / help plugin
+        # ----------------------------------------------------------------
+        "libqhelpplugin.so",
+        "libqhelpplugin.dylib",
+        "qhelpplugin.dll",
+        # ----------------------------------------------------------------
+        # SCXML ecmascript data model plugin
+        # ----------------------------------------------------------------
+        "libqscxmlecmascriptdatamodel.so",
+        "libqscxmlecmascriptdatamodel.dylib",
+        "qscxmlecmascriptdatamodel.dll",
+        # ----------------------------------------------------------------
+        # WebView plugins
+        # ----------------------------------------------------------------
+        "libqwebview_webengine.so",
+        "libqwebview_webengine.dylib",
+        "qwebview_webengine.dll",
+        # ----------------------------------------------------------------
+        # Print support plugins
+        # ----------------------------------------------------------------
+        "libcupsprintersupport.so",
+        "libqcocoaprintersupport.dylib",
+        # ----------------------------------------------------------------
+        # JPEG 2000 image format plugin (macOS only)
+        # ----------------------------------------------------------------
+        "libqmacjp2.dylib",
+        # ----------------------------------------------------------------
+        # TUIO touch input plugin
+        # ----------------------------------------------------------------
+        "libqtuiotouch.so",
+        "libqtuiotouch.dylib",
+        "qtuiotouch.dll",
+        # ----------------------------------------------------------------
         # System libraries not needed in a frozen app
         # ----------------------------------------------------------------
         "libreadline.so.8",
