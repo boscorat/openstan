@@ -395,13 +395,18 @@ jobs:
           fi
           echo "Signing: $APP"
 
-          # Pass 1: sign all .dylib and .so files (deepest first)
-          find "$APP" -type f \( -name "*.dylib" -o -name "*.so" \) \
-            | while read -r lib; do
-                codesign --force --timestamp \
-                  --sign "Developer ID Application: Jason Farrar ($APPLE_TEAM_ID)" \
-                  "$lib"
-              done
+          # Pass 1: sign every Mach-O binary individually (deepest first).
+          # We use `file` to detect Mach-O rather than relying on filename
+          # extensions because cx_Freeze copies some Qt binaries without any
+          # extension (e.g. Contents/Resources/lib/QtCore).  This catches
+          # .dylib, .so, Python extension modules, and bare Qt binaries alike.
+          find "$APP" -type f | while read -r f; do
+            if file "$f" | grep -q "Mach-O"; then
+              codesign --force --timestamp \
+                --sign "Developer ID Application: Jason Farrar ($APPLE_TEAM_ID)" \
+                "$f"
+            fi
+          done
 
           # Pass 2: sign all .framework bundles
           find "$APP" -name "*.framework" -type d \
