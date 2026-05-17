@@ -90,6 +90,10 @@ class AnonymisePresenter(QObject):
         )
         self._input_path: Path | None = initial_pdf
         self._output_path: Path | None = None
+        # Remembers the parent of the last PDF the user selected.
+        self._last_dir: Path | None = (
+            initial_pdf.parent if initial_pdf is not None else None
+        )
 
         # Wire buttons
         self.dialog.button_browse.clicked.connect(self._browse_pdf)
@@ -171,9 +175,7 @@ class AnonymisePresenter(QObject):
     def _browse_pdf(self) -> None:
         """Open a file dialog to choose the source PDF."""
         start_dir = (
-            str(self._input_path.parent)
-            if self._input_path is not None
-            else str(Path.home())
+            str(self._last_dir) if self._last_dir is not None else str(Path.home())
         )
         path_str, _ = QFileDialog.getOpenFileName(
             self.dialog,
@@ -182,6 +184,7 @@ class AnonymisePresenter(QObject):
             "PDF Files (*.pdf)",
         )
         if path_str:
+            self._last_dir = Path(path_str).parent
             self._set_input_path(Path(path_str))
 
     def _set_input_path(self, path: Path) -> None:

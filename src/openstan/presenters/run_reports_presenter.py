@@ -203,6 +203,9 @@ class RunReportsPresenter(QObject):
         self._current_df: pl.DataFrame | None = None
         self._current_title: str = ""
 
+        # Remembers the directory of the last export so subsequent saves open there.
+        self._last_dir: Path | None = None
+
         # Error dialog
         self._error_dialog = StanErrorMessage(view)
 
@@ -932,7 +935,11 @@ class RunReportsPresenter(QObject):
         if self.project_path is None:
             return
 
-        default_dir = self.project_path / "reports"
+        default_dir = (
+            self._last_dir
+            if self._last_dir is not None
+            else self.project_path / "reports"
+        )
         default_dir.mkdir(parents=True, exist_ok=True)
 
         stem = _slugify(self._current_title) if self._current_title else "report"
@@ -955,6 +962,7 @@ class RunReportsPresenter(QObject):
             return
 
         dest_path = Path(dest)
+        self._last_dir = dest_path.parent
         df = self._current_df  # capture for closure
 
         self._set_export_buttons_enabled(False)

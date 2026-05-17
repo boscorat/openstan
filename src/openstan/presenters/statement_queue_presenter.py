@@ -136,6 +136,9 @@ class StatementQueuePresenter(QObject):
         self._batch_start_time: float = (
             0.0  # set by run_import, read by __on_worker_finished
         )
+        # Remembers the parent directory of the last folder or file the user
+        # selected, so subsequent dialogs open in the same location.
+        self._last_dir: Path | None = None
 
         self.model: "StatementQueueModel" = model
         self.view: "StatementQueueView" = view
@@ -238,11 +241,14 @@ class StatementQueuePresenter(QObject):
 
     @pyqtSlot()
     def open_folder_dialog(self) -> None:
+        if self._last_dir is not None:
+            self.view.folder_dialog.setDirectory(str(self._last_dir))
         if not self.view.folder_dialog.exec():
             return
         selected_folder: str = self.view.folder_dialog.selectedFiles()[0]
         print("Selected folder:", selected_folder)
         root_path = Path(selected_folder)
+        self._last_dir = root_path.parent
 
         # Discover all PDFs recursively under the selected root
         all_pdfs = list(root_path.rglob("*.pdf"))
@@ -373,9 +379,12 @@ class StatementQueuePresenter(QObject):
 
     @pyqtSlot()
     def open_file_dialog(self) -> None:
+        if self._last_dir is not None:
+            self.view.file_dialog.setDirectory(str(self._last_dir))
         if self.view.file_dialog.exec():
             selected_files: list[str] = self.view.file_dialog.selectedFiles()
             print("Selected files:", selected_files)
+            self._last_dir = Path(selected_files[0]).parent
             expanded_paths, scroll_pos = self.__save_tree_state()
             for file in selected_files:
                 file_id = uuid4().hex

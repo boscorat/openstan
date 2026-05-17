@@ -196,6 +196,9 @@ class ProjectPresenter(QObject):
         self.view.selection.setModelColumn(1)  # project_name column
         self.view.selection.setEditable(False)
 
+        # Remembers the last folder the user navigated to in the location picker.
+        self._last_dir: Path | None = None
+
         # Connect signals — new project wizard
         self.view.button_new.clicked.connect(self.open_new_project_wizard)
         self.view.wizard.page_basic.location_button.clicked.connect(
@@ -391,8 +394,12 @@ class ProjectPresenter(QObject):
             page = self.view.wizard.page_basic
             wizard = self.view.wizard
 
+        if self._last_dir is not None:
+            page.folder_selection_dialog.setDirectory(str(self._last_dir))
+
         if page.folder_selection_dialog.exec() == 1:
             selected: Path = Path(page.folder_selection_dialog.selectedFiles()[0])
+            self._last_dir = selected.parent
             page.folder_path = selected
 
             if wizard.mode == "existing":
