@@ -105,14 +105,14 @@ wheels = [
 
 [[package]]
 name = "click"
-version = "8.3.3"
+version = "8.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bb/63/f9e1ea081ce35720d8b92acde70daaedace594dc93b693c869e0d5910718/click-8.3.3.tar.gz", hash = "sha256:398329ad4837b2ff7cbe1dd166a4c0f8900c3ca3a218de04466f38f6497f18a2", size = 328061, upload-time = "2026-04-22T15:11:27.506Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/23/e4/796662cd90cf80e3a363c99db2b88e0e394b988a575f60a17e16440cd011/click-8.4.0.tar.gz", hash = "sha256:638f1338fe1235c8f4e008e4a8a254fb5c5fbdcbb40ece3c9142ebb78e792973", size = 350843, upload-time = "2026-05-17T00:47:58.425Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ae/44/c1221527f6a71a01ec6fbad7fa78f1d50dfa02217385cf0fa3eec7087d59/click-8.3.3-py3-none-any.whl", hash = "sha256:a2bf429bb3033c89fa4936ffb35d5cb471e3719e1f3c8a7c3fff0b8314305613", size = 110502, upload-time = "2026-04-22T15:11:25.044Z" },
+    { url = "https://files.pythonhosted.org/packages/ee/ae/8e92f8058baf87f6c7d86ee7e457668690195cc77efedb8d3797a06e3940/click-8.4.0-py3-none-any.whl", hash = "sha256:40c50b7c6c6adac2823d411041ec84f3f103f1b280d5e9ce0d7f998995832f81", size = 116147, upload-time = "2026-05-17T00:47:56.842Z" },
 ]
 
 [[package]]
@@ -438,7 +438,7 @@ wheels = [
 
 [[package]]
 name = "openstan"
-version = "0.1.5"
+version = "0.1.5a3"
 source = { editable = "." }
 dependencies = [
     { name = "pyqt6" },
@@ -463,7 +463,7 @@ dev = [
 requires-dist = [
     { name = "pyqt6", specifier = ">=6.10.2" },
     { name = "tomli-w", specifier = ">=1.2.0" },
-    { name = "uk-bank-statement-parser", specifier = "==0.2.1b3" },
+    { name = "uk-bank-statement-parser", specifier = "==0.2.1b4" },
 ]
 
 [package.metadata.requires-dev]
@@ -913,7 +913,7 @@ wheels = [
 
 [[package]]
 name = "uk-bank-statement-parser"
-version = "0.2.1b3"
+version = "0.2.1b4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dacite" },
@@ -923,9 +923,9 @@ dependencies = [
     { name = "requests" },
     { name = "xlsxwriter" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3f/4c/9c790a4c7e9cfb9c25b6aad771c724c8034fcd1654bd7ad8e8a5f3143794/uk_bank_statement_parser-0.2.1b3.tar.gz", hash = "sha256:29a1ddd80cdd7ded8dc1b09468c4642c40c2a6f1e8cc37320626c52071c3e3d0", size = 4607900, upload-time = "2026-05-12T06:32:27.631Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/c8/6727b75193ac5481837af3377593c742d4a6269e909a91cac6aa1aaef1cc/uk_bank_statement_parser-0.2.1b4.tar.gz", hash = "sha256:8ab4de9d3dc7a6c44be799dba042336a49074d1049c4890c3507e20b946b8ca0", size = 4608733, upload-time = "2026-05-17T15:33:37.925Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bb/ee/80d7fc55bc6f48b8279e7e9bc574613994c98019bce6cb16cc3082d87e90/uk_bank_statement_parser-0.2.1b3-py3-none-any.whl", hash = "sha256:adf26b1c917ff63e88a7951429b1fa6106f6c284370e3dd3b95dbd130e8db17d", size = 4640770, upload-time = "2026-05-12T06:32:29.659Z" },
+    { url = "https://files.pythonhosted.org/packages/be/15/ff95442d1b4d58010901efc96d80940f189d7dea10ab7f3e6d0d851066ab/uk_bank_statement_parser-0.2.1b4-py3-none-any.whl", hash = "sha256:c88bc2f84099c110f0da35826ffd5bcc0f02cfd238d577e9dbc7f41b23155629", size = 4641736, upload-time = "2026-05-17T15:33:36.429Z" },
 ]
 
 [[package]]
