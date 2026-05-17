@@ -73,6 +73,9 @@ class ExportDataPresenter(QObject):
         # Custom folder selected by the user (None = use BSP defaults).
         self._custom_folder: Path | None = None
 
+        # Remembers the parent of the last folder the user browsed to.
+        self._last_dir: Path | None = None
+
         # Error dialog — parented to the view so it is modal to the window.
         self._error_dialog = StanErrorMessage(view)
 
@@ -217,13 +220,19 @@ class ExportDataPresenter(QObject):
     @pyqtSlot()
     def _on_browse_folder(self) -> None:
         """Open a folder dialog and store the user's choice."""
-        start_dir = str(self.project_path / "export") if self.project_path else ""
+        if self._last_dir is not None:
+            start_dir = str(self._last_dir)
+        elif self.project_path:
+            start_dir = str(self.project_path / "export")
+        else:
+            start_dir = ""
         folder = QFileDialog.getExistingDirectory(
             self.view,
             "Select export folder",
             start_dir,
         )
         if folder:
+            self._last_dir = Path(folder).parent
             self._custom_folder = Path(folder)
             self.update_folder_display()
 
