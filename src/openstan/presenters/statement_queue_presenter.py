@@ -76,6 +76,8 @@ class SQWorker(QRunnable):
 
     @pyqtSlot()
     def run(self) -> None:
+        while self.model.canFetchMore():
+            self.model.fetchMore()
         total_n = self.model.rowCount()
         # Pre-count file rows (non-folder) so progress % and idx are based on
         # files only — folder rows are skipped and must not consume an idx slot.
@@ -198,6 +200,8 @@ class StatementQueuePresenter(QObject):
         self.__set_queue_locked(importing=True)
 
         # Count file rows so the result presenter knows the total upfront
+        while self.model.canFetchMore():
+            self.model.fetchMore()
         total_n = self.model.rowCount()
         total_files: int = sum(
             1 for r in range(total_n) if self.model.record(r).value("is_folder") != 1
@@ -538,6 +542,7 @@ class StatementQueuePresenter(QObject):
             self.tree_model.update_model(self.projectID)
             self.view.tree.expandToDepth(0)
             self._restore_lock_state()
+            self._update_count_label()
         else:
             print("Project ID is not set. Cannot update view.")
 
@@ -595,3 +600,24 @@ class StatementQueuePresenter(QObject):
         self.view.buttonViewResults.setVisible(False)
         # Remove/Clear state depends on selection and row count
         self.__update_modification_buttons()
+
+    def _update_count_label(self) -> None:
+        """Update the statement count label with the current number of file rows.
+
+        Counts non-folder rows visible to the model (after fetchMore draining)
+        and updates ``labelStatementCount``.  Hides the label when the queue is
+        empty so no space is wasted.
+        """
+        while self.model.canFetchMore():
+            self.model.fetchMore()
+        total_n = self.model.rowCount()
+        file_count: int = sum(
+            1 for r in range(total_n) if self.model.record(r).value("is_folder") != 1
+        )
+        if file_count == 0:
+            self.view.labelStatementCount.setVisible(False)
+            self.view.labelStatementCount.setText("")
+        else:
+            noun = "statement" if file_count == 1 else "statements"
+            self.view.labelStatementCount.setText(f"{file_count} {noun} queued")
+            self.view.labelStatementCount.setVisible(True)

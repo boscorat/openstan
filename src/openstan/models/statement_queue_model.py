@@ -78,6 +78,8 @@ class StatementQueueModel(QSqlTableModel):
         folders_deleted: list[str] = list()
         files_deleted: list[str] = list()
         all_deleted: list[str] = list()
+        while self.canFetchMore():
+            self.fetchMore()
         last_record: int = self.rowCount() - 1
         # Pass 1 — delete children first to satisfy the self-referencing FK
         for row in range(self.rowCount()):
@@ -123,6 +125,8 @@ class StatementQueueModel(QSqlTableModel):
 
     def clear_records(self) -> tuple[bool, list[str], str]:
         queue_ids: list[str] = list()
+        while self.canFetchMore():
+            self.fetchMore()
         print(f"Clearing queue with {self.rowCount()} records")
         for row in range(self.rowCount()):
             record: QSqlRecord = self.record(row)
@@ -141,6 +145,8 @@ class StatementQueueModel(QSqlTableModel):
 
         Called at the start of a statement import run.  Returns (success, message).
         """
+        while self.canFetchMore():
+            self.fetchMore()
         for row in range(self.rowCount()):
             record: QSqlRecord = self.record(row)
             record.setValue("batch_id", batch_id)
@@ -155,6 +161,8 @@ class StatementQueueModel(QSqlTableModel):
 
         Called when a batch is abandoned or committed.  Returns (success, message).
         """
+        while self.canFetchMore():
+            self.fetchMore()
         for row in range(self.rowCount()):
             record: QSqlRecord = self.record(row)
             record.setValue("batch_id", None)
@@ -192,6 +200,8 @@ class StatementQueueModel(QSqlTableModel):
         Iterates the already-filtered rows without changing the model filter.
         """
         paths: list[str] = []
+        while self.canFetchMore():
+            self.fetchMore()
         for row in range(self.rowCount()):
             record: QSqlRecord = self.record(row)
             if record.value("is_folder") != 1:
