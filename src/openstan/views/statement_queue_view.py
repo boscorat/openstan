@@ -2,7 +2,14 @@ from PyQt6.QtCore import QStandardPaths, pyqtSignal
 from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 from PyQt6.QtWidgets import QFileDialog, QGridLayout, QSizePolicy
 
-from openstan.components import Qt, StanButton, StanLabel, StanTreeView, StanWidget
+from openstan.components import (
+    Qt,
+    StanButton,
+    StanLabel,
+    StanMutedLabel,
+    StanTreeView,
+    StanWidget,
+)
 
 
 class FileDialog(QFileDialog):
@@ -132,6 +139,18 @@ class StatementQueueView(StanWidget):
         )
         layout.addWidget(
             self.buttonViewResults, 3, 0, alignment=Qt.AlignmentFlag.AlignLeft
+        )
+
+        # ── Statement count label (centre of row 3) ────────────────────────
+        self.labelStatementCount = StanMutedLabel("")
+        self.labelStatementCount.setVisible(False)
+        layout.addWidget(
+            self.labelStatementCount,
+            3,
+            1,
+            1,
+            2,
+            alignment=Qt.AlignmentFlag.AlignCenter,
         )
 
         self.setLayout(layout)
