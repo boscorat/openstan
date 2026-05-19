@@ -658,6 +658,13 @@ bdist_mac_options: dict = {
     #   CFBundleShortVersionString — surface the version in Finder's Get Info
     "plist_items": [
         ("CFBundleIdentifier", "org.openstan.app"),
+        # CFBundleName and CFBundleDisplayName must be set explicitly so that
+        # the macOS dock, cmd-tab switcher, and menu bar show "openstan" rather
+        # than falling back to the cx_Freeze Python runtime executable name
+        # ("python3.14").  CFBundleDisplayName takes priority over CFBundleName
+        # in all system UI contexts.
+        ("CFBundleName", "openstan"),
+        ("CFBundleDisplayName", "openstan"),
         ("NSHighResolutionCapable", True),
         ("NSRequiresAquaSystemAppearance", False),
         ("CFBundleShortVersionString", _version),
