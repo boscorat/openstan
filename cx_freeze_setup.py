@@ -669,7 +669,7 @@ bdist_rpm_options: dict = {
     # of those bundled libs (e.g. libcrypto-6012f135.so.3), which can never
     # be satisfied on the user's system.  libxcb-cursor0 above is the only
     # genuine unbundled runtime dependency.
-    "autoreq": 0,
+    "no_autoreq": 1,
     # Post-install: register .desktop entry and icon with the desktop env.
     # Post-uninstall: remove them.
     "post_install": "packaging/rpm-post-install.sh",
