@@ -4,9 +4,10 @@ Usage (run from the repository root with the uv-managed venv active):
 
     uv run python cx_freeze_setup.py build          # frozen directory
     uv run python cx_freeze_setup.py bdist_msi      # Windows MSI installer
-    uv run python cx_freeze_setup.py bdist_dmg      # macOS disk image
-    uv run python cx_freeze_setup.py bdist_deb      # Linux Debian package
-    uv run python cx_freeze_setup.py bdist_rpm      # Linux RPM package
+    uv run python cx_freeze_setup.py bdist_mac      # macOS .app bundle
+
+Linux (.deb / .rpm) and macOS (.dmg) packaging is handled by the CI release
+workflow using fpm and hdiutil respectively — not by cx_Freeze bdist targets.
 
 The CI release workflow (`.github/workflows/release.yml`) calls the appropriate
 target on each platform runner automatically.
@@ -25,7 +26,7 @@ Notes
   The .ico and .icns files are *not* committed to the repository; they are
   produced from ``src/openstan/icons/icon-square.svg`` by the CI.  The PNG
   is also produced by CI but will be regenerated automatically by this script
-  if ``bdist_rpm`` re-invokes ``build_exe`` in a temporary directory.
+  if build_exe is re-invoked in a temporary directory.
 * The ``gui.db`` seed file bundled in ``src/openstan/data/`` is included so
   that first-run database bootstrapping works without network access.
 """
@@ -676,25 +677,8 @@ bdist_dmg_options: dict = {
     "applications_shortcut": True,
 }
 
-# Linux packages are configured via distutils metadata; no extra options needed.
-
-bdist_rpm_options: dict = {
-    # Declare runtime system library dependencies.  These flow through alien
-    # into the .deb Depends field so apt installs them automatically.
-    "requires": "libxcb-cursor0",
-    # Disable RPM's automatic shared-library dependency scanner.  openstan is
-    # a cx_Freeze frozen app — all Python and Qt libraries are bundled inside
-    # the package.  Without this, rpmbuild's find-requires scans the bundled
-    # .so files and emits Requires: entries for the hashed/versioned filenames
-    # of those bundled libs (e.g. libcrypto-6012f135.so.3), which can never
-    # be satisfied on the user's system.  libxcb-cursor0 above is the only
-    # genuine unbundled runtime dependency.
-    "no_autoreq": 1,
-    # Post-install: register .desktop entry and icon with the desktop env.
-    # Post-uninstall: remove them.
-    "post_install": "packaging/rpm-post-install.sh",
-    "post_uninstall": "packaging/rpm-post-uninstall.sh",
-}
+# Linux packaging (.deb / .rpm) is handled entirely by fpm in the CI workflow.
+# No bdist_rpm or bdist_deb options are needed here.
 
 # ---------------------------------------------------------------------------
 # Executable definition
@@ -749,7 +733,6 @@ setup(
         "bdist_mac": bdist_mac_options,
         "bdist_msi": bdist_msi_options,
         "bdist_dmg": bdist_dmg_options,
-        "bdist_rpm": bdist_rpm_options,
     },
     executables=executables,
 )

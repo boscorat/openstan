@@ -25,7 +25,23 @@ permissions: {}  # no workflow-level permissions; each job declares its own
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Linux — produces .deb and .rpm
+  # Linux — produces .deb and .rpm using fpm
+  # ---------------------------------------------------------------------------
+  #
+  # Pipeline:
+  #   1. cx_Freeze builds the frozen application directory (dist/openstan/)
+  #   2. fpm packages dist/openstan/ directly into .deb and .rpm
+  #
+  # Why fpm instead of cx_Freeze bdist_rpm / bdist_deb + alien:
+  #   • cx_Freeze's bdist_rpm runs rpmbuild's find-requires scanner, which
+  #     emits Requires: entries for every bundled .so by its hashed filename
+  #     (e.g. libcrypto-6012f135.so.3).  Those names do not exist as system
+  #     packages, so dnf/apt refuse to install the package.  The no_autoreq
+  #     flag is not reliably honoured via the setup() options dict.
+  #   • alien (RPM→DEB conversion) silently drops RPM scriptlets, requiring
+  #     a manual dpkg-deb repack to inject postinst/postrm.
+  #   • fpm packages the frozen directory directly, never runs find-requires,
+  #     and supports --after-install / --after-remove natively on both targets.
   # ---------------------------------------------------------------------------
   build-linux:
     name: Build Linux packages (.deb / .rpm)
@@ -55,8 +71,13 @@ jobs:
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
             libxcb-xkb1 libegl1 libxkbcommon-x11-0 libdbus-1-3 \
             libfontconfig1 libfreetype6 \
-            rpm dpkg-dev fakeroot alien \
+            rpm \
             inkscape
+
+      - name: Install fpm
+        run: |
+          gem install --no-document fpm
+          fpm --version
 
       - name: Install Python dependencies
         # Runtime deps only — build tools (cx_Freeze, Pillow) are injected
@@ -64,9 +85,8 @@ jobs:
         # and therefore never bundled into the frozen installer.
         run: uv sync --no-dev
 
-      # Inkscape converts SVG → PNG; Pillow (pure Python) converts PNG → .ico.
-      # The resulting .png is also placed in the package share/ directory so
-      # the .desktop entry can reference it.
+      # Inkscape converts SVG → PNG; the resulting .png is placed in the
+      # package share/ directory so the .desktop entry can reference it.
       - name: Convert app icon SVG → PNG
         run: |
           mkdir -p build/icons
@@ -87,46 +107,70 @@ jobs:
           test -f dist/openstan/share/openstan.png && echo "PNG: OK" || echo "PNG: MISSING"
           test -f dist/openstan/share/openstan.desktop && echo ".desktop: OK" || echo ".desktop: MISSING"
 
-      - name: Build .rpm package
-        run: uv run --with cx-freeze==8.6.4 python cx_freeze_setup.py bdist_rpm
-        timeout-minutes: 10
-
-      - name: Build .deb package
-        run: uv run --with cx-freeze==8.6.4 python cx_freeze_setup.py bdist_deb
-        timeout-minutes: 10
-
-      # alien silently drops RPM scriptlets when converting to .deb.
-      # Re-inject the postinst manually by repacking the .deb with dpkg-deb.
-      - name: Inject postinst into .deb
+      # ── fpm packaging ──────────────────────────────────────────────────────
+      # fpm packages the frozen dist/openstan/ directory directly into .deb
+      # and .rpm without running any auto-dependency scanner.  Only libxcb-
+      # cursor0 is declared as an explicit runtime dependency — everything else
+      # (Qt, Python, OpenSSL, etc.) is already bundled inside the frozen app.
+      #
+      # Install path: /usr/lib/openstan-<version>/
+      # The post-install script registers the .desktop entry and icon; the
+      # post-uninstall script removes them.
+      - name: Package .deb and .rpm (fpm)
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          DEB=$(ls dist/*.deb | head -1)
-          echo "Repacking $DEB to inject postinst..."
-          WORKDIR=$(mktemp -d)
-          dpkg-deb -R "$DEB" "$WORKDIR"
-          install -Dm755 packaging/rpm-post-install.sh "$WORKDIR/DEBIAN/postinst"
-          install -Dm755 packaging/rpm-post-uninstall.sh "$WORKDIR/DEBIAN/postrm"
-          dpkg-deb -b "$WORKDIR" "$DEB"
-          echo "Repacked: $DEB"
-          dpkg-deb --info "$DEB" | grep -E "postinst|postrm|Package|Version"
+          VERSION="${REF_NAME#v}"
+          INSTALL_DIR="/usr/lib/openstan-${VERSION}"
+          mkdir -p dist
+
+          FPM_COMMON=(
+            --name openstan
+            --version "$VERSION"
+            --maintainer "Jason Farrar <stillwaters.technology@gmail.com>"
+            --url "https://openstan.org"
+            --description "Open source bank statement analysis and visualization"
+            --license "GPL-3.0-or-later"
+            --after-install  packaging/post-install.sh
+            --after-remove   packaging/post-uninstall.sh
+            --chdir dist
+            "openstan/=${INSTALL_DIR}/"
+          )
+
+          # .deb — Debian/Ubuntu
+          fpm -s dir -t deb \
+            --depends libxcb-cursor0 \
+            --deb-no-default-config-files \
+            --package "dist/openstan_${VERSION}_amd64.deb" \
+            "${FPM_COMMON[@]}"
+
+          # .rpm — Fedora/RHEL/openSUSE
+          # libxcb-cursor is the Fedora package name for the same library
+          fpm -s dir -t rpm \
+            --depends libxcb-cursor \
+            --rpm-os linux \
+            --package "dist/openstan-${VERSION}-1.x86_64.rpm" \
+            "${FPM_COMMON[@]}"
+
+          echo "--- Built packages ---"
+          ls -lh dist/*.deb dist/*.rpm
 
       # ── PyInstaller fallback (uncomment if cx_Freeze fails) ───────────────
       # - name: Build frozen app (PyInstaller fallback)
       #   run: uv run pyinstaller openstan.spec
-      # - name: Package .deb (fpm)
+      # - name: Package .deb and .rpm (fpm fallback)
       #   run: |
-      #     gem install fpm
-      #     fpm -s dir -t deb -n openstan -v ${GITHUB_REF_NAME#v} \
-      #         --description "Open source bank statement analysis" \
-      #         --url "https://openstan.org" \
-      #         --maintainer "Jason Farrar <stillwaters.technology@gmail.com>" \
-      #         dist/openstan/=/opt/openstan
-      # - name: Package .rpm (fpm)
-      #   run: |
-      #     fpm -s dir -t rpm -n openstan -v ${GITHUB_REF_NAME#v} \
-      #         --description "Open source bank statement analysis" \
-      #         --url "https://openstan.org" \
-      #         --maintainer "Jason Farrar <stillwaters.technology@gmail.com>" \
-      #         dist/openstan/=/opt/openstan
+      #     VERSION="${GITHUB_REF_NAME#v}"
+      #     fpm -s dir -t deb -n openstan -v "$VERSION" \
+      #         --depends libxcb-cursor0 \
+      #         --after-install packaging/post-install.sh \
+      #         --after-remove  packaging/post-uninstall.sh \
+      #         dist/openstan/=/usr/lib/openstan-${VERSION}/
+      #     fpm -s dir -t rpm -n openstan -v "$VERSION" \
+      #         --depends libxcb-cursor \
+      #         --after-install packaging/post-install.sh \
+      #         --after-remove  packaging/post-uninstall.sh \
+      #         dist/openstan/=/usr/lib/openstan-${VERSION}/
 
       - name: Upload .deb and .rpm to release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda  # v3.0.0
