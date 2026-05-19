@@ -25,6 +25,16 @@ BSP_SKIP_DEFAULT_PROJECT_INIT
     Tells bsp not to call ProjectPaths.resolve().ensure_dirs() at import time
     for the default project root.  The host application (openstan) manages the
     project directory lifecycle via validate_or_initialise_project() instead.
+
+POLARS_SKIP_CPU_CHECK
+    Suppresses Polars' startup CPU feature check.  In a frozen build the
+    polars wheel is compiled for a specific CPU feature set (e.g. sse3) that
+    Polars' _cpu_check.py does not always recognise as a valid flag name,
+    raising ``RuntimeError: unknown feature flag: 'sse3'`` before the app
+    window opens.  Skipping the check is safe: if the CPU genuinely lacks a
+    required feature Polars will crash with an illegal-instruction fault later,
+    which is no worse than the RuntimeError.  Modern x86-64 hardware (post
+    2006) universally supports sse3.
 """
 
 import os
@@ -58,6 +68,7 @@ _BSP_USER_ROOT = _user_data_dir() / "bsp"
 
 os.environ.setdefault("BSP_DEFAULT_PROJECT_ROOT", str(_BSP_USER_ROOT))
 os.environ.setdefault("BSP_SKIP_DEFAULT_PROJECT_INIT", "1")
+os.environ.setdefault("POLARS_SKIP_CPU_CHECK", "1")
 
 
 def _seed_bsp_default_project() -> None:

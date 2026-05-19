@@ -145,9 +145,9 @@ jobs:
             "${FPM_COMMON[@]}"
 
           # .rpm — Fedora/RHEL/openSUSE
-          # libxcb-cursor is the Fedora package name for the same library
+          # xcb-util-cursor is the Fedora package name for the xcb cursor library
           fpm -s dir -t rpm \
-            --depends libxcb-cursor \
+            --depends xcb-util-cursor \
             --rpm-os linux \
             --package "dist/openstan-${VERSION}-1.x86_64.rpm" \
             "${FPM_COMMON[@]}"
@@ -167,7 +167,7 @@ jobs:
       #         --after-remove  packaging/post-uninstall.sh \
       #         dist/openstan/=/usr/lib/openstan-${VERSION}/
       #     fpm -s dir -t rpm -n openstan -v "$VERSION" \
-      #         --depends libxcb-cursor \
+      #         --depends xcb-util-cursor \
       #         --after-install packaging/post-install.sh \
       #         --after-remove  packaging/post-uninstall.sh \
       #         dist/openstan/=/usr/lib/openstan-${VERSION}/
