@@ -77,7 +77,7 @@ jobs:
 
       # ── cx_Freeze build ────────────────────────────────────────────────────
       - name: Build frozen app (cx_Freeze)
-        run: uv run --with cx-freeze python cx_freeze_setup.py build
+        run: uv run --with cx-freeze==8.6.4 python cx_freeze_setup.py build
 
       - name: Verify icon and .desktop file were bundled
         run: |
@@ -88,11 +88,11 @@ jobs:
           test -f dist/openstan/share/openstan.desktop && echo ".desktop: OK" || echo ".desktop: MISSING"
 
       - name: Build .rpm package
-        run: uv run --with cx-freeze python cx_freeze_setup.py bdist_rpm
+        run: uv run --with cx-freeze==8.6.4 python cx_freeze_setup.py bdist_rpm
         timeout-minutes: 10
 
       - name: Build .deb package
-        run: uv run --with cx-freeze python cx_freeze_setup.py bdist_deb
+        run: uv run --with cx-freeze==8.6.4 python cx_freeze_setup.py bdist_deb
         timeout-minutes: 10
 
       # alien silently drops RPM scriptlets when converting to .deb.
@@ -221,7 +221,7 @@ jobs:
 
       # ── cx_Freeze frozen app build ─────────────────────────────────────────
       - name: Build frozen app (cx_Freeze)
-        run: uv run --with cx-freeze python cx_freeze_setup.py build
+        run: uv run --with cx-freeze==8.6.4 python cx_freeze_setup.py build
 
       # Harvest the frozen app directory into a WiX component fragment.
       # make_wix_fragments.py walks dist/openstan/ and emits
@@ -348,7 +348,7 @@ jobs:
       # ── cx_Freeze build ────────────────────────────────────────────────────
       # Step 1: build the .app bundle only (not the DMG yet)
       - name: Build .app bundle (cx_Freeze bdist_mac)
-        run: uv run --with cx-freeze python cx_freeze_setup.py bdist_mac
+        run: uv run --with cx-freeze==8.6.4 python cx_freeze_setup.py bdist_mac
 
       # Step 2: import the Apple Developer ID certificate into a temporary
       # keychain on the runner so codesign can use it.

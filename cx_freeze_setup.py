@@ -212,6 +212,19 @@ zip_exclude_packages: list[str] = [
     "bank_statement_parser",
     "polars",
     "openstan",
+    # stdlib packages with intra-package relative imports that break under
+    # zipimport in a frozen app.  These must live as real .pyc files on disk
+    # rather than inside library.zip so their sub-module imports resolve
+    # correctly at runtime on a machine without Python installed.
+    "email",
+    "importlib",
+    "encodings",
+    "logging",
+    "xml",
+    "html",
+    "http",
+    "urllib",
+    "multiprocessing",
 ]
 
 # ---------------------------------------------------------------------------
