@@ -76,7 +76,7 @@ jobs:
 
       - name: Install fpm
         run: |
-          gem install --no-document fpm
+          sudo gem install --no-document fpm
           fpm --version
 
       - name: Install Python dependencies
