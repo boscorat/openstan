@@ -202,6 +202,12 @@ packages: list[str] = [
     "PyQt6.QtSvgWidgets",
     "bank_statement_parser",
     "polars",
+    # Force cx_Freeze to include the entire email package tree.  Without this
+    # the import scanner only pulls in submodules it can statically detect,
+    # leaving email.header (and others) missing from the frozen bundle on
+    # macOS/Windows.  email is also in zip_exclude_packages so the submodules
+    # land as real .pyc files on disk rather than inside library.zip.
+    "email",
 ]
 
 # Packages that are safe to keep inside the zip archive (not extracted to disk).
