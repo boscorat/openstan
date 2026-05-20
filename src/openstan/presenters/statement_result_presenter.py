@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import bank_statement_parser as bsp
-from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
 
 from openstan.components import StanErrorMessage, StanInfoMessage
 from openstan.models.statement_result_model import ResultRow
@@ -57,9 +57,9 @@ if TYPE_CHECKING:
 class CommitWorkerSignals(QObject):
     """Cross-thread signals for CommitWorker."""
 
-    step = pyqtSignal(str)  # emitted before each bsp call — step description
-    finished = pyqtSignal()  # all three calls succeeded
-    error = pyqtSignal(str)  # one call raised — human-readable message
+    step = Signal(str)  # emitted before each bsp call — step description
+    finished = Signal()  # all three calls succeeded
+    error = Signal(str)  # one call raised — human-readable message
 
 
 class CommitWorker(QRunnable):
@@ -163,9 +163,9 @@ class DebugWorkerSignals(QObject):
 
     # Emitted once per non-success row after debug_pdf_statement completes.
     # Carries: (result_id, debug_json_path | None)
-    entry_done = pyqtSignal(str, object)
-    all_done = pyqtSignal()
-    error = pyqtSignal(str)
+    entry_done = Signal(str, object)
+    all_done = Signal()
+    error = Signal(str)
 
 
 class DebugWorker(QRunnable):
@@ -245,9 +245,9 @@ class DebugWorker(QRunnable):
 
 
 class StatementResultPresenter(QObject):
-    exit_results = pyqtSignal()
-    batch_abandoned = pyqtSignal()
-    batch_committed = pyqtSignal()
+    exit_results = Signal()
+    batch_abandoned = Signal()
+    batch_committed = Signal()
 
     def __init__(
         self,
@@ -481,12 +481,12 @@ class StatementResultPresenter(QObject):
     # Button slots
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def __on_close_results(self) -> None:
         """Navigate back to the queue view; queue stays locked."""
         self.exit_results.emit()
 
-    @pyqtSlot()
+    @Slot()
     def __on_abandon_batch(self) -> None:
         """Confirm with the user, then cancel debug worker, delete DB rows, unlock queue."""
         confirm = StanInfoMessage(parent=self.view)
@@ -546,7 +546,7 @@ class StatementResultPresenter(QObject):
         # 7. Notify StanPresenter
         self.batch_abandoned.emit()
 
-    @pyqtSlot()
+    @Slot()
     def __on_view_debug_info(self) -> None:
         """Open (or re-open) the DebugInfoDialog for all non-success rows."""
         from openstan.views.debug_info_dialog import DebugInfoDialog
@@ -628,7 +628,7 @@ class StatementResultPresenter(QObject):
         assert thread_pool is not None, "QThreadPool.globalInstance() returned None"
         thread_pool.start(worker)
 
-    @pyqtSlot(str, object)
+    @Slot(str, object)
     def __on_debug_entry_done(
         self, result_id: str, debug_json_path: "Path | None"
     ) -> None:
@@ -643,7 +643,7 @@ class StatementResultPresenter(QObject):
 
         self.__update_debug_button_label()
 
-    @pyqtSlot()
+    @Slot()
     def __on_debug_all_done(self) -> None:
         """Worker finished (or was cancelled) — finalise state."""
         self._debug_worker_done = True
@@ -660,7 +660,7 @@ class StatementResultPresenter(QObject):
             self._pending_hard_delete = False
             self._pending_batch_id = None
 
-    @pyqtSlot(str)
+    @Slot(str)
     def __on_debug_error(self, message: str) -> None:
         """Worker raised an outer exception — treat as all-done."""
         print(f"ERROR: DebugWorker: {message}", file=sys.stderr)
@@ -679,7 +679,7 @@ class StatementResultPresenter(QObject):
         else:
             self.view.buttonViewDebugInfo.setText("View Debug Info")
 
-    @pyqtSlot()
+    @Slot()
     def __on_commit_batch(self) -> None:
         """Launch CommitWorker to run update_db → copy_statements → delete_temps.
 
@@ -780,14 +780,14 @@ class StatementResultPresenter(QObject):
         "Cleaning up temporary files…": 66,
     }
 
-    @pyqtSlot(str)
+    @Slot(str)
     def __on_commit_step(self, description: str) -> None:
         """Advance progress bar and update label for the current step."""
         value = self._COMMIT_STEP_VALUES.get(description, self.view.progressBar.value())
         self.view.progressBar.setValue(value)
         self.view.labelStatementsProcessed.setText(description)
 
-    @pyqtSlot()
+    @Slot()
     def __on_commit_finished(self) -> None:
         """All three bsp calls succeeded — soft-delete results, show summary, close."""
         self.view.progressBar.setValue(100)
@@ -880,7 +880,7 @@ class StatementResultPresenter(QObject):
         # refresh the queue view.
         self.batch_committed.emit()
 
-    @pyqtSlot(str)
+    @Slot(str)
     def __on_commit_error(self, message: str) -> None:
         """A bsp call failed — show error dialog and re-enable retry."""
         StanErrorMessage(parent=self.view).showMessage(message)

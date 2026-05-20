@@ -45,8 +45,8 @@ if sys.platform not in ("darwin", "win32"):
 # (which require a QApplication) can be instantiated in the same process —
 # e.g. by test_screenshots.py.  QApplication is a subclass of QCoreApplication
 # and satisfies all requirements of the integration test fixtures.
-from PyQt6.QtSql import QSqlDatabase  # noqa: E402
-from PyQt6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtSql import QSqlDatabase  # noqa: E402
+from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from openstan.data.create_gui_db import create_gui_db  # noqa: E402
 from openstan.models import (  # noqa: E402

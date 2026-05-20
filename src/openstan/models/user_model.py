@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from PyQt6.QtSql import QSqlQuery, QSqlRecord, QSqlTableModel
+from PySide6.QtSql import QSqlQuery, QSqlRecord, QSqlTableModel
 
 NEW_RECORD_STATUS = 8  # active status
 

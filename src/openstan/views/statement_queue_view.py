@@ -1,6 +1,6 @@
-from PyQt6.QtCore import QStandardPaths, pyqtSignal
-from PyQt6.QtGui import QDragEnterEvent, QDropEvent
-from PyQt6.QtWidgets import QFileDialog, QGridLayout, QSizePolicy
+from PySide6.QtCore import QStandardPaths, Signal
+from PySide6.QtGui import QDragEnterEvent, QDropEvent
+from PySide6.QtWidgets import QFileDialog, QGridLayout, QSizePolicy
 
 from openstan.components import (
     Qt,
@@ -52,7 +52,7 @@ class StatementQueueView(StanWidget):
 
     # Emitted when the user drops PDF files or folders onto the view.
     # Carries a list of Path-like strings (files and/or directories).
-    paths_dropped: pyqtSignal = pyqtSignal(list)
+    paths_dropped: Signal = Signal(list)
 
     def __init__(self) -> None:
         super().__init__()

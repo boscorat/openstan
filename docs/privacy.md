@@ -72,7 +72,7 @@ background data collection.
 
 ## Third-party components
 
-openstan uses open-source libraries (PyQt6, Polars, and others) as listed in the
+openstan uses open-source libraries (PySide6, Polars, and others) as listed in the
 project's [`pyproject.toml`](https://github.com/boscorat/openstan/blob/master/pyproject.toml).
 None of these libraries are configured to collect or transmit data in the context
 of openstan.

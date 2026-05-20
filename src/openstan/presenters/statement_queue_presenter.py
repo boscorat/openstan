@@ -29,8 +29,8 @@ from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import bank_statement_parser as bsp
-from PyQt6.QtCore import QObject, QRunnable, Qt, pyqtSignal, pyqtSlot
-from PyQt6.QtWidgets import QDialogButtonBox, QVBoxLayout
+from PySide6.QtCore import QObject, QRunnable, Qt, Signal, Slot
+from PySide6.QtWidgets import QDialogButtonBox, QVBoxLayout
 
 from openstan.components import (
     StanCheckBox,
@@ -42,7 +42,7 @@ from openstan.components import (
 )
 
 if TYPE_CHECKING:
-    from PyQt6.QtCore import QThreadPool
+    from PySide6.QtCore import QThreadPool
 
     from openstan.models.statement_queue_model import (
         StatementQueueModel,
@@ -54,10 +54,10 @@ if TYPE_CHECKING:
 class WorkerSignals(QObject):
     """Signals emitted from the background import thread."""
 
-    progress = pyqtSignal(
+    progress = Signal(
         Path, int, bsp.PdfResult, str
     )  # (file_path, progress_%, result, queue_id)
-    finished = pyqtSignal()
+    finished = Signal()
 
 
 class SQWorker(QRunnable):
@@ -75,7 +75,7 @@ class SQWorker(QRunnable):
         self.signals = WorkerSignals()
         self.batch_id = batch_id
 
-    @pyqtSlot()
+    @Slot()
     def run(self) -> None:
         while self.model.canFetchMore():
             self.model.fetchMore()
@@ -113,12 +113,12 @@ class SQWorker(QRunnable):
 class StatementQueuePresenter(QObject):
     """Presenter for the statement queue panel."""
 
-    statement_imported = pyqtSignal(
+    statement_imported = Signal(
         Path, bsp.PdfResult, int, str
     )  # file, result, progress%, queue_id
-    import_started = pyqtSignal(int)  # total_files
-    import_finished = pyqtSignal(float)  # duration_secs
-    view_results_requested = pyqtSignal()
+    import_started = Signal(int)  # total_files
+    import_finished = Signal(float)  # duration_secs
+    view_results_requested = Signal()
 
     def __init__(
         self,
@@ -165,7 +165,7 @@ class StatementQueuePresenter(QObject):
     # Import
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def run_import(self) -> None:
         """Lock the queue and start the background import worker."""
         # Guard: refuse to start if StanPresenter has not set a real project path.
@@ -210,7 +210,7 @@ class StatementQueuePresenter(QObject):
         self.threadpool.start(worker)
         self.import_started.emit(total_files)
 
-    @pyqtSlot(Path, int, bsp.PdfResult, str)
+    @Slot(Path, int, bsp.PdfResult, str)
     def __on_worker_progress(
         self,
         file_path: Path,
@@ -220,7 +220,7 @@ class StatementQueuePresenter(QObject):
     ) -> None:
         self.statement_imported.emit(file_path, statement, progress_bar_value, queue_id)
 
-    @pyqtSlot()
+    @Slot()
     def __on_worker_finished(self) -> None:
         """Import worker is done: show View Results button, emit import_finished."""
         duration_secs: float = time.monotonic() - self._batch_start_time
@@ -228,7 +228,7 @@ class StatementQueuePresenter(QObject):
         self.import_finished.emit(duration_secs)
         print(f"Import finished. Duration: {duration_secs:.2f}s")
 
-    @pyqtSlot()
+    @Slot()
     def __on_view_results_clicked(self) -> None:
         self.view_results_requested.emit()
 
@@ -236,7 +236,7 @@ class StatementQueuePresenter(QObject):
     # Queue modification slots
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def open_folder_dialog(self) -> None:
         if self._last_dir is not None:
             self.view.folder_dialog.setDirectory(str(self._last_dir))
@@ -373,7 +373,7 @@ class StatementQueuePresenter(QObject):
 
         return {path for cb, path in checkboxes if cb.isChecked()}
 
-    @pyqtSlot()
+    @Slot()
     def open_file_dialog(self) -> None:
         if self._last_dir is not None:
             self.view.file_dialog.setDirectory(str(self._last_dir))
@@ -389,7 +389,7 @@ class StatementQueuePresenter(QObject):
             self.update_view()
             self.__restore_tree_state(expanded_paths, scroll_pos)
 
-    @pyqtSlot(list)
+    @Slot(list)
     def __on_paths_dropped(self, paths: list[str]) -> None:
         """Handle PDF files and folders dropped onto the queue view."""
         expanded_paths, scroll_pos = self.__save_tree_state()
@@ -433,7 +433,7 @@ class StatementQueuePresenter(QObject):
             self.update_view()
             self.__restore_tree_state(expanded_paths, scroll_pos)
 
-    @pyqtSlot()
+    @Slot()
     def remove_selected_items(self) -> None:
         selected_indexes: list | None = self.view.tree.selectedIndexes()
         if not selected_indexes:
@@ -446,7 +446,7 @@ class StatementQueuePresenter(QObject):
         self.update_view()
         self.__restore_tree_state(expanded_paths, scroll_pos)
 
-    @pyqtSlot()
+    @Slot()
     def clear_all_items(self, *, confirm: bool = True) -> None:
         if confirm:
             dlg = StanInfoMessage(parent=self.view)

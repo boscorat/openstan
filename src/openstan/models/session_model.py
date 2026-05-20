@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from PyQt6.QtSql import QSqlRecord, QSqlTableModel
+from PySide6.QtSql import QSqlRecord, QSqlTableModel
 
 
 class SessionModel(QSqlTableModel):

@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QGridLayout, QVBoxLayout
+from PySide6.QtWidgets import QGridLayout, QVBoxLayout
 
 from openstan.components import (
     Qt,

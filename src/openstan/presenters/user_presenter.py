@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QObject
+from PySide6.QtCore import QObject
 
 if TYPE_CHECKING:
     from openstan.models.user_model import UserModel

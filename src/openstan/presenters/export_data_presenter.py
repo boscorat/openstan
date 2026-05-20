@@ -15,16 +15,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Literal, cast
 
 import bank_statement_parser as bsp
-from PyQt6.QtCore import QObject, QUrl, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QDesktopServices
-from PyQt6.QtWidgets import QFileDialog
+from PySide6.QtCore import QObject, QUrl, Signal, Slot
+from PySide6.QtGui import QDesktopServices
+from PySide6.QtWidgets import QFileDialog
 
 from openstan.components import StanErrorMessage
 from openstan.presenters.workers import ExportWorker
 from openstan.views.pending_batch_dialog import PendingBatchDialog
 
 if TYPE_CHECKING:
-    from PyQt6.QtCore import QThreadPool
+    from PySide6.QtCore import QThreadPool
 
     from openstan.models.batch_model import BatchModel
     from openstan.views.export_data_view import ExportDataView
@@ -53,7 +53,7 @@ class ExportDataPresenter(QObject):
         ``show_results()``.
     """
 
-    review_pending_batch: pyqtSignal = pyqtSignal()
+    review_pending_batch: Signal = Signal()
 
     def __init__(
         self,
@@ -217,7 +217,7 @@ class ExportDataPresenter(QObject):
     # Folder slots
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def _on_browse_folder(self) -> None:
         """Open a folder dialog and store the user's choice."""
         if self._last_dir is not None:
@@ -236,7 +236,7 @@ class ExportDataPresenter(QObject):
             self._custom_folder = Path(folder)
             self.update_folder_display()
 
-    @pyqtSlot()
+    @Slot()
     def _on_reset_folder(self) -> None:
         """Reset to the BSP default export folder."""
         self._custom_folder = None
@@ -246,15 +246,15 @@ class ExportDataPresenter(QObject):
     # Export slots — delegate to shared _on_export(fmt)
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def _on_csv(self) -> None:
         self._on_export("csv")
 
-    @pyqtSlot()
+    @Slot()
     def _on_excel(self) -> None:
         self._on_export("excel")
 
-    @pyqtSlot()
+    @Slot()
     def _on_json(self) -> None:
         self._on_export("json")
 
@@ -324,7 +324,7 @@ class ExportDataPresenter(QObject):
     # Worker callbacks (main thread via Qt signal)
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot(str, str)
+    @Slot(str, str)
     def _on_export_finished(self, description: str, output_folder: str) -> None:
         self.view.progress_bar.setVisible(False)
         self._set_buttons_enabled(True)
@@ -334,7 +334,7 @@ class ExportDataPresenter(QObject):
         # Open the output folder in the system file manager.
         QDesktopServices.openUrl(QUrl.fromLocalFile(output_folder))
 
-    @pyqtSlot(str)
+    @Slot(str)
     def _on_export_error(self, message: str) -> None:
         self.view.progress_bar.setVisible(False)
         self._set_buttons_enabled(True)

@@ -13,7 +13,7 @@ FK rows (session + project) before each test that needs them.
 from uuid import uuid4
 
 
-from PyQt6.QtSql import QSqlDatabase
+from PySide6.QtSql import QSqlDatabase
 
 from openstan.models.statement_queue_model import (
     StatementQueueModel,

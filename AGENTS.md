@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-`openstan` is a Python/PyQt6 desktop application for bank statement analysis and
+`openstan` is a Python/PySide6 desktop application for bank statement analysis and
 visualization. It follows a strict **MVP (Model–View–Presenter)** architecture with
 SQLite backing via Qt's `QSqlDatabase` layer.
 
@@ -120,7 +120,7 @@ is correct as written. This has been investigated and confirmed — do not re-fl
 ## Widget Library
 
 All Qt widgets **must** use the `Stan`-prefixed subclasses from
-`src/openstan/components.py` rather than the raw PyQt6 originals.
+`src/openstan/components.py` rather than the raw PySide6 originals.
 These subclasses set `setAutoFillBackground(True)` and apply any
 app-wide defaults (alternating row colours, selection behaviour, etc.)
 so that every widget inherits the correct appearance on both light and
@@ -213,10 +213,9 @@ covers them or the subclass has different semantics:
   legacy `sessionID`/`userID` camelCase exists in older code — do not extend it.
 
 ### Signals
-- `pyqtSignal` class attributes: **`snake_case`**
+- `Signal` class attributes: **`snake_case`**
   (`db_updated`, `model_updated`, `import_finished`, `path_or_name_changed`).
-- Import `pyqtSignal` directly; avoid aliasing it as `Signal` (inconsistency
-  exists in `statement_queue_model.py` — do not replicate it).
+- Import `Signal` directly from `PySide6.QtCore`; do not alias it.
 
 ---
 
@@ -224,15 +223,15 @@ covers them or the subclass has different semantics:
 
 ### Ordering (PEP 8; isort not enforced but follow this order)
 1. Standard library (`os`, `sys`, `pathlib`, `datetime`, `uuid`, `typing`)
-2. Third-party (`bank_statement_parser`, `PyQt6.*`)
+2. Third-party (`bank_statement_parser`, `PySide6.*`)
 3. First-party (`openstan.*`)
 
 Separate each group with a blank line.
 
 ### Named Imports Only
 - Always import Qt classes by name:
-  `from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot`
-- No wildcard imports (`from PyQt6.QtWidgets import *` is forbidden).
+  `from PySide6.QtCore import QObject, Signal, Slot`
+- No wildcard imports (`from PySide6.QtWidgets import *` is forbidden).
 - No default imports from internal modules.
 
 ### Absolute Internal Imports
@@ -283,8 +282,8 @@ def __init__(self, model: "ProjectModel", view: "ProjectView") -> None:
 ### Worker Thread Pattern
 ```python
 class WorkerSignals(QObject):
-    finished = pyqtSignal()
-    progress = pyqtSignal(int)
+    finished = Signal()
+    progress = Signal(int)
 
 class SQWorker(QRunnable):
     def __init__(self) -> None:
@@ -494,7 +493,7 @@ Do not attempt to implement these steps until the relevant account is confirmed.
    proceeds — this is by design for the free Foundation tier.
 
 **Critical notes:**
-- Unsigned bundled DLLs (PyQt6, Polars, etc.) are explicitly permitted under the
+- Unsigned bundled DLLs (PySide6, Polars, etc.) are explicitly permitted under the
   Code Signing Policy at `docs/codesigning.md` — do not change this policy.
 - MFA must be enabled on the GitHub account linked to SignPath (verify before first use).
 - SignPath Foundation is free for OSS projects; do not upgrade to a paid tier.
@@ -540,7 +539,7 @@ pending (up to 48 hours from purchase).
 
 **New file to create:** `packaging/macos/entitlements.plist`
 
-PyQt6 requires the `allow-unsigned-executable-memory` entitlement to run
+PySide6 requires the `allow-unsigned-executable-memory` entitlement to run
 under Apple's hardened runtime (required for notarisation):
 
 ```xml

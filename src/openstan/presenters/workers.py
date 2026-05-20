@@ -9,14 +9,14 @@ import traceback
 from pathlib import Path
 from typing import Any, Callable
 
-from PyQt6.QtCore import QObject, QRunnable, pyqtSignal
+from PySide6.QtCore import QObject, QRunnable, Signal
 
 
 class ExportWorkerSignals(QObject):
     """Signals emitted by ``ExportWorker`` back to the main thread."""
 
-    finished = pyqtSignal(str, str)  # (human description, output folder path)
-    error = pyqtSignal(str)  # error traceback string
+    finished = Signal(str, str)  # (human description, output folder path)
+    error = Signal(str)  # error traceback string
 
 
 class ExportWorker(QRunnable):

@@ -20,7 +20,7 @@ All business logic lives in ``ExportDataPresenter`` — this module contains
 only layout and widget declarations.
 """
 
-from PyQt6.QtWidgets import QHBoxLayout, QVBoxLayout
+from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout
 
 from openstan.components import (
     Qt,

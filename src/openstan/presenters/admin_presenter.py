@@ -3,8 +3,8 @@ import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QObject, QSettings, pyqtSlot
-from PyQt6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtCore import QObject, QSettings, Qt, Slot
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from openstan.components import StanErrorMessage, StanInfoMessage
 from openstan.data.create_gui_db import create_gui_db
@@ -96,16 +96,14 @@ class AdminPresenter(QObject):
     # Slots
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot(int)
-    def _on_update_check_changed(self, state: int) -> None:
+    @Slot(int)
+    def _on_update_check_changed(self, state: Qt.CheckState) -> None:
         """Persist the update-check preference whenever the checkbox changes."""
-        from PyQt6.QtCore import Qt as _Qt
-
-        enabled = state == _Qt.CheckState.Checked.value
+        enabled = state == Qt.CheckState.Checked
         settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
         settings.setValue(_KEY_UPDATE_CHECK, enabled)
 
-    @pyqtSlot()
+    @Slot()
     def delete_project(self) -> None:
         """Delete the selected project record and optionally its folder on disk."""
         row: int = self.view.combo_delete.currentData()
@@ -146,7 +144,7 @@ class AdminPresenter(QObject):
 
         self.refresh_combos()
 
-    @pyqtSlot()
+    @Slot()
     def remove_project_from_ui(self) -> None:
         """Remove the selected project record from gui.db without touching disk."""
         row: int = self.view.combo_remove.currentData()
@@ -172,7 +170,7 @@ class AdminPresenter(QObject):
 
         self.refresh_combos()
 
-    @pyqtSlot()
+    @Slot()
     def empty_gui_db(self) -> None:
         """Delete and recreate gui.db, then quit the application."""
         if not self._confirm(
@@ -202,7 +200,7 @@ class AdminPresenter(QObject):
 
         QApplication.quit()
 
-    @pyqtSlot()
+    @Slot()
     def open_anonymise_tool(self) -> None:
         """Open the Anonymise PDF dialog for the currently active project."""
         from bank_statement_parser import ProjectPaths

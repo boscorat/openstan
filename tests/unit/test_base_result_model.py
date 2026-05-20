@@ -14,7 +14,7 @@ from pathlib import Path
 from uuid import uuid4
 
 
-from PyQt6.QtCore import Qt
+from PySide6.QtCore import Qt
 
 from openstan.models.statement_result_model import (
     FailureResultModel,

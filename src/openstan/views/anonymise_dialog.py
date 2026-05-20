@@ -10,7 +10,7 @@ Allows the user to:
 Business logic lives entirely in ``AnonymisePresenter``.
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QDialogButtonBox,
     QHBoxLayout,
     QPlainTextEdit,

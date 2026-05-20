@@ -71,8 +71,8 @@ class Paths:
     @classmethod
     def _theme_subdir(cls) -> str:
         """Return 'dark' or 'light' based on the current application palette."""
-        from PyQt6.QtGui import QPalette
-        from PyQt6.QtWidgets import QApplication
+        from PySide6.QtGui import QPalette
+        from PySide6.QtWidgets import QApplication
 
         instance = QApplication.instance()
         app = instance if isinstance(instance, QApplication) else None

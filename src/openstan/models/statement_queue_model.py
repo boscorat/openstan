@@ -1,6 +1,6 @@
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QStandardItem, QStandardItemModel
-from PyQt6.QtSql import QSqlRecord, QSqlTableModel
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtSql import QSqlRecord, QSqlTableModel
 
 _HEX_CHARS: frozenset[str] = frozenset("0123456789abcdef")
 
@@ -24,7 +24,7 @@ class StatementQueueModel(QSqlTableModel):
     already-filtered view without touching the filter again.
     """
 
-    db_updated: pyqtSignal = pyqtSignal()
+    db_updated: Signal = Signal()
 
     def __init__(self, db) -> None:
         super().__init__(None, db)

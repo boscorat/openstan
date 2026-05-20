@@ -30,19 +30,19 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtSql import QSqlRecord, QSqlTableModel
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtSql import QSqlRecord, QSqlTableModel
 
 from openstan.models.statement_queue_model import _safe_hex_id
 
 if TYPE_CHECKING:
-    from PyQt6.QtSql import QSqlDatabase
+    from PySide6.QtSql import QSqlDatabase
 
 
 class BatchModel(QSqlTableModel):
     """``QSqlTableModel`` backed by the ``batch`` table in gui.db."""
 
-    db_updated: pyqtSignal = pyqtSignal()
+    db_updated: Signal = Signal()
 
     # Status values (mirror the ``status`` lookup table in gui.db)
     BATCH_STATUS_PENDING: int = 0  # import finished, awaiting commit

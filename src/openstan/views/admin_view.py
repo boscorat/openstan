@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QDialogButtonBox, QVBoxLayout
+from PySide6.QtWidgets import QDialogButtonBox, QVBoxLayout
 
 from openstan.components import (
     Qt,

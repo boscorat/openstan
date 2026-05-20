@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QGridLayout
+from PySide6.QtWidgets import QGridLayout
 
 from openstan.components import Qt, StanFrame
 

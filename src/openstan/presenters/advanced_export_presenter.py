@@ -26,16 +26,16 @@ from typing import TYPE_CHECKING
 import bank_statement_parser as bsp
 import polars as pl
 from bank_statement_parser.modules.export_spec import export_spec as bsp_export_spec
-from PyQt6.QtCore import QObject, QRunnable, QUrl, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QDesktopServices
-from PyQt6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtCore import QObject, QRunnable, QUrl, Signal, Slot
+from PySide6.QtGui import QDesktopServices
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from openstan.components import StanErrorMessage
 from openstan.presenters.workers import ExportWorker
 from openstan.views.advanced_export_view import make_spec_button
 
 if TYPE_CHECKING:
-    from PyQt6.QtCore import QThreadPool
+    from PySide6.QtCore import QThreadPool
 
     from openstan.views.advanced_export_view import AdvancedExportView
 
@@ -48,10 +48,8 @@ if TYPE_CHECKING:
 class _DatamartLoadSignals(QObject):
     """Signals emitted by ``_DatamartLoadWorker``."""
 
-    finished = pyqtSignal(
-        object, object
-    )  # (accounts_df, statements_df) as pl.DataFrame
-    error = pyqtSignal(str)
+    finished = Signal(object, object)  # (accounts_df, statements_df) as pl.DataFrame
+    error = Signal(str)
 
 
 class _DatamartLoadWorker(QRunnable):
@@ -168,7 +166,7 @@ class AdvancedExportPresenter(QObject):
     # Datamart load callbacks
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot(object, object)
+    @Slot(object, object)
     def _on_datamart_loaded(
         self, accounts_df: pl.DataFrame, statements_df: pl.DataFrame
     ) -> None:
@@ -189,7 +187,7 @@ class AdvancedExportPresenter(QObject):
         # Trigger statement filtering for the initial selection
         self._on_account_changed(self.view.combo_account.currentIndex())
 
-    @pyqtSlot(str)
+    @Slot(str)
     def _on_datamart_error(self, message: str) -> None:
         """Handle a failed datamart query (e.g. project.db not yet built)."""
         self.view.combo_account.blockSignals(True)
@@ -203,7 +201,7 @@ class AdvancedExportPresenter(QObject):
     # Account combo change → filter statement combo
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot(int)
+    @Slot(int)
     def _on_account_changed(self, index: int) -> None:
         """Re-populate the statement combo filtered to the selected account."""
         self.view.combo_statement.clear()
@@ -291,7 +289,7 @@ class AdvancedExportPresenter(QObject):
     # Spec button click → export
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def _on_spec_clicked(self, spec_path: Path) -> None:
         """Run ``export_spec`` for the selected spec file."""
         if self.project_path is None:
@@ -380,7 +378,7 @@ class AdvancedExportPresenter(QObject):
                 if widget is not None:
                     widget.setEnabled(enabled)
 
-    @pyqtSlot(str, str)
+    @Slot(str, str)
     def _on_export_finished(self, description: str, output_folder: str) -> None:
         self.view.progress_bar.setVisible(False)
         self._set_spec_buttons_enabled(True)
@@ -389,7 +387,7 @@ class AdvancedExportPresenter(QObject):
         )
         QDesktopServices.openUrl(QUrl.fromLocalFile(output_folder))
 
-    @pyqtSlot(str)
+    @Slot(str)
     def _on_export_error(self, message: str) -> None:
         self.view.progress_bar.setVisible(False)
         self._set_spec_buttons_enabled(True)

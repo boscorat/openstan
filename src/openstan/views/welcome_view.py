@@ -1,6 +1,6 @@
 """welcome_view.py — Full-content-area welcome panel shown when no project is selected."""
 
-from PyQt6.QtWidgets import QHBoxLayout, QVBoxLayout
+from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout
 
 from openstan.components import (
     Qt,

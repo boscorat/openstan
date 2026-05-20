@@ -41,7 +41,7 @@ from pathlib import Path
 from typing import Any
 
 import tomli_w
-from PyQt6.QtCore import QObject, pyqtSignal
+from PySide6.QtCore import QObject, Signal
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -133,7 +133,7 @@ class ReportModel(QObject):
         can refresh its saved-reports list.
     """
 
-    reports_changed: pyqtSignal = pyqtSignal()
+    reports_changed: Signal = Signal()
 
     def __init__(self) -> None:
         super().__init__()
