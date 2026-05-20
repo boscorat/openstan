@@ -60,7 +60,7 @@ class StatementQueueModel(QSqlTableModel):
         record.setValue("project_id", self._project_id)
         record.setValue("session_id", session_id)
         record.setValue("status_id", status_id)
-        record.setValue("path", path)
+        record.setValue("path", str(path))
         record.setValue("is_folder", is_folder)
         if self.insertRecord(-1, record):
             self.submitAll()
