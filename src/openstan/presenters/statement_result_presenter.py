@@ -361,7 +361,6 @@ class StatementResultPresenter(QObject):
             + self.review_model.all_rows()
             + self.failure_model.all_rows()
         )
-        print(f"Persisting {len(all_rows)} result(s) for batch {batch_id} …")
         for row in all_rows:
             ok, result_id, msg = self.result_model.add_result(
                 batch_id=batch_id,
@@ -388,8 +387,6 @@ class StatementResultPresenter(QObject):
                     f"WARNING: Could not persist result for {row.file_path.name}: {msg}",
                     file=sys.stderr,
                 )
-        print(f"Persist complete for batch {batch_id}.")
-
         # Capture counts for commit summary dialog
         self._n_success = self.success_model.row_count
         self._n_review = self.review_model.row_count

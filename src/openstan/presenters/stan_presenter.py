@@ -155,7 +155,7 @@ class StanPresenter(QObject):
         # Cancel any in-progress debug worker so it stops at its next iteration
         self.statement_result_presenter.cancel_debug_worker()
         self.session_presenter.end_active_sessions()
-        print("CLEANUP: StanPresenter.cleanup_before_exit: Session ended.")
+        print("Session ended.")
 
     def update_current_project_info(self, index: int) -> None:
         current_record: "QSqlRecord" = self.project_presenter.model.record(index)
@@ -188,7 +188,6 @@ class StanPresenter(QObject):
             self.stan.current_project_paths.root
         )
         self.run_reports_presenter.load_project(self.stan.current_project_paths.root)
-        print(current_record.value("project_location"))
 
         # Refresh project info panel and update nav button visibility.
         self.__refresh_project_info()

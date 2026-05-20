@@ -26,15 +26,6 @@ class SessionPresenter(QObject):
 
     def new_session(self, userID: str) -> tuple[bool, str, str]:
         result: tuple[bool, str, str] = self.model.add_record(uuid4().hex, userID)
-        msg: str = ""
         if not result[0]:
-            msg = "Failed to create or retrieve session ID from the database. Do you have another active session?"
             self.db_lock_signal.emit()
-        else:
-            sessionID: str = result[1]
-            msg: str = (
-                f"Session created successfully: {sessionID} for user ID: {userID}"
-            )
-            return result
-        print(msg)
         return result

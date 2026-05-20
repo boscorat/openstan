@@ -25,6 +25,9 @@ fi
 ICON_SRC="${INSTALL_DIR}/lib/openstan/icons/icon-square.svg"
 DESKTOP_SRC="${INSTALL_DIR}/share/openstan.desktop"
 
+# Create /usr/bin symlink so 'openstan' is on $PATH
+ln -sf "${INSTALL_DIR}/openstan" /usr/bin/openstan
+
 # Install .desktop entry
 if [ -f "$DESKTOP_SRC" ]; then
     install -Dm644 "$DESKTOP_SRC" /usr/share/applications/openstan.desktop

@@ -22,6 +22,7 @@ Signals emitted (consumed by StanPresenter)
 * ``view_results_requested()``                  — user pressed View Results.
 """
 
+import sys
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -94,9 +95,6 @@ class SQWorker(QRunnable):
             )
             file_path = Path(record.value("path"))
             queue_id = str(record.value("queue_id"))
-            print(
-                f"Importing statement: {file_path.stem} ({file_idx + 1}/{total_files})"
-            )
             stmt = bsp.process_pdf_statement(
                 pdf=file_path,
                 batch_id=self.batch_id,
@@ -187,7 +185,6 @@ class StatementQueuePresenter(QObject):
             return
 
         batch_id: str = uuid4().hex
-        print(f"Running statement import — batch_id: {batch_id}")
 
         # Lock every queue row for this project
         success, msg = self.model.set_batch_id(batch_id)
@@ -222,10 +219,6 @@ class StatementQueuePresenter(QObject):
         queue_id: str,
     ) -> None:
         self.statement_imported.emit(file_path, statement, progress_bar_value, queue_id)
-        print(
-            f" Import progress: {progress_bar_value}% "
-            f"— Result: {statement.result} {statement.outcome}"
-        )
 
     @pyqtSlot()
     def __on_worker_finished(self) -> None:
@@ -250,7 +243,6 @@ class StatementQueuePresenter(QObject):
         if not self.view.folder_dialog.exec():
             return
         selected_folder: str = self.view.folder_dialog.selectedFiles()[0]
-        print("Selected folder:", selected_folder)
         root_path = Path(selected_folder)
         self._last_dir = root_path.parent
 
@@ -387,7 +379,6 @@ class StatementQueuePresenter(QObject):
             self.view.file_dialog.setDirectory(str(self._last_dir))
         if self.view.file_dialog.exec():
             selected_files: list[str] = self.view.file_dialog.selectedFiles()
-            print("Selected files:", selected_files)
             self._last_dir = Path(selected_files[0]).parent
             expanded_paths, scroll_pos = self.__save_tree_state()
             for file in selected_files:
@@ -470,8 +461,7 @@ class StatementQueuePresenter(QObject):
             dlg.setDefaultButton(StanInfoMessage.StandardButton.Cancel)
             if dlg.exec() != StanInfoMessage.StandardButton.Yes:
                 return
-        result: tuple[bool, list[str], str] = self.model.clear_records()
-        print(result)
+        self.model.clear_records()
         self.update_view()
         self.__update_modification_buttons()
 
@@ -485,9 +475,7 @@ class StatementQueuePresenter(QObject):
             is_folder=is_folder,
         )
         if not result[0]:
-            print(f"Error adding record: {result[2]}")
-        else:
-            print(f"Record added successfully: {queue_id}")
+            print(f"Error adding record: {result[2]}", file=sys.stderr)
 
     # ---------------------------------------------------------------------------
     # Tree state helpers
@@ -544,7 +532,7 @@ class StatementQueuePresenter(QObject):
             self._restore_lock_state()
             self._update_count_label()
         else:
-            print("Project ID is not set. Cannot update view.")
+            return  # projectID not set; nothing to refresh
 
     def _restore_lock_state(self) -> None:
         """Inspect the DB and apply the correct enabled/visible state to buttons.

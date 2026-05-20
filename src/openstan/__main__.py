@@ -35,6 +35,18 @@ POLARS_SKIP_CPU_CHECK
     required feature Polars will crash with an illegal-instruction fault later,
     which is no worse than the RuntimeError.  Modern x86-64 hardware (post
     2006) universally supports sse3.
+
+GIO_USE_VFS
+    Forces GLib/GIO to use the local (non-D-Bus) VFS backend, suppressing
+    GVFS peer-to-peer connection warnings that appear when the app is run
+    as root or outside a normal desktop session.  openstan does not use
+    GVFS for anything; this has no functional effect.
+
+DCONF_PROFILE
+    Set to ``none`` to prevent dconf from attempting to create a socket in
+    the user runtime directory.  Eliminates dconf-CRITICAL warnings when
+    ``/run/user/<uid>/dconf`` is not accessible (e.g. running as root).
+    openstan does not use dconf; Qt stores its settings via QSettings.
 """
 
 import os
@@ -69,6 +81,8 @@ _BSP_USER_ROOT = _user_data_dir() / "bsp"
 os.environ.setdefault("BSP_DEFAULT_PROJECT_ROOT", str(_BSP_USER_ROOT))
 os.environ.setdefault("BSP_SKIP_DEFAULT_PROJECT_INIT", "1")
 os.environ.setdefault("POLARS_SKIP_CPU_CHECK", "1")
+os.environ.setdefault("GIO_USE_VFS", "local")
+os.environ.setdefault("DCONF_PROFILE", "none")
 
 
 def _seed_bsp_default_project() -> None:

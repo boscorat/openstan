@@ -4,6 +4,7 @@
 
 set -e
 
+rm -f /usr/bin/openstan
 rm -f /usr/share/applications/openstan.desktop
 rm -f /usr/share/icons/hicolor/scalable/apps/openstan.svg
 rm -f /usr/share/icons/hicolor/256x256/apps/openstan.png

@@ -84,7 +84,6 @@ class StatementQueueModel(QSqlTableModel):
         # Pass 1 — delete children first to satisfy the self-referencing FK
         for row in range(self.rowCount()):
             record: QSqlRecord = self.record(last_record - row)
-            print(record.value("parent_id"))
             if record.value("parent_id") in queue_ids:
                 if record.value("queue_id") != record.value("parent_id"):  # child row
                     children_deleted.append(record.value("queue_id"))
@@ -117,7 +116,6 @@ class StatementQueueModel(QSqlTableModel):
                 f"{len(children_deleted)} file(s) deleted and "
                 f"{len(files_deleted)} individual file(s) deleted"
             )
-            print(msg)
             return (success, all_deleted, msg)
         else:
             msg = "failure to delete any records"
@@ -127,10 +125,8 @@ class StatementQueueModel(QSqlTableModel):
         queue_ids: list[str] = list()
         while self.canFetchMore():
             self.fetchMore()
-        print(f"Clearing queue with {self.rowCount()} records")
         for row in range(self.rowCount()):
             record: QSqlRecord = self.record(row)
-            print(record.value("queue_id"), record.value("parent_id"))
             # Collect only parent records; children are removed automatically
             if record.value("queue_id") == record.value("parent_id"):
                 queue_ids.append(record.value("queue_id"))

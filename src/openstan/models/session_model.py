@@ -37,9 +37,7 @@ class SessionModel(QSqlTableModel):
                 sessions_ended += 1
         if sessions_ended > 0:
             msg = f"Ended {sessions_ended} active sessions."
-            print(msg)
             return (True, msg, msg)
         else:
             msg = "No active sessions to end."
-            print(msg)
             return (False, msg, self.lastError().text())
