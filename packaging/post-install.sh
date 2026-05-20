@@ -22,11 +22,16 @@ if [ -z "$INSTALL_DIR" ]; then
     exit 0
 fi
 
-ICON_SRC="${INSTALL_DIR}/lib/openstan/icons/icon-square.svg"
-DESKTOP_SRC="${INSTALL_DIR}/share/openstan.desktop"
+# fpm maps dist/openstan/ into ${INSTALL_DIR}/openstan/ so the binary
+# and bundled assets are one level deeper than the versioned install root.
+APP_DIR="${INSTALL_DIR}/openstan"
+
+ICON_SRC="${APP_DIR}/lib/openstan/icons/icon-square.svg"
+DESKTOP_SRC="${APP_DIR}/share/openstan.desktop"
+PNG_SRC="${APP_DIR}/share/openstan.png"
 
 # Create /usr/bin symlink so 'openstan' is on $PATH
-ln -sf "${INSTALL_DIR}/openstan" /usr/bin/openstan
+ln -sf "${APP_DIR}/openstan" /usr/bin/openstan
 
 # Install .desktop entry
 if [ -f "$DESKTOP_SRC" ]; then
@@ -39,7 +44,6 @@ if [ -f "$ICON_SRC" ]; then
 fi
 
 # Install PNG icon if present (produced by CI icon conversion step)
-PNG_SRC="${INSTALL_DIR}/share/openstan.png"
 if [ -f "$PNG_SRC" ]; then
     install -Dm644 "$PNG_SRC" /usr/share/icons/hicolor/256x256/apps/openstan.png
 fi
