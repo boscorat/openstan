@@ -6,9 +6,9 @@ Opened directly from Stan.__init__ when TitleView emits about_requested.
 
 from importlib.metadata import PackageNotFoundError, version
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtSvgWidgets import QSvgWidget
-from PyQt6.QtWidgets import QDialogButtonBox, QVBoxLayout
+from PySide6.QtCore import Qt
+from PySide6.QtSvgWidgets import QSvgWidget
+from PySide6.QtWidgets import QDialogButtonBox, QVBoxLayout
 
 from openstan.components import StanDialog, StanLabel, StanMutedLabel
 from openstan.paths import Paths

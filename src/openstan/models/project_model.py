@@ -1,13 +1,13 @@
 from datetime import datetime
 
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtSql import QSqlTableModel, QSqlRecord
+from PySide6.QtCore import Signal
+from PySide6.QtSql import QSqlTableModel, QSqlRecord
 
 NEW_RECORD_STATUS = 8  # active status
 
 
 class ProjectModel(QSqlTableModel):
-    db_updated: pyqtSignal = pyqtSignal()
+    db_updated: Signal = Signal()
 
     def __init__(self, db) -> None:
         super().__init__(db=db)

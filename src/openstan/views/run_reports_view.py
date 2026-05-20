@@ -29,9 +29,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import polars as pl
 
-from PyQt6.QtCore import QDate, QSortFilterProxyModel, Qt, pyqtSignal
-from PyQt6.QtGui import QKeySequence
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QDate, QSortFilterProxyModel, Qt, Signal
+from PySide6.QtGui import QKeySequence
+from PySide6.QtWidgets import (
     QAbstractItemView,
     QFrame,
     QHBoxLayout,
@@ -83,7 +83,7 @@ class MultiSelectWidget(StanWidget):
     The popup closes automatically when the user clicks outside it.
     """
 
-    selection_changed: pyqtSignal = pyqtSignal()
+    selection_changed: Signal = Signal()
 
     def __init__(self, parent: StanWidget | None = None) -> None:
         super().__init__()
@@ -282,10 +282,10 @@ class FilterRowWidget(StanWidget):
     asynchronously fetch and supply those distinct values.
     """
 
-    removed: pyqtSignal = pyqtSignal(object)  # emits self
+    removed: Signal = Signal(object)  # emits self
     # Emitted when the 'is_in' operator is active and distinct values are
     # needed for the current column.  Carries (self, column_name).
-    values_needed: pyqtSignal = pyqtSignal(object, str)
+    values_needed: Signal = Signal(object, str)
 
     def __init__(self, parent: StanWidget | None = None) -> None:
         super().__init__()
@@ -417,7 +417,7 @@ class FilterRowWidget(StanWidget):
 class AggRowWidget(StanWidget):
     """A single aggregation: column ▸ function ▸ alias  [Remove]."""
 
-    removed: pyqtSignal = pyqtSignal(object)  # emits self
+    removed: Signal = Signal(object)  # emits self
 
     def __init__(self, parent: StanWidget | None = None) -> None:
         super().__init__()

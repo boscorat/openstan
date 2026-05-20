@@ -45,8 +45,8 @@ if sys.platform not in ("darwin", "win32"):
 # (which require a QApplication) can be instantiated in the same process —
 # e.g. by test_screenshots.py.  QApplication is a subclass of QCoreApplication
 # and satisfies all requirements of the integration test fixtures.
-from PyQt6.QtSql import QSqlDatabase  # noqa: E402
-from PyQt6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtSql import QSqlDatabase  # noqa: E402
+from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from openstan.data.create_gui_db import create_gui_db  # noqa: E402
 from openstan.models import (  # noqa: E402
@@ -185,6 +185,18 @@ def openstan_env(bsp_harness: TestHarness) -> Generator[OpenStanEnv, None, None]
     if not gui_db_path.exists():
         create_gui_db(gui_db_path)
 
+    # Ensure WAL journal mode is set before the Qt connection is opened.
+    # PySide6's QSQLITE driver holds an implicit read lock in DELETE journal
+    # mode once any QSqlTableModel calls select(), which blocks concurrent
+    # sqlite3 writes used to seed bootstrap rows below.  WAL mode allows a
+    # writer and multiple readers to coexist.  We set it via a plain sqlite3
+    # connection here (before Qt opens the DB) so it takes effect even for
+    # pre-existing databases created before this fix.
+    import sqlite3 as _sqlite3
+
+    with _sqlite3.connect(str(gui_db_path)) as _wal_conn:
+        _wal_conn.execute("PRAGMA journal_mode=WAL")
+
     # Use a unique connection name so the fixture connection is isolated from
     # any connection that may already be open (e.g. from a parallel test run).
     conn_name = f"openstan_test_{uuid4().hex}"
@@ -208,18 +220,21 @@ def openstan_env(bsp_harness: TestHarness) -> Generator[OpenStanEnv, None, None]
     session_id: str = uuid4().hex
     username: str = f"openstan_test_runner_{session_id[:8]}"
 
-    # Insert a bootstrap session row first (user table FK requires session).
-    # We use a raw sqlite3 call because SessionModel.add_record has a circular
-    # FK dependency (session → user → session via createdBy_session).
-    import sqlite3 as _sqlite3
+    # Insert the bootstrap session row via the Qt connection to avoid any
+    # concurrent-writer locking between QSqlTableModel and a separate sqlite3
+    # connection.  SessionModel.add_record has a circular FK dependency
+    # (session → user → session via createdBy_session), so we use a raw
+    # QSqlQuery here with FK enforcement off (SQLite default).
+    from PySide6.QtSql import QSqlQuery
 
-    with _sqlite3.connect(str(gui_db_path)) as _seed_conn:
-        # Bootstrap session (no user FK checked here — PRAGMA FK off by default)
-        _seed_conn.execute(
-            "INSERT OR IGNORE INTO session (session_id, user_id, created, is_active) VALUES (?, 'bootstrap', ?, 1)",
-            (session_id, datetime.now(timezone.utc).isoformat()),
-        )
-        _seed_conn.commit()
+    _q = QSqlQuery(gui_db)
+    _q.prepare(
+        "INSERT OR IGNORE INTO session (session_id, user_id, created, is_active)"
+        " VALUES (:sid, 'bootstrap', :ts, 1)"
+    )
+    _q.bindValue(":sid", session_id)
+    _q.bindValue(":ts", datetime.now(timezone.utc).isoformat())
+    assert _q.exec(), f"Could not insert bootstrap session: {_q.lastError().text()}"
 
     # Now add the user (createdBy_session references the bootstrap session)
     user_model.select()
@@ -227,12 +242,11 @@ def openstan_env(bsp_harness: TestHarness) -> Generator[OpenStanEnv, None, None]
     assert ok, f"Could not create test user: {msg}"
 
     # Update the bootstrap session to reference the real user_id
-    with _sqlite3.connect(str(gui_db_path)) as _seed_conn:
-        _seed_conn.execute(
-            "UPDATE session SET user_id = ? WHERE session_id = ?",
-            (user_id, session_id),
-        )
-        _seed_conn.commit()
+    _q2 = QSqlQuery(gui_db)
+    _q2.prepare("UPDATE session SET user_id = :uid WHERE session_id = :sid")
+    _q2.bindValue(":uid", user_id)
+    _q2.bindValue(":sid", session_id)
+    assert _q2.exec(), f"Could not update bootstrap session: {_q2.lastError().text()}"
 
     # ── 4. Create a temporary bsp project directory ───────────────────────
     tmp_root = Path(tempfile.mkdtemp(prefix="openstan_test_project_"))

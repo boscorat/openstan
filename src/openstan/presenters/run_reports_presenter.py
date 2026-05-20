@@ -30,15 +30,15 @@ from typing import TYPE_CHECKING, Any
 
 import bank_statement_parser as bsp
 import polars as pl
-from PyQt6.QtCore import (
+from PySide6.QtCore import (
     QDate,
     QObject,
     QRunnable,
     QThreadPool,
     QTimer,
     Qt,
-    pyqtSignal,
-    pyqtSlot,
+    Signal,
+    Slot,
 )
 
 from openstan.components import StanErrorMessage, StanInfoMessage
@@ -55,9 +55,9 @@ from openstan.views.run_reports_view import (
 )
 
 if TYPE_CHECKING:
-    from PyQt6.QtWidgets import QListWidget
+    from PySide6.QtWidgets import QListWidget
 
-from PyQt6.QtWidgets import QFileDialog, QMessageBox
+from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 
 # ---------------------------------------------------------------------------
@@ -66,8 +66,8 @@ from PyQt6.QtWidgets import QFileDialog, QMessageBox
 
 
 class _ReportWorkerSignals(QObject):
-    finished: pyqtSignal = pyqtSignal(object, int)  # (pl.DataFrame, row_count)
-    error: pyqtSignal = pyqtSignal(str)
+    finished: Signal = Signal(object, int)  # (pl.DataFrame, row_count)
+    error: Signal = Signal(str)
 
 
 class _ReportWorker(QRunnable):
@@ -94,8 +94,8 @@ class _ReportWorker(QRunnable):
 
 
 class _FetchWorkerSignals(QObject):
-    finished: pyqtSignal = pyqtSignal(object)  # list[str]
-    error: pyqtSignal = pyqtSignal(str)
+    finished: Signal = Signal(object)  # list[str]
+    error: Signal = Signal(str)
 
 
 class _FetchWorker(QRunnable):
@@ -121,8 +121,8 @@ class _FetchWorker(QRunnable):
 
 
 class _ReportExportWorkerSignals(QObject):
-    finished: pyqtSignal = pyqtSignal()
-    error: pyqtSignal = pyqtSignal(str)
+    finished: Signal = Signal()
+    error: Signal = Signal(str)
 
 
 class _ReportExportWorker(QRunnable):
@@ -416,7 +416,7 @@ class RunReportsPresenter(QObject):
         self.view.builder.remove_agg_row(row)
         self._schedule_preview()
 
-    @pyqtSlot(object, str)
+    @Slot(object, str)
     def _on_filter_values_needed(self, row: FilterRowWidget, column: str) -> None:
         """Fetch distinct values for *column* and populate the filter row's multi-select.
 
@@ -469,8 +469,8 @@ class RunReportsPresenter(QObject):
 
         # ── Date range filter ─────────────────────────────────────────
         if b.date_range_enabled.isChecked():
-            from_date = b.from_date.date().toPyDate()
-            to_date = b.to_date.date().toPyDate()
+            from_date = _date.fromisoformat(b.from_date.date().toString("yyyy-MM-dd"))
+            to_date = _date.fromisoformat(b.to_date.date().toString("yyyy-MM-dd"))
             lf = lf.filter(
                 (pl.col("transaction_date") >= pl.lit(from_date))
                 & (pl.col("transaction_date") <= pl.lit(to_date))
@@ -550,7 +550,7 @@ class RunReportsPresenter(QObject):
     # Preview execution
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def _run_preview(self) -> None:
         """Build and execute the query, render result via StanPolarsModel."""
         if self.project_path is None:
@@ -575,7 +575,7 @@ class RunReportsPresenter(QObject):
         worker.signals.error.connect(self._on_query_error)
         self.threadpool.start(worker)
 
-    @pyqtSlot(object, int)
+    @Slot(object, int)
     def _on_query_finished(self, df: pl.DataFrame, row_count: int) -> None:
         self._query_running = False
         self._current_df = df
@@ -584,7 +584,7 @@ class RunReportsPresenter(QObject):
         self.view.preview.set_row_count(row_count)
         self.view.preview.show_export_buttons(True)
 
-    @pyqtSlot(str)
+    @Slot(str)
     def _on_query_error(self, message: str) -> None:
         self._query_running = False
         self._current_df = None
@@ -637,8 +637,12 @@ class RunReportsPresenter(QObject):
         # Date range
         date_range: dict[str, Any] = {
             "enabled": b.date_range_enabled.isChecked(),
-            "from": b.from_date.date().toPyDate().isoformat(),
-            "to": b.to_date.date().toPyDate().isoformat(),
+            "from": _date.fromisoformat(
+                b.from_date.date().toString("yyyy-MM-dd")
+            ).isoformat(),
+            "to": _date.fromisoformat(
+                b.to_date.date().toString("yyyy-MM-dd")
+            ).isoformat(),
         }
 
         return {
@@ -765,7 +769,7 @@ class RunReportsPresenter(QObject):
     # Save / load / delete / new
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def _save_report(self) -> None:
         if self.project_path is None:
             self._error_dialog.showMessage(
@@ -787,7 +791,7 @@ class RunReportsPresenter(QObject):
         else:
             self._error_dialog.showMessage(msg)
 
-    @pyqtSlot()
+    @Slot()
     def _load_selected_report(self) -> None:
         combo = self.view.builder.saved_reports_combo
         path: Path | None = combo.currentData(Qt.ItemDataRole.UserRole)
@@ -802,7 +806,7 @@ class RunReportsPresenter(QObject):
         else:
             self._error_dialog.showMessage(msg)
 
-    @pyqtSlot()
+    @Slot()
     def _delete_selected_report(self) -> None:
         combo = self.view.builder.saved_reports_combo
         path: Path | None = combo.currentData(Qt.ItemDataRole.UserRole)
@@ -823,7 +827,7 @@ class RunReportsPresenter(QObject):
             if self._current_report_path == path:
                 self._current_report_path = None
 
-    @pyqtSlot()
+    @Slot()
     def _new_report(self) -> None:
         """Clear the builder for a fresh report."""
         self._current_report_path = None
@@ -984,21 +988,21 @@ class RunReportsPresenter(QObject):
         self._set_export_buttons_enabled(True)
         self._error_dialog.showMessage(f"Export failed: {message}")
 
-    @pyqtSlot()
+    @Slot()
     def _on_export_excel(self) -> None:
         def _write(df: pl.DataFrame, path: "Path") -> None:
             df.write_excel(path)
 
         self._do_export(".xlsx", _write)
 
-    @pyqtSlot()
+    @Slot()
     def _on_export_csv(self) -> None:
         def _write(df: pl.DataFrame, path: "Path") -> None:
             df.write_csv(path)
 
         self._do_export(".csv", _write)
 
-    @pyqtSlot()
+    @Slot()
     def _on_export_json(self) -> None:
         def _write(df: pl.DataFrame, path: "Path") -> None:
             df.write_json(path)

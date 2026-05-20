@@ -8,7 +8,7 @@ directory.  All wiring and business logic lives in
 declarations.
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QSizePolicy,

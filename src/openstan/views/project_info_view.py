@@ -8,9 +8,9 @@ this view contains no logic and makes no DB calls.
 from typing import TYPE_CHECKING
 
 import polars as pl
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtGui import QStandardItem, QStandardItemModel
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Signal
+from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtWidgets import (
     QDialogButtonBox,
     QHBoxLayout,
     QPushButton,
@@ -117,7 +117,7 @@ class ProjectInfoView(StanWidget):
     header: str = "##### Project Information"
 
     # Emitted when the user clicks the gap indicator button.
-    gap_clicked: pyqtSignal = pyqtSignal()
+    gap_clicked: Signal = Signal()
 
     def __init__(self) -> None:
         super().__init__()

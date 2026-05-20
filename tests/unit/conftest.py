@@ -34,8 +34,8 @@ import pytest
 if sys.platform not in ("darwin", "win32"):
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PyQt6.QtCore import QCoreApplication  # noqa: E402
-from PyQt6.QtSql import QSqlDatabase  # noqa: E402
+from PySide6.QtCore import QCoreApplication  # noqa: E402
+from PySide6.QtSql import QSqlDatabase  # noqa: E402
 
 from openstan.data.create_gui_db import create_gui_db  # noqa: E402
 

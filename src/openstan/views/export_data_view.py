@@ -14,7 +14,7 @@ Both presenters access their respective sub-widget trees through the
 public attributes exposed by this class.
 """
 
-from PyQt6.QtWidgets import (
+from PySide6.QtWidgets import (
     QButtonGroup,
     QGridLayout,
     QHBoxLayout,

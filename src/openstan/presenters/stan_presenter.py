@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import bank_statement_parser as bsp
 from bank_statement_parser import ProjectPaths
-from PyQt6.QtCore import QObject, pyqtSlot
+from PySide6.QtCore import QObject, Slot
 
 from openstan.models.statement_result_model import ResultRow
 from openstan.presenters.admin_presenter import AdminPresenter
@@ -11,7 +11,7 @@ from openstan.presenters.project_presenter import get_project_info
 from openstan.updater import UpdateChecker
 
 if TYPE_CHECKING:
-    from PyQt6.QtSql import QSqlRecord
+    from PySide6.QtSql import QSqlRecord
 
     from openstan.main import Stan
 
@@ -121,7 +121,7 @@ class StanPresenter(QObject):
     # DB lock
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def db_lock_handler(self) -> None:
         self.stan.error_db_lock.showMessage(
             "Database is locked! Another active session may exist.\nThe application will close shortly."
@@ -131,11 +131,11 @@ class StanPresenter(QObject):
     # Project selection
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot(int)
+    @Slot(int)
     def project_selection_changed(self, index: int) -> None:
         self.update_current_project_info(index)
 
-    @pyqtSlot()
+    @Slot()
     def __on_project_db_updated(self) -> None:
         """Re-evaluate chrome visibility when projects are added or removed."""
         self.update_current_project_info(
@@ -261,25 +261,25 @@ class StanPresenter(QObject):
         if sb is not None:
             sb.showMessage(message, timeout)
 
-    @pyqtSlot()
+    @Slot()
     def __nav_to_info(self) -> None:
         self.nav_view.button_info.setChecked(True)
         self.__set_panel(self.stan.nav_idx_info)
         self.__show_status("Project Information")
 
-    @pyqtSlot()
+    @Slot()
     def __nav_to_import(self) -> None:
         self.nav_view.button_import.setChecked(True)
         self.__set_panel(self.stan.nav_idx_import)
         self.__show_status("Import Statements")
 
-    @pyqtSlot()
+    @Slot()
     def __nav_to_export(self) -> None:
         self.nav_view.button_export.setChecked(True)
         self.__set_panel(self.stan.nav_idx_export)
         self.__show_status("Export Data")
 
-    @pyqtSlot()
+    @Slot()
     def __nav_to_reports(self) -> None:
         self.nav_view.button_reports.setChecked(True)
         self.__set_panel(self.stan.nav_idx_reports)
@@ -313,7 +313,7 @@ class StanPresenter(QObject):
     # Statement import callbacks
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot(Path, bsp.PdfResult, int, str)
+    @Slot(Path, bsp.PdfResult, int, str)
     def statement_imported(
         self,
         file_path: Path,
@@ -372,12 +372,12 @@ class StanPresenter(QObject):
         )
         self.statement_result_presenter.add_result_to_memory(row)
 
-    @pyqtSlot(int)
+    @Slot(int)
     def on_import_started(self, total_files: int) -> None:
         """Import worker has started: notify result presenter of total file count."""
         self.statement_result_presenter.set_importing(True, total_files)
 
-    @pyqtSlot(float)
+    @Slot(float)
     def on_import_finished(self, duration_secs: float) -> None:
         """Worker thread finished: persist batch record and all in-memory results."""
         # Mark the progress bar as complete
@@ -402,14 +402,14 @@ class StanPresenter(QObject):
     # Batch lifecycle callbacks
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def on_batch_abandoned(self) -> None:
         """Called when the user abandons a batch from the results view."""
         self.hide_results()
         # Refresh queue view to reflect unlocked state
         self.statement_queue_presenter.update_view()
 
-    @pyqtSlot()
+    @Slot()
     def on_batch_committed(self) -> None:
         """Called after a batch is successfully committed to project.db.
 
@@ -439,7 +439,7 @@ class StanPresenter(QObject):
     # Admin
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def open_admin_dialog(self) -> None:
         self.stan.admin_presenter.refresh_combos()
         self.stan.admin_view.exec()
@@ -448,7 +448,7 @@ class StanPresenter(QObject):
     # Update notifications
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot(str, str)
+    @Slot(str, str)
     def _on_update_available(self, latest_version: str, release_url: str) -> None:
         """Show the update-available dialog when a newer release is found.
 

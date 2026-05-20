@@ -42,9 +42,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal
-from PyQt6.QtGui import QStandardItem, QStandardItemModel
-from PyQt6.QtSql import QSqlQuery, QSqlRecord, QSqlTableModel
+from PySide6.QtCore import QModelIndex, QPersistentModelIndex, Qt, Signal
+from PySide6.QtGui import QStandardItem, QStandardItemModel
+from PySide6.QtSql import QSqlQuery, QSqlRecord, QSqlTableModel
 
 from openstan.models.statement_queue_model import _safe_hex_id
 
@@ -237,14 +237,14 @@ def _row_items(row: "ResultRow") -> list[QStandardItem]:
 class _BaseResultModel(QStandardItemModel):
     """Shared base for the three in-memory result models."""
 
-    model_updated: pyqtSignal = pyqtSignal()
+    model_updated: Signal = Signal()
 
     def __init__(self) -> None:
         super().__init__(0, len(_COLUMNS))
         self.setHorizontalHeaderLabels(_COLUMNS)
         self._rows: list[ResultRow] = []
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlag:
+    def flags(self, index: QModelIndex | QPersistentModelIndex) -> Qt.ItemFlag:
         """Return flags with ItemIsEditable removed — results are read-only."""
         return super().flags(index) & ~Qt.ItemFlag.ItemIsEditable
 
@@ -292,7 +292,7 @@ class StatementResultModel(QSqlTableModel):
     lives in ``StatementResultPayloadModel``.
     """
 
-    db_updated: pyqtSignal = pyqtSignal()
+    db_updated: Signal = Signal()
 
     # Column indices — must match CREATE TABLE column order
     COL_RESULT_ID = 0

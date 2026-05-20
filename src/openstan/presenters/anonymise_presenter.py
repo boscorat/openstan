@@ -14,10 +14,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import bank_statement_parser as bsp
-from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
-from PyQt6.QtCore import QUrl
-from PyQt6.QtGui import QDesktopServices
-from PyQt6.QtWidgets import QFileDialog
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QDesktopServices
+from PySide6.QtWidgets import QFileDialog
 
 from openstan.components import StanErrorMessage
 
@@ -35,9 +35,9 @@ if TYPE_CHECKING:
 class _AnonymiseSignals(QObject):
     """Signals emitted by the background anonymisation worker."""
 
-    started: pyqtSignal = pyqtSignal()
-    finished: pyqtSignal = pyqtSignal(Path)  # output path
-    error: pyqtSignal = pyqtSignal(str)
+    started: Signal = Signal()
+    finished: Signal = Signal(Path)  # output path
+    error: Signal = Signal(str)
 
 
 class _AnonymiseWorker(QRunnable):
@@ -143,7 +143,7 @@ class AnonymisePresenter(QObject):
             "# anonymise.toml not found — save this editor to create it.\n"
         )
 
-    @pyqtSlot()
+    @Slot()
     def _save_toml(self) -> None:
         """Validate and write the editor contents back to ``anonymise.toml``."""
         text = self.dialog.text_edit_toml.toPlainText()
@@ -171,7 +171,7 @@ class AnonymisePresenter(QObject):
     # PDF selection
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def _browse_pdf(self) -> None:
         """Open a file dialog to choose the source PDF."""
         start_dir = (
@@ -203,7 +203,7 @@ class AnonymisePresenter(QObject):
     # Anonymisation worker
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def _run_anonymisation(self) -> None:
         """Kick off the background anonymisation worker."""
         if self._input_path is None:
@@ -237,7 +237,7 @@ class AnonymisePresenter(QObject):
         assert thread_pool is not None, "QThreadPool.globalInstance() returned None"
         thread_pool.start(worker)
 
-    @pyqtSlot(Path)
+    @Slot(Path)
     def _on_finished(self, output_path: Path) -> None:
         """Called on the GUI thread when the worker completes successfully."""
         self._output_path = output_path
@@ -249,7 +249,7 @@ class AnonymisePresenter(QObject):
             f"Done. Anonymised PDF saved to:\n{output_path}"
         )
 
-    @pyqtSlot(str)
+    @Slot(str)
     def _on_error(self, message: str) -> None:
         """Called on the GUI thread when the worker raises an exception."""
         self.dialog.button_run.setEnabled(True)
@@ -264,13 +264,13 @@ class AnonymisePresenter(QObject):
     # Open PDF helpers
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def _open_original(self) -> None:
         """Open the source PDF in the OS default viewer."""
         if self._input_path is not None:
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(self._input_path)))
 
-    @pyqtSlot()
+    @Slot()
     def _open_anonymised(self) -> None:
         """Open the anonymised PDF in the OS default viewer."""
         if self._output_path is not None:

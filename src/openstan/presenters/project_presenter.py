@@ -9,7 +9,7 @@ from uuid import uuid4
 
 import bank_statement_parser as bsp
 import polars as pl
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+from PySide6.QtCore import QObject, Signal, Slot
 
 if TYPE_CHECKING:
     from openstan.models.project_model import ProjectModel
@@ -183,7 +183,7 @@ def get_project_info(project_path: Path) -> "ProjectInfo | None":
 
 
 class ProjectPresenter(QObject):
-    path_or_name_changed: pyqtSignal = pyqtSignal()
+    path_or_name_changed: Signal = Signal()
 
     def __init__(
         self: "ProjectPresenter", model: "ProjectModel", view: "ProjectView"
@@ -224,7 +224,7 @@ class ProjectPresenter(QObject):
     # Wizard dispatch — single slot handles both modes
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def handle_project_required(self) -> None:
         """Dispatch to the correct handler based on which wizard emitted the signal."""
         wizard = self.sender()
@@ -280,7 +280,7 @@ class ProjectPresenter(QObject):
     # New project
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def open_new_project_wizard(self) -> None:
         self.view.wizard.page_basic.location_button.setDisabled(True)
         self.view.wizard.page_basic.newProjectID = uuid4().hex
@@ -289,7 +289,7 @@ class ProjectPresenter(QObject):
         )
         self.view.wizard.exec()
 
-    @pyqtSlot()
+    @Slot()
     def create_new_project(self) -> bool:
         wizard = self.view.wizard
         project_name: str = wizard.page_basic.field("projectName")
@@ -341,7 +341,7 @@ class ProjectPresenter(QObject):
     # Existing project
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def open_existing_project_wizard(self) -> None:
         self.view.wizard_existing.page_basic.newProjectID = uuid4().hex
         self.view.wizard_existing.page_basic.id_row.setText(
@@ -349,7 +349,7 @@ class ProjectPresenter(QObject):
         )
         self.view.wizard_existing.exec()
 
-    @pyqtSlot()
+    @Slot()
     def connect_existing_project(self) -> bool:
         wizard = self.view.wizard_existing
         project_name: str = wizard.page_basic.name_row.text()
@@ -382,7 +382,7 @@ class ProjectPresenter(QObject):
     # Shared folder selection and label update
     # ---------------------------------------------------------------------------
 
-    @pyqtSlot()
+    @Slot()
     def open_folder_selection_dialog(self) -> None:
         """Handles folder selection for both wizards — detects caller via sender()."""
         # Determine which wizard's page triggered this
@@ -413,14 +413,14 @@ class ProjectPresenter(QObject):
             else:
                 self.path_or_name_changed.emit()
 
-    @pyqtSlot()
+    @Slot()
     def name_changed(self) -> None:
         """Only used by the new-project wizard to gate the location button."""
         name: str = self.view.wizard.page_basic.name_row.text()
         self.view.wizard.page_basic.location_button.setDisabled(len(name) == 0)
         self.path_or_name_changed.emit()
 
-    @pyqtSlot()
+    @Slot()
     def update_location_label(self) -> None:
         """Updates the full-path label for the new-project wizard."""
         folder: Path | None = self.view.wizard.page_basic.folder_path

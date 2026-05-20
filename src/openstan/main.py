@@ -4,10 +4,10 @@ from pathlib import Path
 from uuid import uuid4
 
 from bank_statement_parser import ProjectPaths
-from PyQt6.QtCore import QSysInfo, QThreadPool, qDebug
-from PyQt6.QtGui import QFontDatabase, QIcon, QKeySequence, QShortcut
-from PyQt6.QtSql import QSqlDatabase
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QSysInfo, QThreadPool, qDebug
+from PySide6.QtGui import QFontDatabase, QIcon, QKeySequence, QShortcut
+from PySide6.QtSql import QSqlDatabase
+from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
     QStackedWidget,

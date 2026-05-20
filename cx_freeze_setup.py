@@ -193,13 +193,13 @@ if sys.platform != "win32" and sys.platform != "darwin":
 
 packages: list[str] = [
     "openstan",
-    "PyQt6",
-    "PyQt6.QtCore",
-    "PyQt6.QtGui",
-    "PyQt6.QtWidgets",
-    "PyQt6.QtSql",
-    "PyQt6.QtSvg",
-    "PyQt6.QtSvgWidgets",
+    "PySide6",
+    "PySide6.QtCore",
+    "PySide6.QtGui",
+    "PySide6.QtWidgets",
+    "PySide6.QtSql",
+    "PySide6.QtSvg",
+    "PySide6.QtSvgWidgets",
     "bank_statement_parser",
     "polars",
     # Force cx_Freeze to include the entire email package tree.  Without this
@@ -215,7 +215,7 @@ packages: list[str] = [
 # excluded so their .pyd/.so files remain as real files.
 zip_include_packages: list[str] = ["*"]
 zip_exclude_packages: list[str] = [
-    "PyQt6",
+    "PySide6",
     "bank_statement_parser",
     "polars",
     "openstan",
@@ -250,30 +250,30 @@ build_exe_options: dict = {
         "unittest",
         "pydoc",
         # Unused Qt Python bindings — the app uses only Core/Gui/Widgets/Sql/Svg/SvgWidgets.
-        "PyQt6.QtQml",
-        "PyQt6.QtQuick",
-        "PyQt6.QtQuick3D",
-        "PyQt6.QtQuickWidgets",
-        "PyQt6.QtMultimedia",
-        "PyQt6.QtMultimediaWidgets",
-        "PyQt6.QtBluetooth",
-        "PyQt6.QtRemoteObjects",
-        "PyQt6.QtTextToSpeech",
-        "PyQt6.QtSerialPort",
-        "PyQt6.QtWebChannel",
-        "PyQt6.QtWebSockets",
-        "PyQt6.QtPdf",
-        "PyQt6.QtPdfWidgets",
-        "PyQt6.QtDesigner",
-        "PyQt6.QtHelp",
-        "PyQt6.QtDBus",
-        "PyQt6.QtOpenGL",
-        "PyQt6.QtOpenGLWidgets",
-        "PyQt6.QtSensors",
-        "PyQt6.QtStateMachine",
-        "PyQt6.QtPositioning",
-        "PyQt6.QtNfc",
-        "PyQt6.QtTest",
+        "PySide6.QtQml",
+        "PySide6.QtQuick",
+        "PySide6.QtQuick3D",
+        "PySide6.QtQuickWidgets",
+        "PySide6.QtMultimedia",
+        "PySide6.QtMultimediaWidgets",
+        "PySide6.QtBluetooth",
+        "PySide6.QtRemoteObjects",
+        "PySide6.QtTextToSpeech",
+        "PySide6.QtSerialPort",
+        "PySide6.QtWebChannel",
+        "PySide6.QtWebSockets",
+        "PySide6.QtPdf",
+        "PySide6.QtPdfWidgets",
+        "PySide6.QtDesigner",
+        "PySide6.QtHelp",
+        "PySide6.QtDBus",
+        "PySide6.QtOpenGL",
+        "PySide6.QtOpenGLWidgets",
+        "PySide6.QtSensors",
+        "PySide6.QtStateMachine",
+        "PySide6.QtPositioning",
+        "PySide6.QtNfc",
+        "PySide6.QtTest",
         # CJK codecs — not needed for English/Western locale app.
         "_codecs_jp",
         "_codecs_cn",
@@ -746,12 +746,12 @@ setup(
 # ---------------------------------------------------------------------------
 # Post-build cleanup: remove the Qt QML directory tree
 # ---------------------------------------------------------------------------
-# cx_Freeze's PyQt6 hook copies lib/PyQt6/Qt6/qml/ as a directory, so it is
+# cx_Freeze's PySide6 hook copies lib/PySide6/Qt6/qml/ as a directory, so it is
 # not caught by bin_excludes.  The app is pure QWidgets — QML is never used.
 # This runs on all platforms; it is guarded by .exists() so it is safe if
 # cx_Freeze's hook behaviour changes in a future release.
 
-_qml_dir = Path(build_exe_options["build_exe"]) / "lib" / "PyQt6" / "Qt6" / "qml"
+_qml_dir = Path(build_exe_options["build_exe"]) / "lib" / "PySide6" / "Qt6" / "qml"
 if _qml_dir.exists():
     shutil.rmtree(_qml_dir)
     print(f"Post-build: removed unused QML directory tree ({_qml_dir})")

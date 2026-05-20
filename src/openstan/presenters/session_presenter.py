@@ -1,14 +1,14 @@
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from PySide6.QtCore import QObject, Signal
 
 if TYPE_CHECKING:
     from openstan.models.session_model import SessionModel
 
 
 class SessionPresenter(QObject):
-    db_lock_signal = pyqtSignal()
+    db_lock_signal = Signal()
 
     def __init__(self: "SessionPresenter", model: "SessionModel", view=None) -> None:
         super().__init__()

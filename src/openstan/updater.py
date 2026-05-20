@@ -16,7 +16,7 @@ Design constraints
   string and release URL so the caller can show a dialog and open a browser on
   demand.
 * Zero new runtime dependencies — uses only the standard library (``urllib``,
-  ``json``, ``threading``, ``importlib.metadata``) and PyQt6.
+  ``json``, ``threading``, ``importlib.metadata``) and PySide6.
 """
 
 from __future__ import annotations
@@ -28,8 +28,8 @@ from importlib.metadata import PackageNotFoundError, version as _pkg_version
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
-from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout, QWidget
+from PySide6.QtCore import QObject, Signal, Slot
+from PySide6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout, QWidget
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -156,7 +156,7 @@ class UpdateChecker(QObject):
         version string and the HTML URL of the release.
     """
 
-    update_available = pyqtSignal(str, str)  # (latest_version, release_url)
+    update_available = Signal(str, str)  # (latest_version, release_url)
 
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
@@ -202,7 +202,7 @@ class UpdateChecker(QObject):
             # Catch-all: update check must never crash the application
             pass
 
-    @pyqtSlot(str, str)
+    @Slot(str, str)
     def show_update_dialog(
         self,
         latest_version: str,

@@ -1,6 +1,6 @@
-from PyQt6.QtCore import QAbstractTableModel, QEvent, QSize, Qt
-from PyQt6.QtGui import QIcon, QPalette, QPixmap
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QAbstractTableModel, QEvent, QSize, Qt
+from PySide6.QtGui import QIcon, QPalette, QPixmap
+from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDateEdit,
@@ -218,7 +218,7 @@ class StanMutedLabel(StanLabel):
 
     def _refresh_color(self) -> None:
         """Re-derive the muted colour from WindowText and apply it via palette."""
-        from PyQt6.QtWidgets import QApplication
+        from PySide6.QtWidgets import QApplication
 
         app = QApplication.instance()
         base = (
@@ -231,7 +231,7 @@ class StanMutedLabel(StanLabel):
         palette.setColor(QPalette.ColorRole.WindowText, base)
         self.setPalette(palette)
 
-    def changeEvent(self, a0: QEvent | None) -> None:  # noqa: N802
+    def changeEvent(self, a0: QEvent) -> None:  # noqa: N802
         """Re-apply the muted colour whenever the palette changes."""
         if (
             not getattr(self, "_refreshing_color", False)
@@ -281,7 +281,7 @@ class StanThemedPixmapLabel(StanLabel):
         )
         self._refreshing_pixmap = False
 
-    def changeEvent(self, a0: QEvent | None) -> None:  # noqa: N802
+    def changeEvent(self, a0: QEvent) -> None:  # noqa: N802
         """Reload the pixmap whenever the application palette changes."""
         if (
             not getattr(self, "_refreshing_pixmap", False)
@@ -328,7 +328,7 @@ class StanButton(QPushButton):
         self.setIcon(QIcon(Paths.themed_icon(self._themed_icon_filename)))
         self._refreshing_icon = False
 
-    def changeEvent(self, e: QEvent | None) -> None:  # noqa: N802
+    def changeEvent(self, e: QEvent) -> None:  # noqa: N802
         """Reload the themed icon whenever the application palette changes."""
         if (
             not getattr(self, "_refreshing_icon", False)
@@ -405,7 +405,7 @@ class StanHelpIcon(QPushButton):
             self.setText("?")
         self._refreshing_icon = False
 
-    def changeEvent(self, e: QEvent | None) -> None:  # noqa: N802
+    def changeEvent(self, e: QEvent) -> None:  # noqa: N802
         """Reload the themed icon whenever the application palette changes."""
         if (
             not getattr(self, "_refreshing_icon", False)

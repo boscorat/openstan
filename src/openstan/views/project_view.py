@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import bank_statement_parser as bsp
-from PyQt6.QtCore import QStandardPaths, pyqtSignal
-from PyQt6.QtGui import QKeySequence
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import QStandardPaths, Signal
+from PySide6.QtGui import QKeySequence
+from PySide6.QtWidgets import (
     QButtonGroup,
     QFileDialog,
     QGridLayout,
@@ -128,7 +128,7 @@ class ProjectPageBasic(StanWizardPage):
 
 
 class ProjectWizard(StanWizard):
-    new_project_required: pyqtSignal = pyqtSignal()
+    new_project_required: Signal = Signal()
 
     def __init__(self, mode: str = "new", parent=None) -> None:
         super().__init__(parent)

@@ -1,14 +1,14 @@
-from PyQt6.QtCore import QEvent, pyqtSignal
-from PyQt6.QtSvgWidgets import QSvgWidget
-from PyQt6.QtWidgets import QHBoxLayout, QWhatsThis
+from PySide6.QtCore import QEvent, Signal
+from PySide6.QtSvgWidgets import QSvgWidget
+from PySide6.QtWidgets import QHBoxLayout, QWhatsThis
 
 from openstan.components import StanButton, StanWidget
 from openstan.paths import Paths
 
 
 class TitleView(StanWidget):
-    about_requested: pyqtSignal = pyqtSignal()
-    admin_requested: pyqtSignal = pyqtSignal()
+    about_requested: Signal = Signal()
+    admin_requested: Signal = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -51,7 +51,7 @@ class TitleView(StanWidget):
         self.setLayout(layout)
         self.setMaximumHeight(72)
 
-    def changeEvent(self, a0: QEvent | None) -> None:  # noqa: N802
+    def changeEvent(self, a0: QEvent) -> None:  # noqa: N802
         """Reload the wordmark SVG whenever the application palette changes."""
         if a0 is not None and a0.type() in (
             QEvent.Type.ApplicationPaletteChange,
