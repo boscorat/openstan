@@ -261,6 +261,10 @@ def create_gui_db(db_path: Path) -> None:
     if sys.platform != "win32":
         db_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
     try:
+        # Enable WAL journal mode before creating schema so all connections
+        # (Qt QSQLITE and concurrent sqlite3 writers) can coexist without
+        # "database is locked" errors.
+        conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(_DDL_TABLES)
         conn.executescript(_DDL_VIEW)
         conn.executescript(_DDL_TRIGGERS)
