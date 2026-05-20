@@ -11,6 +11,7 @@ Each row shows:
   - Debug status
   - "Open JSON" button (enabled once debug_json_path is known)
   - "Open PDF" button (always enabled — uses the original file_path)
+  - "View Parquet" button (REVIEW rows only — opens ParquetViewDialog)
   - "Anonymise" button (enabled when project_paths is available)
 """
 
@@ -42,14 +43,16 @@ _COL_TYPE = 1
 _COL_STATUS = 2
 _COL_JSON = 3
 _COL_PDF = 4
-_COL_ANON = 5
-_COL_MESSAGE = 6
+_COL_PARQUET = 5
+_COL_ANON = 6
+_COL_MESSAGE = 7
 _HEADERS = [
     "Statement",
     "Type",
     "Debug Status",
     "Debug JSON",
     "PDF",
+    "Parquet",
     "Anonymise",
     "Message",
 ]
@@ -100,6 +103,7 @@ class DebugInfoDialog(StanDialog):
         hdr.setSectionResizeMode(_COL_STATUS, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_JSON, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_PDF, QHeaderView.ResizeMode.ResizeToContents)
+        hdr.setSectionResizeMode(_COL_PARQUET, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_ANON, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_MESSAGE, QHeaderView.ResizeMode.Stretch)
 
@@ -205,6 +209,36 @@ class DebugInfoDialog(StanDialog):
         pdf_btn.clicked.connect(lambda _checked, p=pdf_path: self.__open_file(p))
         self._table.setCellWidget(table_row, _COL_PDF, pdf_btn)
 
+        # View Parquet button — REVIEW rows only
+        parquet_btn = StanButton("View Parquet", min_width=0)
+        parquet_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        if row.result == "REVIEW" and row.pdf_result is not None:
+            cab_path = row.pdf_result.checks_and_balances
+            pq = row.pdf_result.payload
+            heads_path: "Path | None" = None
+            lines_path: "Path | None" = None
+            from bank_statement_parser.modules.data import Review as _Review
+
+            if isinstance(pq, _Review):
+                heads_path = pq.parquet_files.statement_heads
+                lines_path = pq.parquet_files.statement_lines
+
+            files_available = all(
+                p is not None and p.exists() for p in (cab_path, heads_path, lines_path)
+            )
+            if files_available:
+                parquet_btn.clicked.connect(
+                    lambda _checked, c=cab_path, h=heads_path, ln=lines_path: (
+                        self.__open_parquet(c, h, ln)
+                    )
+                )
+            else:
+                parquet_btn.setEnabled(False)
+                parquet_btn.setToolTip("Parquet files no longer available.")
+        else:
+            parquet_btn.setEnabled(False)
+        self._table.setCellWidget(table_row, _COL_PARQUET, parquet_btn)
+
         # Anonymise button — opens AnonymiseDialog pre-loaded with this PDF
         anon_btn = StanButton("Anonymise", min_width=0)
         anon_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
@@ -228,6 +262,23 @@ class DebugInfoDialog(StanDialog):
         """Open *path* in the OS default application."""
         if path:
             QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+
+    def __open_parquet(
+        self,
+        checks_and_balances: "Path | None",
+        statement_heads: "Path | None",
+        statement_lines: "Path | None",
+    ) -> None:
+        """Open the ParquetViewDialog for the three REVIEW parquet files."""
+        from openstan.views.parquet_view_dialog import ParquetViewDialog
+
+        dlg = ParquetViewDialog(
+            checks_and_balances=checks_and_balances,
+            statement_heads=statement_heads,
+            statement_lines=statement_lines,
+            parent=self,
+        )
+        dlg.exec()
 
     def __open_anonymise(self, pdf_path: Path) -> None:
         """Open the AnonymiseDialog pre-loaded with *pdf_path*."""

@@ -562,6 +562,19 @@ class StatementResultPresenter(QObject):
         if not non_success:
             return
 
+        # Backfill pdf_result for REVIEW rows that lack it (e.g. session restore).
+        # FAILURE rows never need parquet data so we skip them.
+        missing_ids = [
+            r.result_id
+            for r in non_success
+            if r.result == "REVIEW" and r.pdf_result is None
+        ]
+        if missing_ids:
+            payloads = self.payload_model.load_payloads_for_batch(missing_ids)
+            for r in non_success:
+                if r.result == "REVIEW" and r.pdf_result is None:
+                    r.pdf_result = payloads.get(r.result_id)
+
         self._debug_dialog = DebugInfoDialog(
             rows=non_success,
             project_paths=(
