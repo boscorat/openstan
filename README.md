@@ -1,4 +1,4 @@
-[![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](LICENSE)
+[![License: LGPL-3.0-or-later](https://img.shields.io/badge/License-LGPL--3.0--or--later-blue.svg)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/boscorat/openstan?include_prereleases)](https://github.com/boscorat/openstan/releases)
 [![CI](https://github.com/boscorat/openstan/actions/workflows/release.yml/badge.svg)](https://github.com/boscorat/openstan/actions/workflows/release.yml)
 [![Docs](https://img.shields.io/badge/docs-openstan.org-informational)](https://openstan.org)
@@ -25,7 +25,7 @@ Import an entire year of statements, build reports, and export to Excel in under
 | **Privacy** | 100% offline | Cloud upload | Cloud upload | Cloud upload |
 | **UK banks** | HSBC, TSB, NatWest + extensible | Implied (AI-based) | Explicitly yes | Yes |
 | **Output** | Excel, CSV, JSON | Excel, CSV, JSON | Excel, CSV, QBO, Xero | Xero, QuickBooks, CSV |
-| **Open source** | Yes (GPL-3.0) | No | No | No |
+| **Open source** | Yes (LGPL-3.0) | No | No | No |
 | **Extensible** | Yes — TOML files | No | No | No |
 | **Offline** | Yes | No | No | No |
 
@@ -110,4 +110,4 @@ All four must pass before opening a pull request. See [CONTRIBUTING.md](CONTRIBU
 
 ## License
 
-GPL-3.0-or-later — see [LICENSE](LICENSE).
+LGPL-3.0-or-later — see [LICENSE](LICENSE).

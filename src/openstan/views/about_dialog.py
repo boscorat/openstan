@@ -15,7 +15,7 @@ from openstan.paths import Paths
 
 _WEBSITE_URL = "https://openstan.org"
 _GITHUB_URL = "https://github.com/boscorat/openstan"
-_LICENSE_URL = "https://www.gnu.org/licenses/gpl-3.0.html"
+_LICENSE_URL = "https://www.gnu.org/licenses/lgpl-3.0.html"
 _BSP_GITHUB_URL = "https://github.com/boscorat/bank_statement_parser"
 _COPYRIGHT = "Copyright \u00a9 2025 Jason Farrar"
 
@@ -93,12 +93,12 @@ class AboutDialog(StanDialog):
 
         license_label = StanLabel(
             f'Licensed under the <a href="{_LICENSE_URL}">'
-            "GNU General Public License v3 or later</a>"
+            "GNU Lesser General Public License v3 or later</a>"
         )
         license_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         license_label.setOpenExternalLinks(True)
         license_label.setTextFormat(Qt.TextFormat.RichText)
-        license_label.setAccessibleName("GPL v3 or later license")
+        license_label.setAccessibleName("LGPL v3 or later license")
 
         # ── Close button ──────────────────────────────────────────────────
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)

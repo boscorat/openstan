@@ -21,7 +21,7 @@ Import an entire year of statements, build reports, and export to Excel in under
 | **Privacy** | 100% offline | Cloud upload | Cloud upload | Cloud upload |
 | **UK banks** | HSBC, TSB, NatWest + extensible | Implied (AI-based) | Explicitly yes | Yes |
 | **Output** | Excel, CSV, JSON | Excel, CSV, JSON | Excel, CSV, QBO, Xero | Xero, QuickBooks, CSV |
-| **Open source** | Yes (GPL-3.0) | No | No | No |
+| **Open source** | Yes (LGPL-3.0) | No | No | No |
 | **Extensible** | Yes — TOML files | No | No | No |
 | **Offline** | Yes | No | No | No |
 
@@ -81,5 +81,5 @@ New banks can be added by anyone via a [TOML configuration file](https://boscora
 
 ## Licence
 
-openstan is released under the [GPL-3.0-or-later](https://www.gnu.org/licenses/gpl-3.0.html) licence.  
+openstan is released under the [LGPL-3.0-or-later](https://www.gnu.org/licenses/lgpl-3.0.html) licence.  
 Copyright © 2025 Jason Farrar.
