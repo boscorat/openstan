@@ -438,7 +438,7 @@ wheels = [
 
 [[package]]
 name = "openstan"
-version = "0.1.4.2"
+version = "0.1.4.4"
 source = { editable = "." }
 dependencies = [
     { name = "pyside6-essentials" },
@@ -463,7 +463,7 @@ dev = [
 requires-dist = [
     { name = "pyside6-essentials", specifier = ">=6.7.0" },
     { name = "tomli-w", specifier = ">=1.2.0" },
-    { name = "uk-bank-statement-parser", specifier = "==0.2.1b4" },
+    { name = "uk-bank-statement-parser", specifier = "==0.2.1b5" },
 ]
 
 [package.metadata.requires-dev]
@@ -897,7 +897,7 @@ wheels = [
 
 [[package]]
 name = "uk-bank-statement-parser"
-version = "0.2.1b4"
+version = "0.2.1b5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dacite" },
@@ -907,9 +907,9 @@ dependencies = [
     { name = "requests" },
     { name = "xlsxwriter" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/76/c8/6727b75193ac5481837af3377593c742d4a6269e909a91cac6aa1aaef1cc/uk_bank_statement_parser-0.2.1b4.tar.gz", hash = "sha256:8ab4de9d3dc7a6c44be799dba042336a49074d1049c4890c3507e20b946b8ca0", size = 4608733, upload-time = "2026-05-17T15:33:37.925Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/80/ac/f914bd56384a4cc300cce0472144dc305d16b70a08e0239551bde33c7036/uk_bank_statement_parser-0.2.1b5.tar.gz", hash = "sha256:357ac3f0b62f8464cdb0e5a16e3c1e1f88a50d3c6e535603c538432811248e18", size = 4608773, upload-time = "2026-05-21T07:23:36.361Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/be/15/ff95442d1b4d58010901efc96d80940f189d7dea10ab7f3e6d0d851066ab/uk_bank_statement_parser-0.2.1b4-py3-none-any.whl", hash = "sha256:c88bc2f84099c110f0da35826ffd5bcc0f02cfd238d577e9dbc7f41b23155629", size = 4641736, upload-time = "2026-05-17T15:33:36.429Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/bc/428cc2f95fe4559dc4e179f9258af5b8ea95a746d25bed8cf362e6701ef8/uk_bank_statement_parser-0.2.1b5-py3-none-any.whl", hash = "sha256:50c9e4360238df0e4b4eb6a6751c938bcca0f07ede1b73e0bca3d8fb138305f0", size = 4641820, upload-time = "2026-05-21T07:23:34.509Z" },
 ]
 
 [[package]]
