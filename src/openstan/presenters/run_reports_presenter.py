@@ -199,6 +199,18 @@ class RunReportsPresenter(QObject):
         # Worker in-flight guard
         self._query_running: bool = False
 
+        # Keep strong Python references to in-flight _FetchWorker instances.
+        # setAutoDelete(True) causes Qt to C++-delete the QRunnable from the
+        # thread-pool thread after run() completes.  Without a live Python
+        # reference the _FetchWorkerSignals QObject would be GC-collected from
+        # that same thread, which destroys connected Python lambda slots from a
+        # non-main thread and causes a SIGSEGV in the main thread's event
+        # delivery (Shiboken binding look-up race).  Holding the worker here
+        # keeps the Python wrapper — and therefore self.signals — alive until
+        # the queued signal fires on the main thread and the cleanup slot
+        # removes the reference.
+        self._active_fetch_workers: list[_FetchWorker] = []
+
         # Last successful query result — used for export
         self._current_df: pl.DataFrame | None = None
         self._current_title: str = ""
@@ -444,6 +456,22 @@ class RunReportsPresenter(QObject):
                 f"Failed to fetch distinct values: {msg}"
             )
         )
+
+        # Hold a Python reference so that the _FetchWorkerSignals QObject is
+        # not GC-collected from the thread-pool thread after Qt auto-deletes
+        # the underlying QRunnable.  Both signals use try/except to guard
+        # against a duplicate removal if both somehow fire.
+        self._active_fetch_workers.append(worker)
+
+        def _release_worker(_: object) -> None:
+            try:
+                self._active_fetch_workers.remove(worker)
+            except ValueError:
+                pass
+
+        worker.signals.finished.connect(_release_worker)
+        worker.signals.error.connect(_release_worker)
+
         self.threadpool.start(worker)
 
     # ---------------------------------------------------------------------------
