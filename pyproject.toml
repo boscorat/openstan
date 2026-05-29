@@ -1,6 +1,6 @@
 [project]
 name = "openstan"
-version = "0.1.4.6"
+version = "0.1.4.7"
 description = "Open source application for statement analysis and visualization"
 readme = "README.md"
 license = "LGPL-3.0-or-later"
