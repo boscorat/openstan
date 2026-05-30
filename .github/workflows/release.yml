@@ -141,7 +141,7 @@ jobs:
           fpm -s dir -t deb \
             --depends libxcb-cursor0 \
             --deb-no-default-config-files \
-            --package "dist/openstan_${VERSION}_amd64.deb" \
+            --package "dist/openstan-${VERSION}-Linux-Ubuntu-x86_64.deb" \
             "${FPM_COMMON[@]}"
 
           # .rpm — Fedora/RHEL/openSUSE
@@ -149,7 +149,7 @@ jobs:
           fpm -s dir -t rpm \
             --depends xcb-util-cursor \
             --rpm-os linux \
-            --package "dist/openstan-${VERSION}-1.x86_64.rpm" \
+            --package "dist/openstan-${VERSION}-Linux-Fedora-x86_64.rpm" \
             "${FPM_COMMON[@]}"
 
           echo "--- Built packages ---"
@@ -273,14 +273,14 @@ jobs:
           fpm -s dir -t deb \
             --depends libxcb-cursor0 \
             --deb-no-default-config-files \
-            --package "dist/openstan_${VERSION}_arm64.deb" \
+            --package "dist/openstan-${VERSION}-Linux-Ubuntu-arm64.deb" \
             "${FPM_COMMON[@]}"
 
           # .rpm — Fedora/RHEL/openSUSE aarch64
           fpm -s dir -t rpm \
             --depends xcb-util-cursor \
             --rpm-os linux \
-            --package "dist/openstan-${VERSION}-1.aarch64.rpm" \
+            --package "dist/openstan-${VERSION}-Linux-Fedora-arm64.rpm" \
             "${FPM_COMMON[@]}"
 
           echo "--- Built packages ---"
@@ -409,7 +409,7 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
         run: |
           $version = $env:REF_NAME -replace '^v', ''
-          $msi_out = "dist\openstan-${version}.msi"
+          $msi_out = "dist\openstan-${version}-Windows.msi"
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           wix build `
             packaging/windows/openstan.wxs `
@@ -726,7 +726,7 @@ jobs:
           ln -s /Applications "$STAGING/Applications"
 
           mkdir -p dist
-          DMG="dist/${APP_NAME}-${VERSION}.dmg"
+          DMG="dist/openstan-${VERSION}-macOS.dmg"
           hdiutil create \
             -volname "openstan" \
             -srcfolder "$STAGING" \
