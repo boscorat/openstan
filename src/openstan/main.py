@@ -151,13 +151,14 @@ def _dark_palette() -> QPalette:
 
 
 def _detect_scheme_via_dbus() -> Qt.ColorScheme:
-    """Fallback colour-scheme detection for Linux frozen binaries.
+    """Detect the system colour scheme on Linux via the FreeDesktop portal.
 
-    When the Qt platform theme plugin (libqxdgdesktopportal / libqgtk3) is
-    absent or fails to load, ``QStyleHints.colorScheme()`` returns
-    ``Qt.ColorScheme.Unknown``.  In that case we query the FreeDesktop portal
-    directly via ``gdbus`` — the same source the plugin reads internally —
-    and map the result to a ``Qt.ColorScheme`` value.
+    Reads ``org.freedesktop.appearance`` → ``color-scheme`` from the
+    FreeDesktop Settings portal via ``gdbus``.  This is the same source
+    that the Qt platform theme plugin reads internally, but queried
+    synchronously so it is reliable at application startup — before the
+    platform theme plugin has had a chance to query the system setting and
+    make it available via ``QStyleHints.colorScheme()``.
 
     Return values from ``org.freedesktop.appearance`` ``color-scheme``:
         0 → no preference (treat as light)
@@ -171,6 +172,7 @@ def _detect_scheme_via_dbus() -> Qt.ColorScheme:
     import sys
 
     if sys.platform != "linux":
+        print("[openstan] _detect_scheme_via_dbus: skipped (not Linux) → Light")
         return Qt.ColorScheme.Light
     try:
         result = subprocess.run(
@@ -191,28 +193,39 @@ def _detect_scheme_via_dbus() -> Qt.ColorScheme:
             text=True,
             timeout=0.25,
         )
+        print(
+            f"[openstan] _detect_scheme_via_dbus: returncode={result.returncode}"
+            f"  stdout={result.stdout.strip()!r}"
+            f"  stderr={result.stderr.strip()!r}"
+        )
         # Successful output looks like: (<uint32 1>,)
-        # We treat any occurrence of "1" in the response as dark mode, since
-        # the only values are 0 (no-pref), 1 (dark), and 2 (light).
+        # We treat any occurrence of "<uint32 1>" in the response as dark mode,
+        # since the only values are 0 (no-pref), 1 (dark), and 2 (light).
         if result.returncode == 0 and "<uint32 1>" in result.stdout:
+            print("[openstan] _detect_scheme_via_dbus: detected → Dark")
             return Qt.ColorScheme.Dark
-    except Exception:
-        pass
+        print("[openstan] _detect_scheme_via_dbus: detected → Light")
+    except Exception as exc:
+        print(
+            f"[openstan] _detect_scheme_via_dbus: exception {type(exc).__name__}({exc}) → Light"
+        )
     return Qt.ColorScheme.Light
 
 
 def _apply_palette(app: QApplication, scheme: Qt.ColorScheme) -> None:
     """Apply or remove the explicit dark palette based on *scheme*.
 
-    If *scheme* is ``Unknown`` (common in frozen binaries where the Qt
-    platform theme plugin fails to load) a D-Bus fallback is used to
-    determine the actual system preference before applying the palette.
+    ``Qt.ColorScheme.Unknown`` is treated as Light (the dbus portal is now
+    queried directly at the call site before this function is called, so
+    Unknown should not reach here in practice).
     """
-    if scheme == Qt.ColorScheme.Unknown:
-        scheme = _detect_scheme_via_dbus()
     if scheme == Qt.ColorScheme.Dark:
+        print("[openstan] _apply_palette: applying Dark palette")
         app.setPalette(_dark_palette())
     else:
+        print(
+            f"[openstan] _apply_palette: scheme={scheme.name}  applying Light palette"
+        )
         # Restore Fusion's default (light) palette
         app.setPalette(app.style().standardPalette())
 
@@ -247,6 +260,20 @@ def _make_splash(app: QApplication) -> QSplashScreen:
     bg = app.palette().color(QPalette.ColorRole.Window)
     fg = app.palette().color(QPalette.ColorRole.WindowText)
 
+    logo_path = Paths.logo(with_tagline=True)
+    import os as _os
+
+    logo_exists = _os.path.isfile(logo_path)
+    print(
+        f"[openstan] _make_splash: dpr={dpr}  logical={pix_w}x{pix_h}"
+        f"  physical={phys_w}x{phys_h}"
+    )
+    print(
+        f"[openstan] _make_splash: logo={logo_path!r}"
+        f"  exists={logo_exists}"
+        f"  palette_bg=#{bg.red():02x}{bg.green():02x}{bg.blue():02x}"
+    )
+
     pixmap = QPixmap(phys_w, phys_h)
     pixmap.setDevicePixelRatio(dpr)
     pixmap.fill(bg)
@@ -255,14 +282,21 @@ def _make_splash(app: QApplication) -> QSplashScreen:
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
-    renderer = QSvgRenderer(Paths.logo(with_tagline=True))
-    renderer.render(painter, QRectF(pad, pad, logo_w, logo_h))
+    renderer = QSvgRenderer(logo_path)
+    if renderer.isValid():
+        renderer.render(painter, QRectF(pad, pad, logo_w, logo_h))
+        print("[openstan] _make_splash: SVG rendered OK")
+    else:
+        print(
+            "[openstan] _make_splash: QSvgRenderer reports invalid — splash will have blank logo"
+        )
 
     # Version string — bottom-right corner, slightly muted
     try:
         ver_text = f"v{importlib.metadata.version('openstan')}"
     except importlib.metadata.PackageNotFoundError:
         ver_text = ""
+        print("[openstan] _make_splash: version not found via importlib.metadata")
 
     if ver_text:
         font = painter.font()
@@ -273,6 +307,7 @@ def _make_splash(app: QApplication) -> QSplashScreen:
         metrics = painter.fontMetrics()
         text_w = metrics.horizontalAdvance(ver_text)
         painter.drawText(pix_w - text_w - 12, pix_h - 12, ver_text)
+        print(f"[openstan] _make_splash: version text={ver_text!r}")
 
     painter.end()
 
@@ -282,6 +317,11 @@ def _make_splash(app: QApplication) -> QSplashScreen:
 def main() -> None:
     qDebug("Starting openstan GUI application...")
 
+    print(
+        f"[openstan] startup: sys.frozen={getattr(sys, 'frozen', False)}"
+        f"  platform={sys.platform}"
+    )
+
     # On Linux, frozen binaries bundle libqxdgdesktopportal.so / libqgtk3.so but
     # their system library dependencies are typically absent on users' machines.
     # Qt's plugin loader probes for these at startup and the repeated failed
@@ -289,27 +329,55 @@ def main() -> None:
     # Suppress the platform theme plugin in frozen builds; our explicit palette
     # logic (_apply_palette / _detect_scheme_via_dbus) handles dark mode instead.
     if getattr(sys, "frozen", False) and sys.platform == "linux":
-        os.environ.setdefault("QT_QPA_PLATFORMTHEME", "")
+        _before = os.environ.get("QT_QPA_PLATFORMTHEME", "<unset>")
+        os.environ["QT_QPA_PLATFORMTHEME"] = "_none_"
+        print(
+            f"[openstan] QT_QPA_PLATFORMTHEME: {_before!r} → '_none_'"
+            " (frozen Linux: suppressing platform theme plugin to avoid startup delay)"
+        )
+    else:
+        print(
+            f"[openstan] QT_QPA_PLATFORMTHEME={os.environ.get('QT_QPA_PLATFORMTHEME', '<unset>')!r}"
+            " (not overriding — not a frozen Linux build)"
+        )
 
     app: QApplication = QApplication(sys.argv)
+    print("[openstan] QApplication constructed")
 
     # set application style based on OS
     if QSysInfo.productType() == "windows":
         app.setStyle("Windows")
+        print("[openstan] style: Windows")
     elif QSysInfo.productType() in ("ios", "tvos", "watchos", "macos", "darwin"):
         app.setStyle("macOS")
+        print("[openstan] style: macOS")
     else:
         app.setStyle("Fusion")
+        print(f"[openstan] style: Fusion  productType={QSysInfo.productType()!r}")
         # On Linux the Fusion style has no built-in dark mode — it relies on
         # the Qt platform theme plugin (libqxdgdesktopportal / libqgtk3) to
         # inject the correct palette.  In frozen binaries the plugin's system
         # library dependencies are often absent, causing Qt to silently fall
-        # back to a light palette regardless of the OS setting.  We therefore
-        # read the system colour scheme explicitly via QStyleHints and set the
-        # palette ourselves, then update it whenever the user switches themes.
+        # back to a light palette regardless of the OS setting.
+        #
+        # Additionally, even when the platform theme plugin loads successfully,
+        # QStyleHints.colorScheme() may return an incorrect value immediately
+        # after QApplication() is constructed — before the plugin has had a
+        # chance to query the system colour setting.  We therefore always read
+        # the system colour scheme directly via the FreeDesktop portal (gdbus)
+        # for the initial palette rather than relying on colorScheme().
+        #
+        # colorSchemeChanged is kept connected for live theme switching, which
+        # works correctly once the event loop is running and the plugin has
+        # fully initialised.
         hints = app.styleHints()
-        _apply_palette(app, hints.colorScheme())
+        qt_scheme = hints.colorScheme()
+        print(
+            f"[openstan] colorScheme() at startup={qt_scheme.name!r} (may be unreliable — using dbus for initial detection)"
+        )
+        _apply_palette(app, _detect_scheme_via_dbus())
         hints.colorSchemeChanged.connect(lambda scheme: _apply_palette(app, scheme))
+        print("[openstan] colorSchemeChanged connected for live theme switching")
 
     # ── Splash screen ─────────────────────────────────────────────────────
     # Shown immediately after the palette is applied (so the correct themed
@@ -319,6 +387,7 @@ def main() -> None:
     splash = _make_splash(app)
     splash.show()
     app.processEvents()
+    print("[openstan] splash shown")
 
     # ── Application / window icon ─────────────────────────────────────────
     app.setWindowIcon(QIcon(Paths.icon("icon-square.svg")))
@@ -343,7 +412,9 @@ def main() -> None:
     sessionID: str = uuid4().hex
 
     window: Stan = Stan(gui_db=gui_db, sessionID=sessionID, username=username)
+    print("[openstan] Stan.__init__ complete")
     splash.close()
+    print("[openstan] splash closed — calling window.show()")
     window.show()
 
     app.exec()
