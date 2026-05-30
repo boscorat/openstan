@@ -130,7 +130,7 @@ jobs:
             --maintainer "Jason Farrar <stillwaters.technology@gmail.com>"
             --url "https://openstan.org"
             --description "Open source bank statement analysis and visualization"
-            --license "GPL-3.0-or-later"
+            --license "LGPL-3.0-or-later"
             --after-install  packaging/post-install.sh
             --after-remove   packaging/post-uninstall.sh
             --chdir dist
@@ -262,7 +262,7 @@ jobs:
             --maintainer "Jason Farrar <stillwaters.technology@gmail.com>"
             --url "https://openstan.org"
             --description "Open source bank statement analysis and visualization"
-            --license "GPL-3.0-or-later"
+            --license "LGPL-3.0-or-later"
             --after-install  packaging/post-install.sh
             --after-remove   packaging/post-uninstall.sh
             --chdir dist
