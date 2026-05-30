@@ -4,19 +4,22 @@ from pathlib import Path
 from uuid import uuid4
 
 from bank_statement_parser import ProjectPaths
-from PySide6.QtCore import Qt, QSysInfo, QThreadPool, qDebug
+from PySide6.QtCore import Qt, QRectF, QSysInfo, QThreadPool, qDebug
 from PySide6.QtGui import (
     QColor,
     QFontDatabase,
     QIcon,
     QKeySequence,
+    QPainter,
     QPalette,
+    QPixmap,
     QShortcut,
 )
 from PySide6.QtSql import QSqlDatabase
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
+    QSplashScreen,
     QStackedWidget,
     QVBoxLayout,
     QWhatsThis,
@@ -147,8 +150,66 @@ def _dark_palette() -> QPalette:
     return p
 
 
+def _detect_scheme_via_dbus() -> Qt.ColorScheme:
+    """Fallback colour-scheme detection for Linux frozen binaries.
+
+    When the Qt platform theme plugin (libqxdgdesktopportal / libqgtk3) is
+    absent or fails to load, ``QStyleHints.colorScheme()`` returns
+    ``Qt.ColorScheme.Unknown``.  In that case we query the FreeDesktop portal
+    directly via ``gdbus`` — the same source the plugin reads internally —
+    and map the result to a ``Qt.ColorScheme`` value.
+
+    Return values from ``org.freedesktop.appearance`` ``color-scheme``:
+        0 → no preference (treat as light)
+        1 → dark
+        2 → light
+
+    Falls back to ``Qt.ColorScheme.Light`` on any error (gdbus not found,
+    portal unavailable, timeout, unexpected output format, etc.).
+    """
+    import subprocess
+    import sys
+
+    if sys.platform != "linux":
+        return Qt.ColorScheme.Light
+    try:
+        result = subprocess.run(
+            [
+                "gdbus",
+                "call",
+                "--session",
+                "--dest",
+                "org.freedesktop.portal.Desktop",
+                "--object-path",
+                "/org/freedesktop/portal/desktop",
+                "--method",
+                "org.freedesktop.portal.Settings.Read",
+                "org.freedesktop.appearance",
+                "color-scheme",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=0.25,
+        )
+        # Successful output looks like: (<uint32 1>,)
+        # We treat any occurrence of "1" in the response as dark mode, since
+        # the only values are 0 (no-pref), 1 (dark), and 2 (light).
+        if result.returncode == 0 and "<uint32 1>" in result.stdout:
+            return Qt.ColorScheme.Dark
+    except Exception:
+        pass
+    return Qt.ColorScheme.Light
+
+
 def _apply_palette(app: QApplication, scheme: Qt.ColorScheme) -> None:
-    """Apply or remove the explicit dark palette based on *scheme*."""
+    """Apply or remove the explicit dark palette based on *scheme*.
+
+    If *scheme* is ``Unknown`` (common in frozen binaries where the Qt
+    platform theme plugin fails to load) a D-Bus fallback is used to
+    determine the actual system preference before applying the palette.
+    """
+    if scheme == Qt.ColorScheme.Unknown:
+        scheme = _detect_scheme_via_dbus()
     if scheme == Qt.ColorScheme.Dark:
         app.setPalette(_dark_palette())
     else:
@@ -156,8 +217,80 @@ def _apply_palette(app: QApplication, scheme: Qt.ColorScheme) -> None:
         app.setPalette(app.style().standardPalette())
 
 
+def _make_splash(app: QApplication) -> QSplashScreen:
+    """Create a theme-aware splash screen with the app logo and version number.
+
+    The splash is sized at 2× the native SVG dimensions (300×84 → 600×168)
+    with 40 px padding on all sides, giving a 680×248 logical-pixel window.
+    On HiDPI displays the backing pixmap is scaled by the primary screen's
+    device-pixel ratio so the logo renders crisp.
+
+    The background colour is taken from the current application palette so
+    the splash blends seamlessly with the window that follows it.
+    """
+    import importlib.metadata
+
+    from PySide6.QtSvg import QSvgRenderer
+
+    dpr: float = app.primaryScreen().devicePixelRatio() if app.primaryScreen() else 1.0
+
+    # Logical dimensions: 2× native SVG size (300×84) plus uniform padding
+    logo_w, logo_h = 600, 168
+    pad = 40
+    pix_w = logo_w + pad * 2
+    pix_h = logo_h + pad * 2
+
+    # Physical backing-store size for HiDPI correctness
+    phys_w = round(pix_w * dpr)
+    phys_h = round(pix_h * dpr)
+
+    bg = app.palette().color(QPalette.ColorRole.Window)
+    fg = app.palette().color(QPalette.ColorRole.WindowText)
+
+    pixmap = QPixmap(phys_w, phys_h)
+    pixmap.setDevicePixelRatio(dpr)
+    pixmap.fill(bg)
+
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+
+    renderer = QSvgRenderer(Paths.logo(with_tagline=True))
+    renderer.render(painter, QRectF(pad, pad, logo_w, logo_h))
+
+    # Version string — bottom-right corner, slightly muted
+    try:
+        ver_text = f"v{importlib.metadata.version('openstan')}"
+    except importlib.metadata.PackageNotFoundError:
+        ver_text = ""
+
+    if ver_text:
+        font = painter.font()
+        font.setPointSize(9)
+        painter.setFont(font)
+        painter.setPen(fg)
+        painter.setOpacity(0.55)
+        metrics = painter.fontMetrics()
+        text_w = metrics.horizontalAdvance(ver_text)
+        painter.drawText(pix_w - text_w - 12, pix_h - 12, ver_text)
+
+    painter.end()
+
+    return QSplashScreen(pixmap)
+
+
 def main() -> None:
     qDebug("Starting openstan GUI application...")
+
+    # On Linux, frozen binaries bundle libqxdgdesktopportal.so / libqgtk3.so but
+    # their system library dependencies are typically absent on users' machines.
+    # Qt's plugin loader probes for these at startup and the repeated failed
+    # dlopen() attempts cause a multi-second delay before Qt silently falls back.
+    # Suppress the platform theme plugin in frozen builds; our explicit palette
+    # logic (_apply_palette / _detect_scheme_via_dbus) handles dark mode instead.
+    if getattr(sys, "frozen", False) and sys.platform == "linux":
+        os.environ.setdefault("QT_QPA_PLATFORMTHEME", "")
+
     app: QApplication = QApplication(sys.argv)
 
     # set application style based on OS
@@ -177,6 +310,15 @@ def main() -> None:
         hints = app.styleHints()
         _apply_palette(app, hints.colorScheme())
         hints.colorSchemeChanged.connect(lambda scheme: _apply_palette(app, scheme))
+
+    # ── Splash screen ─────────────────────────────────────────────────────
+    # Shown immediately after the palette is applied (so the correct themed
+    # logo is used) and dismissed just before the main window appears.
+    # app.processEvents() flushes the paint event so the splash is visible
+    # during the synchronous model/view/presenter construction that follows.
+    splash = _make_splash(app)
+    splash.show()
+    app.processEvents()
 
     # ── Application / window icon ─────────────────────────────────────────
     app.setWindowIcon(QIcon(Paths.icon("icon-square.svg")))
@@ -201,6 +343,7 @@ def main() -> None:
     sessionID: str = uuid4().hex
 
     window: Stan = Stan(gui_db=gui_db, sessionID=sessionID, username=username)
+    splash.close()
     window.show()
 
     app.exec()
