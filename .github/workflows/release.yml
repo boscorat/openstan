@@ -779,9 +779,123 @@ jobs:
       #       "dist/openstan.dmg" \
       #       "dist/openstan.app"
 
-      - name: Upload .dmg to release
+       - name: Upload .dmg to release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda  # v3.0.0
         with:
           files: dist/*.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # Cleanup — strip binary assets from releases beyond the 5 most recent
+  # ---------------------------------------------------------------------------
+  #
+  # Runs after all four platform builds have completed successfully.
+  # Keeping this as a job in release.yml (rather than a separate workflow
+  # triggered by the `release: published` event) is intentional: GitHub
+  # suppresses downstream workflow runs when the triggering workflow uses
+  # GITHUB_TOKEN, so a standalone cleanup workflow would never fire.
+  #
+  # For each release older than the 5 most recent:
+  #   1. Every binary asset is deleted.
+  #   2. A NOTICE.txt is uploaded in its place, pointing users to the
+  #      latest release.  The step is idempotent — re-runs are safe.
+  # ---------------------------------------------------------------------------
+  cleanup:
+    name: Strip assets from releases beyond the 5 most recent
+    runs-on: ubuntu-latest
+    needs: [build-linux, build-linux-arm64, build-windows, build-macos]
+    permissions:
+      contents: write
+
+    env:
+      KEEP: 5
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Delete old assets and upload NOTICE.txt
+        run: |
+          set -euo pipefail
+
+          REPO="${{ github.repository }}"
+
+          echo "Fetching release list for ${REPO}..."
+
+          # Fetch up to 100 releases, newest first, as newline-separated tag names.
+          # Pre-releases intentionally count toward KEEP so a run of RCs cannot
+          # cause stable release assets to be stripped early.
+          TAGS=$(gh release list \
+                   --repo "$REPO" \
+                   --limit 100 \
+                   --json tagName,createdAt \
+                   --order desc \
+                   --jq '.[].tagName')
+
+          TAG_COUNT=$(echo "$TAGS" | wc -l)
+          echo "Found ${TAG_COUNT} release(s). Keeping assets on the ${KEEP} most recent."
+
+          INDEX=0
+          while IFS= read -r TAG; do
+            INDEX=$((INDEX + 1))
+
+            if [ "$INDEX" -le "$KEEP" ]; then
+              echo "[${INDEX}] KEEP   ${TAG}"
+              continue
+            fi
+
+            echo "[${INDEX}] STRIP  ${TAG}"
+
+            # ── Delete every existing asset on this release ──────────────────
+            ASSET_IDS=$(gh release view "$TAG" \
+                          --repo "$REPO" \
+                          --json assets \
+                          --jq '.assets[].id' 2>/dev/null || true)
+
+            if [ -n "$ASSET_IDS" ]; then
+              while IFS= read -r ASSET_ID; do
+                ASSET_NAME=$(gh release view "$TAG" \
+                               --repo "$REPO" \
+                               --json assets \
+                               --jq ".assets[] | select(.id == ${ASSET_ID}) | .name" \
+                               2>/dev/null || true)
+                if [ "$ASSET_NAME" = "NOTICE.txt" ]; then
+                  echo "  Skipping existing NOTICE.txt on ${TAG}"
+                  continue
+                fi
+                echo "  Deleting asset ${ASSET_ID} (${ASSET_NAME}) from ${TAG}..."
+                gh release delete-asset "$TAG" "$ASSET_ID" \
+                  --repo "$REPO" \
+                  --yes
+              done <<< "$ASSET_IDS"
+            else
+              echo "  No assets found on ${TAG} (already stripped or never uploaded)."
+            fi
+
+            # ── Skip NOTICE.txt upload if already present ────────────────────
+            NOTICE_EXISTS=$(gh release view "$TAG" \
+                              --repo "$REPO" \
+                              --json assets \
+                              --jq '.assets[] | select(.name == "NOTICE.txt") | .name' \
+                              2>/dev/null || true)
+            if [ -n "$NOTICE_EXISTS" ]; then
+              echo "  NOTICE.txt already present on ${TAG}, skipping upload."
+              continue
+            fi
+
+            # ── Write and upload NOTICE.txt ──────────────────────────────────
+            NOTICE_FILE=$(mktemp /tmp/NOTICE_XXXXXX.txt)
+            cat > "$NOTICE_FILE" <<EOF
+          Installation assets for this release have been removed as part of routine maintenance.
+
+          Please visit https://github.com/${REPO}/releases/latest to download the latest version.
+          EOF
+
+            gh release upload "$TAG" "$NOTICE_FILE#NOTICE.txt" \
+              --repo "$REPO" \
+              --clobber
+            echo "  Uploaded NOTICE.txt to ${TAG}."
+            rm -f "$NOTICE_FILE"
+
+          done <<< "$TAGS"
+
+          echo "Done."
