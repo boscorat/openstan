@@ -408,7 +408,7 @@ wheels = [
 
 [[package]]
 name = "openstan"
-version = "0.1.4.7"
+version = "0.1.4.8"
 source = { editable = "." }
 dependencies = [
     { name = "pyside6-essentials" },
