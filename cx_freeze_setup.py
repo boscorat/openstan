@@ -161,28 +161,62 @@ include_files.append((str(_bsp_project_dir), "lib/bank_statement_parser/project"
 
 # On Linux CI the PNG may need to be regenerated if bdist_rpm re-invokes
 # build_exe in a temporary BUILD directory where the pre-built icon is absent.
-# We attempt to generate it via Inkscape, then fail loudly if that also fails.
+# We try a chain of converters in preference order and fail loudly only if
+# none are available.  Preference: Inkscape (highest fidelity) → rsvg-convert
+# (lightweight, CI-friendly) → ImageMagick convert (widely available).
 if sys.platform != "win32" and sys.platform != "darwin":
     if not _ICON_PNG.exists():
         _svg = HERE / "src" / "openstan" / "icons" / "icon-square.svg"
         _ICON_PNG.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            subprocess.run(
-                [
-                    "inkscape",
-                    "--export-type=png",
-                    f"--export-filename={_ICON_PNG}",
-                    "--export-width=256",
-                    "--export-height=256",
-                    str(_svg),
-                ],
-                check=True,
-            )
-        except Exception as exc:
+
+        _svg_converters: list[list[str]] = [
+            # Inkscape — best SVG fidelity
+            [
+                "inkscape",
+                "--export-type=png",
+                f"--export-filename={_ICON_PNG}",
+                "--export-width=256",
+                "--export-height=256",
+                str(_svg),
+            ],
+            # rsvg-convert — part of librsvg2-bin, no display required
+            [
+                "rsvg-convert",
+                "--width=256",
+                "--height=256",
+                "--output",
+                str(_ICON_PNG),
+                str(_svg),
+            ],
+            # ImageMagick convert — available on most Linux desktops/CI images
+            [
+                "convert",
+                "-background",
+                "none",
+                "-resize",
+                "256x256",
+                str(_svg),
+                str(_ICON_PNG),
+            ],
+        ]
+
+        _last_exc: Exception | None = None
+        for _cmd in _svg_converters:
+            try:
+                subprocess.run(_cmd, check=True, capture_output=True)
+                print(f"Icon PNG generated via: {_cmd[0]}")
+                break
+            except Exception as exc:
+                _last_exc = exc
+        else:
             raise FileNotFoundError(
-                f"Icon PNG not found at {_ICON_PNG} and could not be generated "
-                f"via Inkscape: {exc}"
-            ) from exc
+                f"Icon PNG not found at {_ICON_PNG} and could not be generated.\n"
+                "Tried: inkscape, rsvg-convert, convert (ImageMagick).\n"
+                f"Last error: {_last_exc}\n"
+                "Install one of the above tools, or place a 256×256 PNG manually at "
+                f"{_ICON_PNG}."
+            ) from _last_exc
+
     include_files.append((str(_ICON_PNG), "share/openstan.png"))
 
 # ---------------------------------------------------------------------------
@@ -680,3 +714,39 @@ _bsp_test_data = (
 if _bsp_test_data.exists():
     shutil.rmtree(_bsp_test_data)
     print(f"Post-build: removed BSP test_data directory ({_bsp_test_data})")
+
+# ---------------------------------------------------------------------------
+# Post-build strip: remove debug symbols from all shared libraries
+# ---------------------------------------------------------------------------
+# Rust-compiled extensions (polars, cryptography) and C/C++ extensions can
+# carry substantial debug-symbol sections that bloat the installed footprint
+# without providing any runtime benefit to end users.
+# `strip --strip-unneeded` removes debug symbols and unused relocation entries
+# while preserving all exported symbols the dynamic linker requires.  It is
+# safe and idempotent — running it on an already-stripped binary is a no-op.
+# Windows and macOS are excluded: Windows uses .pdb sidecar files (stripping
+# .dll/.pyd is rarely beneficial and can break cx_Freeze's own bootstrapping);
+# macOS code-signing must be the final step on any Mach-O binary, so stripping
+# is handled by the release pipeline after signing.
+
+if sys.platform != "win32" and sys.platform != "darwin":
+    _lib_dir = Path(build_exe_options["build_exe"]) / "lib"
+    _stripped = 0
+    _skipped = 0
+    for _so in sorted(_lib_dir.rglob("*")):
+        if not _so.is_file() or _so.is_symlink() or ".so" not in _so.name:
+            continue
+        try:
+            subprocess.run(
+                ["strip", "--strip-unneeded", str(_so)],
+                check=True,
+                capture_output=True,
+            )
+            _stripped += 1
+        except subprocess.CalledProcessError:
+            # Non-ELF files (e.g. data files with .so in the name) are silently
+            # skipped; strip exits non-zero for anything it cannot process.
+            _skipped += 1
+    print(
+        f"Post-build: stripped {_stripped} shared librar{'y' if _stripped == 1 else 'ies'} ({_skipped} skipped)"
+    )
