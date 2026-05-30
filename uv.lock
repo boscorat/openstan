@@ -433,7 +433,7 @@ dev = [
 requires-dist = [
     { name = "pyside6-essentials", specifier = ">=6.7.0" },
     { name = "tomli-w", specifier = ">=1.2.0" },
-    { name = "uk-bank-statement-parser", specifier = "==0.2.1b7" },
+    { name = "uk-bank-statement-parser", specifier = ">=0.2.1b7" },
 ]
 
 [package.metadata.requires-dev]
