@@ -846,27 +846,25 @@ jobs:
             echo "[${INDEX}] STRIP  ${TAG}"
 
             # ── Delete every existing asset on this release ──────────────────
-            ASSET_IDS=$(gh release view "$TAG" \
-                          --repo "$REPO" \
-                          --json assets \
-                          --jq '.assets[].id' 2>/dev/null || true)
+            # Fetch asset names directly — gh release delete-asset takes a name,
+            # not an ID.  Names within a single release are unique (GitHub enforces
+            # this), so name-based deletion is unambiguous.
+            ASSET_NAMES=$(gh release view "$TAG" \
+                            --repo "$REPO" \
+                            --json assets \
+                            --jq '.assets[].name' 2>/dev/null || true)
 
-            if [ -n "$ASSET_IDS" ]; then
-              while IFS= read -r ASSET_ID; do
-                ASSET_NAME=$(gh release view "$TAG" \
-                               --repo "$REPO" \
-                               --json assets \
-                               --jq ".assets[] | select(.id == ${ASSET_ID}) | .name" \
-                               2>/dev/null || true)
+            if [ -n "$ASSET_NAMES" ]; then
+              while IFS= read -r ASSET_NAME; do
                 if [ "$ASSET_NAME" = "NOTICE.txt" ]; then
                   echo "  Skipping existing NOTICE.txt on ${TAG}"
                   continue
                 fi
-                echo "  Deleting asset ${ASSET_ID} (${ASSET_NAME}) from ${TAG}..."
-                gh release delete-asset "$TAG" "$ASSET_ID" \
+                echo "  Deleting asset '${ASSET_NAME}' from ${TAG}..."
+                gh release delete-asset "$TAG" "$ASSET_NAME" \
                   --repo "$REPO" \
                   --yes
-              done <<< "$ASSET_IDS"
+              done <<< "$ASSET_NAMES"
             else
               echo "  No assets found on ${TAG} (already stripped or never uploaded)."
             fi
