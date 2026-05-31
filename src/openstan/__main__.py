@@ -93,9 +93,13 @@ def _seed_bsp_default_project() -> None:
     ``__file__`` and therefore immune to the ``BSP_DEFAULT_PROJECT_ROOT``
     redirect — as the authoritative template source.
 
-    Strategy: copy any file that is present in the package source but absent
-    from the user root, so upgrades add new templates without clobbering any
-    user edits.
+    Strategy: copy any file that is present in the package source but differs
+    from (or is absent from) the user root.  This ensures that bsp upgrades
+    propagate updated templates into the seed cache so that newly scaffolded
+    projects always receive the current defaults.
+
+    User edits live in per-project folders (e.g. ~/Projects/TSB/), not in the
+    seed directory, so overwriting stale seeds never clobbers user customisations.
     """
     if _BSP_PKG_PROJECT is None or not _BSP_PKG_PROJECT.exists():
         # In a frozen build this means the bank_statement_parser/project/ data
@@ -124,9 +128,10 @@ def _seed_bsp_default_project() -> None:
             continue
         rel = src.relative_to(_BSP_PKG_PROJECT)
         dst = _BSP_USER_ROOT / rel
-        if not dst.exists():
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(src, dst)
+        if dst.exists() and dst.read_bytes() == src.read_bytes():
+            continue
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
 
 
 _seed_bsp_default_project()
