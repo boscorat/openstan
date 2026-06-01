@@ -7,19 +7,18 @@ Owns all logic for the anonymisation workflow:
   - opening the original / anonymised PDFs via the OS viewer
 """
 
-import shutil
 import tomllib
 import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import bank_statement_parser as bsp
+import bank_statement_anonymiser as bsa
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QFileDialog
 
-from openstan.components import StanErrorMessage
+from openstan.components import StanErrorMessage, StanInfoMessage
 
 if TYPE_CHECKING:
     from bank_statement_parser import ProjectPaths
@@ -41,17 +40,27 @@ class _AnonymiseSignals(QObject):
 
 
 class _AnonymiseWorker(QRunnable):
-    """Runs ``bsp.anonymise_pdf`` on a thread-pool thread."""
+    """Runs ``bsa.anonymise_pdf`` on a thread-pool thread."""
 
-    def __init__(self, input_path: Path, config_path: Path) -> None:
+    def __init__(
+        self,
+        input_path: Path,
+        always_anonymise_path: Path | None = None,
+        never_anonymise_path: Path | None = None,
+    ) -> None:
         super().__init__()
         self.signals = _AnonymiseSignals()
         self._input = input_path
-        self._config = config_path
+        self._always_path = always_anonymise_path
+        self._never_path = never_anonymise_path
 
     def run(self) -> None:  # noqa: N802  (Qt override)
         try:
-            out = bsp.anonymise_pdf(self._input, config_path=self._config)
+            out = bsa.anonymise_pdf(
+                self._input,
+                always_anonymise_path=self._always_path,
+                never_anonymise_path=self._never_path,
+            )
             self.signals.finished.emit(out)
         except Exception as exc:
             self.signals.error.emit(str(exc))
@@ -85,15 +94,20 @@ class AnonymisePresenter(QObject):
         super().__init__()
         self.dialog = dialog
         self._project_paths = project_paths
-        self._toml_path: Path = (
-            Path(str(project_paths.root)) / "config" / "user" / "anonymise.toml"
-        )
+        self._config_dir: Path = Path(str(project_paths.root)) / "config" / "user"
+        self._always_anonymise_path: Path = self._config_dir / "always_anonymise.toml"
+        self._never_anonymise_path: Path = self._config_dir / "never_anonymise.toml"
+        self._legacy_path: Path = self._config_dir / "anonymise_legacy.toml"
         self._input_path: Path | None = initial_pdf
         self._output_path: Path | None = None
         # Remembers the parent of the last PDF the user selected.
         self._last_dir: Path | None = (
             initial_pdf.parent if initial_pdf is not None else None
         )
+
+        # Dirty-state tracking
+        self._always_dirty: bool = False
+        self._never_dirty: bool = False
 
         # Wire buttons
         self.dialog.button_browse.clicked.connect(self._browse_pdf)
@@ -102,70 +116,217 @@ class AnonymisePresenter(QObject):
         self.dialog.button_open_original.clicked.connect(self._open_original)
         self.dialog.button_open_anonymised.clicked.connect(self._open_anonymised)
 
-        # Populate TOML path label and editor
-        self.dialog.label_toml_path.setText(f"`{self._toml_path}`")
-        self._load_toml()
+        # Wire text editor signals for dirty tracking
+        self.dialog.text_edit_always.textChanged.connect(self._mark_always_dirty)
+        self.dialog.text_edit_never.textChanged.connect(self._mark_never_dirty)
+
+        # Ensure config files exist and handle legacy migration
+        self._ensure_config_files()
+
+        # Populate both editors
+        self._load_always_toml()
+        self._load_never_toml()
 
         # Pre-populate PDF path if supplied
         if initial_pdf is not None:
             self._set_input_path(initial_pdf)
 
     # ---------------------------------------------------------------------------
-    # TOML helpers
+    # Config file management
     # ---------------------------------------------------------------------------
 
-    def _load_toml(self) -> None:
-        """Read ``anonymise.toml`` and populate the text editor.
+    def _ensure_config_files(self) -> None:
+        """Check for legacy file and migrate if needed; ensure directories exist."""
+        self._config_dir.mkdir(parents=True, exist_ok=True)
 
-        On first use, if ``anonymise.toml`` does not yet exist but
-        ``anonymise_example.toml`` is present in the same directory, the
-        example is copied to ``anonymise.toml`` so the user has a working
-        starting point to modify.
-        """
-        if not self._toml_path.exists():
-            example_path = self._toml_path.parent / "anonymise_example.toml"
-            if example_path.exists():
-                try:
-                    self._toml_path.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(example_path, self._toml_path)
-                except Exception:
-                    traceback.print_exc()
-
-        if self._toml_path.exists():
+        # If legacy file exists and new files don't, migrate
+        if (
+            self._legacy_path.exists()
+            and not self._always_anonymise_path.exists()
+            and not self._never_anonymise_path.exists()
+        ):
             try:
-                self.dialog.text_edit_toml.setPlainText(
-                    self._toml_path.read_text(encoding="utf-8")
-                )
-                return
+                self._migrate_legacy_config()
             except Exception:
                 traceback.print_exc()
-        self.dialog.text_edit_toml.setPlainText(
-            "# anonymise.toml not found — save this editor to create it.\n"
-        )
+                # Fall through to create empty templates
+
+    def _migrate_legacy_config(self) -> None:
+        """Parse anonymise.toml and split into two new files."""
+        try:
+            text = self._legacy_path.read_text(encoding="utf-8")
+            config = tomllib.loads(text)
+        except tomllib.TOMLDecodeError as exc:
+            raise ValueError(f"Legacy config is invalid TOML: {exc}") from exc
+
+        # Extract sections
+        numbers_section = config.get("numbers_to_scramble", {})
+        words_section = config.get("words_to_not_scramble", {})
+        filename_section = config.get("filename_replacements", {})
+
+        # Build always_anonymise.toml
+        always_content = self._build_always_toml(numbers_section)
+        self._always_anonymise_path.write_text(always_content, encoding="utf-8")
+
+        # Build never_anonymise.toml
+        never_content = self._build_never_toml(words_section, filename_section)
+        self._never_anonymise_path.write_text(never_content, encoding="utf-8")
+
+    def _build_always_toml(self, numbers_section: dict) -> str:
+        """Reconstruct always_anonymise.toml content from legacy config section."""
+        if not numbers_section:
+            return "# Add any forced replacements here\n"
+
+        lines = ["# Forced replacements (applied before scramble)"]
+        for key, val in numbers_section.items():
+            if isinstance(val, str):
+                lines.append(f'"{key}" = "{val}"')
+        return "\n".join(lines)
+
+    def _build_never_toml(self, words_section: dict, filename_section: dict) -> str:
+        """Reconstruct never_anonymise.toml content from legacy config sections."""
+        lines = []
+
+        if words_section or filename_section:
+            exclude = words_section.get("exclude", [])
+            if exclude:
+                lines.append("exclude = [")
+                for word in exclude:
+                    lines.append(f'    "{word}",')
+                lines.append("]")
+
+        if not lines:
+            lines = [
+                "# Add phrases to exclude from scrambling here",
+                "exclude = [",
+                "]",
+            ]
+
+        return "\n".join(lines)
+
+    # ---------------------------------------------------------------------------
+    # TOML loading
+    # ---------------------------------------------------------------------------
+
+    def _load_always_toml(self) -> None:
+        """Load always_anonymise.toml into editor."""
+        if self._always_anonymise_path.exists():
+            try:
+                text = self._always_anonymise_path.read_text(encoding="utf-8")
+            except Exception:
+                traceback.print_exc()
+                text = ""
+        else:
+            text = ""
+
+        if not text:
+            text = "# Add any forced replacements here\n"
+
+        self.dialog.text_edit_always.setPlainText(text)
+        self._always_dirty = False
+
+    def _load_never_toml(self) -> None:
+        """Load never_anonymise.toml into editor."""
+        if self._never_anonymise_path.exists():
+            try:
+                text = self._never_anonymise_path.read_text(encoding="utf-8")
+            except Exception:
+                traceback.print_exc()
+                text = ""
+        else:
+            text = ""
+
+        if not text:
+            text = "# Add phrases to exclude from scrambling here\nexclude = [\n]\n"
+
+        self.dialog.text_edit_never.setPlainText(text)
+        self._never_dirty = False
+
+    # ---------------------------------------------------------------------------
+    # Dirty-state tracking
+    # ---------------------------------------------------------------------------
 
     @Slot()
-    def _save_toml(self) -> None:
-        """Validate and write the editor contents back to ``anonymise.toml``."""
-        text = self.dialog.text_edit_toml.toPlainText()
+    def _mark_always_dirty(self) -> None:
+        """Mark always_anonymise editor as modified."""
+        self._always_dirty = True
+        self._update_status()
 
-        # Validate it parses as valid TOML before writing
+    @Slot()
+    def _mark_never_dirty(self) -> None:
+        """Mark never_anonymise editor as modified."""
+        self._never_dirty = True
+        self._update_status()
+
+    def _update_status(self) -> None:
+        """Update status label to show if unsaved changes exist."""
+        if self._always_dirty or self._never_dirty:
+            self.dialog.label_status.setText(
+                "⚠ Unsaved changes (click 'Save Config' before anonymising)"
+            )
+        else:
+            self.dialog.label_status.setText(
+                "Ready — select a PDF and click 'Run Anonymisation'"
+            )
+
+    # ---------------------------------------------------------------------------
+    # TOML validation and saving
+    # ---------------------------------------------------------------------------
+
+    def _save_always_toml(self) -> bool:
+        """Validate and save always_anonymise.toml. Returns True on success."""
+        text = self.dialog.text_edit_always.toPlainText()
         try:
-            tomllib.loads(text)
+            tomllib.loads(text)  # Validate TOML syntax
         except tomllib.TOMLDecodeError as exc:
             StanErrorMessage(parent=self.dialog).showMessage(
-                f"The config contains invalid TOML and was not saved:\n\n{exc}"
+                f"always_anonymise.toml contains invalid TOML:\n\n{exc}"
             )
-            return
+            return False
 
         try:
-            self._toml_path.parent.mkdir(parents=True, exist_ok=True)
-            self._toml_path.write_text(text, encoding="utf-8")
-            self.dialog.label_status.setText("Config saved.")
+            self._always_anonymise_path.write_text(text, encoding="utf-8")
+            self._always_dirty = False
+            return True
         except Exception as exc:
             traceback.print_exc()
             StanErrorMessage(parent=self.dialog).showMessage(
-                f"Failed to save config:\n\n{exc}"
+                f"Failed to save always_anonymise.toml:\n\n{exc}"
             )
+            return False
+
+    def _save_never_toml(self) -> bool:
+        """Validate and save never_anonymise.toml. Returns True on success."""
+        text = self.dialog.text_edit_never.toPlainText()
+        try:
+            tomllib.loads(text)  # Validate TOML syntax
+        except tomllib.TOMLDecodeError as exc:
+            StanErrorMessage(parent=self.dialog).showMessage(
+                f"never_anonymise.toml contains invalid TOML:\n\n{exc}"
+            )
+            return False
+
+        try:
+            self._never_anonymise_path.write_text(text, encoding="utf-8")
+            self._never_dirty = False
+            return True
+        except Exception as exc:
+            traceback.print_exc()
+            StanErrorMessage(parent=self.dialog).showMessage(
+                f"Failed to save never_anonymise.toml:\n\n{exc}"
+            )
+            return False
+
+    @Slot()
+    def _save_toml(self) -> None:
+        """Validate and save both config files."""
+        save_always_ok = self._save_always_toml()
+        save_never_ok = self._save_never_toml()
+
+        if save_always_ok and save_never_ok:
+            self.dialog.label_status.setText("Config saved.")
+        else:
+            self.dialog.label_status.setText("Config has errors — see messages above.")
 
     # ---------------------------------------------------------------------------
     # PDF selection
@@ -205,7 +366,7 @@ class AnonymisePresenter(QObject):
 
     @Slot()
     def _run_anonymisation(self) -> None:
-        """Kick off the background anonymisation worker."""
+        """Kick off background anonymisation, prompting to save if dirty."""
         if self._input_path is None:
             return
 
@@ -215,11 +376,38 @@ class AnonymisePresenter(QObject):
             )
             return
 
-        if not self._toml_path.exists():
-            StanErrorMessage(parent=self.dialog).showMessage(
-                "anonymise.toml not found. Save the config first."
+        # Prompt to save if editors are dirty
+        if self._always_dirty or self._never_dirty:
+            reply = StanInfoMessage.question(
+                self.dialog,
+                "Unsaved Changes",
+                "You have unsaved changes in the config editor.\n\n"
+                "Save them before anonymising?",
+                StanInfoMessage.StandardButton.Yes
+                | StanInfoMessage.StandardButton.Cancel,
+                StanInfoMessage.StandardButton.Yes,
             )
-            return
+            if reply == StanInfoMessage.StandardButton.Cancel:
+                return
+
+            # Save both (if save fails, abort anonymisation)
+            save_always_ok = self._save_always_toml()
+            save_never_ok = self._save_never_toml()
+            if not (save_always_ok and save_never_ok):
+                self.dialog.label_status.setText(
+                    "Fix config errors before anonymising."
+                )
+                return
+
+        # Pass None if file doesn't exist (bsa uses system defaults)
+        always_path = (
+            self._always_anonymise_path
+            if self._always_anonymise_path.exists()
+            else None
+        )
+        never_path = (
+            self._never_anonymise_path if self._never_anonymise_path.exists() else None
+        )
 
         self.dialog.button_run.setEnabled(False)
         self.dialog.button_save_toml.setEnabled(False)
@@ -229,7 +417,8 @@ class AnonymisePresenter(QObject):
 
         worker = _AnonymiseWorker(
             input_path=self._input_path,
-            config_path=self._toml_path,
+            always_anonymise_path=always_path,
+            never_anonymise_path=never_path,
         )
         worker.signals.finished.connect(self._on_finished)
         worker.signals.error.connect(self._on_error)

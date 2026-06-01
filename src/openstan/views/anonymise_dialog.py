@@ -1,11 +1,13 @@
 """anonymise_dialog.py — Dialog for anonymising a PDF bank statement.
 
 Allows the user to:
-  1. Select a source PDF via file browser.
-  2. View and edit the project's ``anonymise.toml`` config inline.
-  3. Save the config.
-  4. Run the anonymisation (in a background worker).
-  5. Open the original and anonymised PDFs side-by-side in the OS viewer.
+   1. Select a source PDF via file browser.
+   2. View and edit the project's config files in two tabs:
+      - Always Anonymise: forced replacements
+      - Never Anonymise: excluded phrases
+   3. Save the config.
+   4. Run the anonymisation (in a background worker).
+   5. Open the original and anonymised PDFs side-by-side in the OS viewer.
 
 Business logic lives entirely in ``AnonymisePresenter``.
 """
@@ -15,6 +17,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QPlainTextEdit,
     QSizePolicy,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -39,8 +42,8 @@ class AnonymiseDialog(StanDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Anonymise PDF")
-        self.setMinimumWidth(620)
-        self.setMinimumHeight(560)
+        self.setMinimumWidth(700)
+        self.setMinimumHeight(620)
 
         outer = QVBoxLayout()
         outer.setSpacing(16)
@@ -72,34 +75,82 @@ class AnonymiseDialog(StanDialog):
         section_pdf.setLayout(layout_pdf)
 
         # ------------------------------------------------------------------
-        # Section 2 — anonymise.toml editor
+        # Section 2 — Config editors (two tabs)
         # ------------------------------------------------------------------
-        section_toml = StanFrame()
-        layout_toml = QVBoxLayout()
-        layout_toml.setSpacing(8)
+        section_config = StanFrame()
+        layout_config = QVBoxLayout()
+        layout_config.setSpacing(8)
 
-        lbl_toml_title = StanLabel("##### anonymise.toml")
-        self.label_toml_path = StanLabel("")
-        self.label_toml_path.setWordWrap(True)
+        lbl_config_title = StanLabel("##### Anonymisation Config")
 
-        self.text_edit_toml = QPlainTextEdit()
-        self.text_edit_toml.setAutoFillBackground(True)
-        self.text_edit_toml.setSizePolicy(
+        # Create tab widget
+        self.tab_widget = QTabWidget()
+
+        # Tab 1: Always Anonymise
+        self.tab_always = StanFrame()
+        layout_always = QVBoxLayout()
+        layout_always.setSpacing(8)
+
+        lbl_always_title = StanLabel("**Force Exact Replacements**")
+        lbl_always_info = StanLabel(
+            "Entries force exact string replacements before the scramble pass.\n"
+            'Format: `"original" = "replacement"`'
+        )
+        lbl_always_info.setWordWrap(True)
+
+        self.text_edit_always = QPlainTextEdit()
+        self.text_edit_always.setAutoFillBackground(True)
+        self.text_edit_always.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        font = self.text_edit_toml.font()
-        font.setFamily("Monospace")
-        self.text_edit_toml.setFont(font)
+        font_always = self.text_edit_always.font()
+        font_always.setFamily("Monospace")
+        self.text_edit_always.setFont(font_always)
 
+        layout_always.addWidget(lbl_always_title)
+        layout_always.addWidget(lbl_always_info)
+        layout_always.addWidget(self.text_edit_always, stretch=1)
+        self.tab_always.setLayout(layout_always)
+
+        # Tab 2: Never Anonymise
+        self.tab_never = StanFrame()
+        layout_never = QVBoxLayout()
+        layout_never.setSpacing(8)
+
+        lbl_never_title = StanLabel("**Exclude from Scrambling**")
+        lbl_never_info = StanLabel(
+            "Phrases listed here are left unchanged during the scramble pass.\n"
+            "Add them to the `exclude` array. Matching is case-insensitive."
+        )
+        lbl_never_info.setWordWrap(True)
+
+        self.text_edit_never = QPlainTextEdit()
+        self.text_edit_never.setAutoFillBackground(True)
+        self.text_edit_never.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        font_never = self.text_edit_never.font()
+        font_never.setFamily("Monospace")
+        self.text_edit_never.setFont(font_never)
+
+        layout_never.addWidget(lbl_never_title)
+        layout_never.addWidget(lbl_never_info)
+        layout_never.addWidget(self.text_edit_never, stretch=1)
+        self.tab_never.setLayout(layout_never)
+
+        # Add tabs to tab widget
+        self.tab_widget.addTab(self.tab_always, "Always Anonymise")
+        self.tab_widget.addTab(self.tab_never, "Never Anonymise")
+
+        # Add tab widget to config section
         self.button_save_toml = StanButton("Save Config", min_width=160)
 
-        layout_toml.addWidget(lbl_toml_title)
-        layout_toml.addWidget(self.label_toml_path)
-        layout_toml.addWidget(self.text_edit_toml, stretch=1)
-        layout_toml.addWidget(
+        layout_config.addWidget(lbl_config_title)
+        layout_config.addWidget(self.tab_widget, stretch=1)
+        layout_config.addWidget(
             self.button_save_toml, alignment=Qt.AlignmentFlag.AlignLeft
         )
-        section_toml.setLayout(layout_toml)
+        section_config.setLayout(layout_config)
 
         # ------------------------------------------------------------------
         # Section 3 — Run + status
@@ -158,7 +209,7 @@ class AnonymiseDialog(StanDialog):
         # Assemble outer layout
         # ------------------------------------------------------------------
         outer.addWidget(section_pdf)
-        outer.addWidget(section_toml, stretch=1)
+        outer.addWidget(section_config, stretch=1)
         outer.addWidget(section_run)
         outer.addWidget(section_open)
         outer.addWidget(button_box)

@@ -12,6 +12,7 @@ dependencies = [
     "pyside6-essentials>=6.7.0",
     "tomli-w>=1.2.0",
     "uk-bank-statement-parser>=0.2.1b7",
+    "uk-bank-statement-anonymiser>=0.1.0",
 ]
 
 [project.urls]
