@@ -1,13 +1,17 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from PySide6.QtSql import QSqlQuery, QSqlRecord, QSqlTableModel
+
+if TYPE_CHECKING:
+    from PySide6.QtSql import QSqlDatabase
 
 NEW_RECORD_STATUS = 8  # active status
 
 
 class UserModel(QSqlTableModel):
-    def __init__(self, db) -> None:
+    def __init__(self, db: "QSqlDatabase") -> None:
         super().__init__(db=db)
         self.setTable("user")
         self.select()

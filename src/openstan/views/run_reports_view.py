@@ -172,12 +172,12 @@ class MultiSelectWidget(StanWidget):
 
     def get_selected(self) -> list[str]:
         """Return the list of checked values."""
-        result: list[str] = []
-        for i in range(self._list.count()):
-            item = self._list.item(i)
-            if item and item.checkState() == Qt.CheckState.Checked:
-                result.append(item.text())
-        return result
+        return [
+            self._list.item(i).text()
+            for i in range(self._list.count())
+            if (item := self._list.item(i))
+            and item.checkState() == Qt.CheckState.Checked
+        ]
 
     def set_selected(self, values: list[str]) -> None:
         """Check exactly the items whose text is in *values*."""

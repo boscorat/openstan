@@ -92,16 +92,16 @@ def _totals_df(df: pl.DataFrame) -> pl.DataFrame:
     * All other numeric columns — sum.
     * Non-numeric columns — empty string.
     """
-    exprs: list[pl.Expr] = []
-    for col_name in df.columns:
-        if col_name in _FIRST_VALUE_COLS:
-            exprs.append(pl.col(col_name).first())
-        elif col_name in _LAST_VALUE_COLS:
-            exprs.append(pl.col(col_name).last())
-        elif df[col_name].dtype.is_numeric():
-            exprs.append(pl.col(col_name).sum())
-        else:
-            exprs.append(pl.lit("").alias(col_name))
+    exprs: list[pl.Expr] = [
+        pl.col(col_name).first()
+        if col_name in _FIRST_VALUE_COLS
+        else pl.col(col_name).last()
+        if col_name in _LAST_VALUE_COLS
+        else pl.col(col_name).sum()
+        if df[col_name].dtype.is_numeric()
+        else pl.lit("").alias(col_name)
+        for col_name in df.columns
+    ]
     return df.select(exprs)
 
 

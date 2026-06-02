@@ -4,7 +4,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from bank_statement_parser import ProjectPaths
-from PySide6.QtCore import Qt, QRectF, QSysInfo, QThreadPool, qDebug
+from PySide6.QtCore import Qt, QObject, QRectF, QSysInfo, QThreadPool, Slot, qDebug
 from PySide6.QtGui import (
     QColor,
     QFontDatabase,
@@ -230,6 +230,19 @@ def _apply_palette(app: QApplication, scheme: Qt.ColorScheme) -> None:
         app.setPalette(app.style().standardPalette())
 
 
+class _ThemeManager(QObject):
+    """Helper to manage theme switching with named slots instead of lambdas."""
+
+    def __init__(self, app: QApplication) -> None:
+        super().__init__()
+        self.app = app
+
+    @Slot(Qt.ColorScheme)
+    def on_color_scheme_changed(self, scheme: Qt.ColorScheme) -> None:
+        """Handle color scheme change from system preferences."""
+        _apply_palette(self.app, scheme)
+
+
 def _make_splash(app: QApplication) -> QSplashScreen:
     """Create a theme-aware splash screen with the app logo and version number.
 
@@ -376,7 +389,8 @@ def main() -> None:
             f"[openstan] colorScheme() at startup={qt_scheme.name!r} (may be unreliable — using dbus for initial detection)"
         )
         _apply_palette(app, _detect_scheme_via_dbus())
-        hints.colorSchemeChanged.connect(lambda scheme: _apply_palette(app, scheme))
+        theme_manager = _ThemeManager(app)
+        hints.colorSchemeChanged.connect(theme_manager.on_color_scheme_changed)
         print("[openstan] colorSchemeChanged connected for live theme switching")
 
     # ── Splash screen ─────────────────────────────────────────────────────
@@ -433,6 +447,7 @@ class Stan(QMainWindow):
         self.current_project_name = None
         self.current_project_id = None
         self.current_project_paths: ProjectPaths | None = None
+        self._app: QApplication | None = None  # Store app reference for theme switching
 
         # error message dialogs
         self.error_db_lock = StanErrorMessage(self)
@@ -565,7 +580,7 @@ class Stan(QMainWindow):
         # ── About dialog ──────────────────────────────────────────────────
         # Pure display — no presenter needed.  Wired here rather than in
         # StanPresenter because it carries no business logic or model access.
-        self.title_view.about_requested.connect(lambda: AboutDialog(self).exec())
+        self.title_view.about_requested.connect(self._on_about_requested)
 
         # ── Layout ────────────────────────────────────────────────────────
         # VBox: title → project selector → nav bar → stacked content → footer
@@ -619,6 +634,11 @@ class Stan(QMainWindow):
             self.stan_presenter.cleanup_before_exit()
         if a0:
             a0.accept()
+
+    @Slot()
+    def _on_about_requested(self) -> None:
+        """Handle request to show the About dialog."""
+        AboutDialog(self).exec()
 
 
 if __name__ == "__main__":
