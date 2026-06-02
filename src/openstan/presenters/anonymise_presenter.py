@@ -54,6 +54,7 @@ class _AnonymiseWorker(QRunnable):
         self._always_path = always_anonymise_path
         self._never_path = never_anonymise_path
 
+    @Slot()
     def run(self) -> None:  # noqa: N802  (Qt override)
         try:
             out = bsa.anonymise_pdf(

@@ -1,7 +1,11 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Signal
 from PySide6.QtSql import QSqlTableModel, QSqlRecord
+
+if TYPE_CHECKING:
+    from PySide6.QtSql import QSqlDatabase
 
 NEW_RECORD_STATUS = 8  # active status
 
@@ -9,13 +13,17 @@ NEW_RECORD_STATUS = 8  # active status
 class ProjectModel(QSqlTableModel):
     db_updated: Signal = Signal()
 
-    def __init__(self, db) -> None:
+    def __init__(self, db: "QSqlDatabase") -> None:
         super().__init__(db=db)
         self.setTable("project")
         self.select()
 
     def add_record(
-        self, project_id, project_name, project_location, sessionID
+        self,
+        project_id: str,
+        project_name: str,
+        project_location: str,
+        sessionID: str | None,
     ) -> tuple[bool, str, str]:
         msg: str = ""
         record: QSqlRecord = self.record()
@@ -33,12 +41,15 @@ class ProjectModel(QSqlTableModel):
                 self.db_updated.emit()
                 return (True, project_id, msg)
             else:
-                msg = self.lastError().text()
+                error = self.lastError()
+                msg = error.text() if error.isValid() else "Unknown database error"
                 return (False, project_id, msg)
         else:
-            return (False, project_id, self.lastError().text())
+            error = self.lastError()
+            msg = error.text() if error.isValid() else "Unknown database error"
+            return (False, project_id, msg)
 
-    def delete_record_by_id(self, project_id) -> tuple[bool, str, str]:
+    def delete_record_by_id(self, project_id: str) -> tuple[bool, str, str]:
         msg: str = ""
         for row in range(self.rowCount()):
             record: QSqlRecord = self.record(row)
@@ -49,6 +60,9 @@ class ProjectModel(QSqlTableModel):
                     self.db_updated.emit()
                     return (True, project_id, msg)
                 else:
-                    msg = self.lastError().text()
+                    error = self.lastError()
+                    msg = error.text() if error.isValid() else "Unknown database error"
                     return (False, project_id, msg)
-        return (False, project_id, self.lastError().text())
+        error = self.lastError()
+        msg = error.text() if error.isValid() else "Unknown database error"
+        return (False, project_id, msg)

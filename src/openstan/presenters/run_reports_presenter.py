@@ -79,6 +79,7 @@ class _ReportWorker(QRunnable):
         self.signals = _ReportWorkerSignals()
         self.setAutoDelete(True)
 
+    @Slot()
     def run(self) -> None:
         try:
             df: pl.DataFrame = self.fn()
@@ -107,6 +108,7 @@ class _FetchWorker(QRunnable):
         self.signals = _FetchWorkerSignals()
         self.setAutoDelete(True)
 
+    @Slot()
     def run(self) -> None:
         try:
             self.signals.finished.emit(self.fn())
@@ -134,6 +136,7 @@ class _ReportExportWorker(QRunnable):
         self.signals = _ReportExportWorkerSignals()
         self.setAutoDelete(True)
 
+    @Slot()
     def run(self) -> None:
         try:
             self.fn()
@@ -450,12 +453,10 @@ class RunReportsPresenter(QObject):
             return series.to_list()
 
         worker = _FetchWorker(_fetch)
-        worker.signals.finished.connect(lambda values: row.set_distinct_values(values))
-        worker.signals.error.connect(
-            lambda msg: self._error_dialog.showMessage(
-                f"Failed to fetch distinct values: {msg}"
-            )
+        worker.signals.finished.connect(
+            lambda values, r=row: self._on_fetch_values_finished(r, values)
         )
+        worker.signals.error.connect(self._on_fetch_values_error)
 
         # Hold a Python reference so that the _FetchWorkerSignals QObject is
         # not GC-collected from the thread-pool thread after Qt auto-deletes
@@ -473,6 +474,18 @@ class RunReportsPresenter(QObject):
         worker.signals.error.connect(_release_worker)
 
         self.threadpool.start(worker)
+
+    @Slot(object, list)
+    def _on_fetch_values_finished(
+        self, row: FilterRowWidget, values: list[str]
+    ) -> None:
+        """Handle completion of fetch worker for distinct values."""
+        row.set_distinct_values(values)
+
+    @Slot(str)
+    def _on_fetch_values_error(self, message: str) -> None:
+        """Handle error from fetch worker."""
+        self._error_dialog.showMessage(f"Failed to fetch distinct values: {message}")
 
     # ---------------------------------------------------------------------------
     # Query building
@@ -1000,7 +1013,10 @@ class RunReportsPresenter(QObject):
         self._set_export_buttons_enabled(False)
 
         worker = _ReportExportWorker(lambda: write_fn(df, dest_path))
-        worker.signals.finished.connect(lambda: self._on_export_finished(dest_path))
+        # Use default argument to capture dest_path reliably
+        worker.signals.finished.connect(
+            lambda path=dest_path: self._on_export_finished(path)
+        )
         worker.signals.error.connect(self._on_export_error)
         self.threadpool.start(worker)
 

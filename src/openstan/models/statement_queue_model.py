@@ -1,6 +1,13 @@
+from typing import TYPE_CHECKING
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtSql import QSqlRecord, QSqlTableModel
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from PySide6.QtSql import QSqlDatabase
 
 _HEX_CHARS: frozenset[str] = frozenset("0123456789abcdef")
 
@@ -26,7 +33,7 @@ class StatementQueueModel(QSqlTableModel):
 
     db_updated: Signal = Signal()
 
-    def __init__(self, db) -> None:
+    def __init__(self, db: "QSqlDatabase") -> None:
         super().__init__(None, db)
         self.setTable("statement_queue")
         self._project_id: str | None = None
@@ -51,7 +58,13 @@ class StatementQueueModel(QSqlTableModel):
     # ---------------------------------------------------------------------------
 
     def add_record(
-        self, queue_id, parent_id, session_id, status_id, path, is_folder=0
+        self,
+        queue_id: str,
+        parent_id: str,
+        session_id: str,
+        status_id: int,
+        path: str | "Path",
+        is_folder: int = 0,
     ) -> tuple[bool, str, str]:
         msg: str = ""
         record: QSqlRecord = self.record()
@@ -72,12 +85,12 @@ class StatementQueueModel(QSqlTableModel):
             return (False, queue_id, msg)
 
     def delete_records(self, queue_ids: list[str]) -> tuple[bool, list[str], str]:
-        success: bool = bool(False)
+        success: bool = False
         msg: str = ""
-        children_deleted: list[str] = list()
-        folders_deleted: list[str] = list()
-        files_deleted: list[str] = list()
-        all_deleted: list[str] = list()
+        children_deleted: list[str] = []
+        folders_deleted: list[str] = []
+        files_deleted: list[str] = []
+        all_deleted: list[str] = []
         while self.canFetchMore():
             self.fetchMore()
         last_record: int = self.rowCount() - 1
@@ -109,7 +122,7 @@ class StatementQueueModel(QSqlTableModel):
             all_deleted.extend(children_deleted)
             all_deleted.extend(folders_deleted)
             all_deleted.extend(files_deleted)
-            success = bool(True)
+            success = True
             self.db_updated.emit()
             msg = (
                 f"success - {len(folders_deleted)} folder(s) containing "
@@ -122,7 +135,7 @@ class StatementQueueModel(QSqlTableModel):
             return (success, queue_ids, msg)
 
     def clear_records(self) -> tuple[bool, list[str], str]:
-        queue_ids: list[str] = list()
+        queue_ids: list[str] = []
         while self.canFetchMore():
             self.fetchMore()
         for row in range(self.rowCount()):

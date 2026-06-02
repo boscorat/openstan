@@ -1,15 +1,19 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from PySide6.QtSql import QSqlRecord, QSqlTableModel
 
+if TYPE_CHECKING:
+    from PySide6.QtSql import QSqlDatabase
+
 
 class SessionModel(QSqlTableModel):
-    def __init__(self, db) -> None:
+    def __init__(self, db: "QSqlDatabase") -> None:
         super().__init__(db=db)
         self.setTable("session")
         self.select()
 
-    def add_record(self, session_id, user_id) -> tuple[bool, str, str]:
+    def add_record(self, session_id: str, user_id: str) -> tuple[bool, str, str]:
         msg: str = ""
         record: QSqlRecord = self.record()
         record.setValue("session_id", session_id)

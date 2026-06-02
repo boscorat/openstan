@@ -51,6 +51,8 @@ from openstan.models.statement_queue_model import _safe_hex_id
 if TYPE_CHECKING:
     from bank_statement_parser import PdfResult
 
+    from PySide6.QtSql import QSqlDatabase
+
 
 # ---------------------------------------------------------------------------
 # JSON serialisation helpers for PdfResult
@@ -312,7 +314,7 @@ class StatementResultModel(QSqlTableModel):
     COL_DELETED = 14
     COL_CREATED = 15
 
-    def __init__(self, db) -> None:
+    def __init__(self, db: "QSqlDatabase") -> None:
         super().__init__(None, db)
         self.setTable("statement_result")
         self.select()
@@ -506,7 +508,7 @@ class StatementResultPayloadModel(QSqlTableModel):
     The TEXT payload is never fetched during normal display operations.
     """
 
-    def __init__(self, db) -> None:
+    def __init__(self, db: "QSqlDatabase") -> None:
         super().__init__(None, db)
         self.setTable("statement_result_payload")
         self.select()

@@ -111,6 +111,7 @@ class CommitWorker(QRunnable):
         self._project_path = project_path
         self._duration_secs = duration_secs
 
+    @Slot()
     def run(self) -> None:
         try:
             self.signals.step.emit("Updating database…")
@@ -204,6 +205,7 @@ class DebugWorker(QRunnable):
         self._project_path = project_path
         self._cancel_event = cancel_event
 
+    @Slot()
     def run(self) -> None:
         try:
             for i, row in enumerate(self._rows):
