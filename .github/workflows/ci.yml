@@ -51,10 +51,35 @@ jobs:
             libfontconfig1 \
             libfreetype6
 
-      - name: Install dependencies
-        run: uv sync --group dev
+       - name: Install dependencies
+         run: uv sync --group dev
 
-      - name: Lint (ruff)
+       - name: Fetch anonymised PDFs for testing (graceful fallback)
+         continue-on-error: true
+         if: secrets.SSH_PRIVATE_KEY_TEST_DATA != ''
+         run: |
+           mkdir -p ~/.ssh
+           echo "${{ secrets.SSH_PRIVATE_KEY_TEST_DATA }}" > ~/.ssh/bank_statement_deploy_key
+           chmod 600 ~/.ssh/bank_statement_deploy_key
+           ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null || true
+           
+           # Clone only the pdfs directory
+           git clone --depth 1 --filter=blob:none --sparse \
+             git@github.com:boscorat/bank-statement-data.git /tmp/test_pdfs
+           
+           cd /tmp/test_pdfs
+           git sparse-checkout set pdfs/good pdfs/bad
+           
+           # Copy to tests/fixtures/pdfs
+           mkdir -p ../openstan/tests/fixtures
+           cp -r pdfs ../openstan/tests/fixtures/ || true
+           
+           # Cleanup
+           cd ..
+           rm -rf test_pdfs
+           rm -f ~/.ssh/bank_statement_deploy_key
+
+       - name: Lint (ruff)
         run: uv run ruff check .
 
       - name: Format check (ruff)
