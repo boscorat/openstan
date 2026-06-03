@@ -15,5 +15,11 @@ wheels/
 # SQLite databases (generated at runtime; may contain sensitive data)
 *.db
 
+# PDF files - Block all PDFs (security: no accidental sensitive data commits)
+*.pdf
+# Exception: Allow synthetic PDFs only (generated, safe to commit)
+!tests/fixtures/pdfs/synthetic/
+!tests/fixtures/pdfs/synthetic/**/*.pdf
+
 # example files
 examples/
