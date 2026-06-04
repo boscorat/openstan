@@ -1,450 +1,290 @@
-# Testing Guide for openstan
+# Testing Guide
 
-This guide explains how to run tests in openstan using pytest markers for different testing scenarios.
+## Overview
 
-## Quick Start
+This project contains integration tests that verify the complete openstan pipeline against real (anonymised) bank statement data. Tests require PDF fixtures and are most comprehensive with private repo access.
 
-### Run all tests
+---
+
+## Test Data Strategy
+
+Tests use a tiered approach:
+
+1. **Anonymised PDFs** (if available via symlinks): Full integration testing with real data structures
+2. **Bundled PDFs** (fallback): Functional testing with pre-generated fixtures
+3. **None**: Tests skip gracefully with helpful message
+
+### Why Tiered?
+
+- **Security**: Never commit real data to public repos
+- **Completeness**: Developers with access get comprehensive testing
+- **Accessibility**: All developers can run tests (fallback to bundled)
+
+---
+
+## Running Tests
+
+### Option 1: Full Integration Tests with Anonymised PDFs
+
+Requires SSH access to private `bank-statement-data` repo.
+
+**Step 1: Set up symlinks (one-time)**
+
 ```bash
-pytest tests/
+# See detailed setup guide:
+# https://github.com/boscorat/bank-statement-data/blob/master/SYMLINK_SETUP.md
+
+# Quick reference for Linux/macOS:
+ln -s ~/repos/bank-statement-data/pdfs/good \
+      ~/repos/openstan/tests/fixtures/pdfs/anonymised_good
+
+ln -s ~/repos/bank-statement-data/pdfs/bad \
+      ~/repos/openstan/tests/fixtures/pdfs/anonymised_bad
 ```
 
-### Run only synthetic PDF tests (fast, no private repo required)
+**Step 2: Verify symlinks**
+
 ```bash
-pytest tests/ -m synthetic
+ls -la tests/fixtures/pdfs/
+
+# You should see:
+# anonymised_good -> ~/repos/bank-statement-data/pdfs/good
+# anonymised_bad -> ~/repos/bank-statement-data/pdfs/bad
 ```
 
-### Run integration tests with BSP
+**Step 3: Run tests**
+
 ```bash
-pytest tests/ -m integration -v
+# Run all tests (may take 2-5 minutes on first run)
+uv run pytest tests/ -v
+
+# Output should show:
+# [PDF_FIXTURES] Mode: ANONYMISED
+# [PDF_FIXTURES] Using ANONYMISED PDFs (symlinks detected)
+
+# Run only integration tests
+uv run pytest tests/test_integration.py -v
+
+# Run specific test
+uv run pytest tests/test_integration.py::TestImportResults::test_total_pdfs_processed -v
 ```
 
-### Run specific test file
+### Option 2: Standard Tests with Bundled PDFs
+
+No setup required.
+
 ```bash
-pytest tests/test_integration.py -v
+uv run pytest tests/ -v
+
+# Output should show:
+# [PDF_FIXTURES] Mode: BUNDLED
+# [PDF_FIXTURES] Using BUNDLED PDFs from installed package
 ```
 
 ---
 
-## Available Pytest Markers
-
-### `@pytest.mark.synthetic`
-Tests using **synthetic (completely fake) PDFs** committed to this repo.
-
-**When to use**:
-- Local development (fast, no setup required)
-- CI/CD pipelines (safe, no sensitive data)
-- Quick validation of openstan logic
-
-**Example**:
-```bash
-pytest -m synthetic -v
-```
-
-### `@pytest.mark.anonymised`
-Tests using **anonymised real PDFs** from the private `bank-statement-data` repo.
-
-**When to use**:
-- Validation against real bank statement structures
-- Integration testing with actual bank formats
-- Pre-release testing
-
-**Requires**:
-- SSH access to private `bank-statement-data` repo
-- `SSH_PRIVATE_KEY_TEST_DATA` secret configured in CI
-
-**Example**:
-```bash
-pytest -m anonymised -v
-```
-
-### `@pytest.mark.integration`
-Tests that validate cross-process integration with bank_statement_parser.
-
-**When to use**:
-- Testing openstan's import pipeline
-- Validating database output matches BSP
-- End-to-end workflow testing
-
-**Example**:
-```bash
-pytest -m integration -v
-```
-
----
-
-## Test Categories & Recommended Usage
-
-### 1. Development (Local Machine)
-
-Use **synthetic PDFs only** for fast iteration:
-
-```bash
-# Run all synthetic tests (fastest)
-pytest tests/ -m synthetic -v
-
-# Run specific test file
-pytest tests/test_integration.py::test_import_workflow -m synthetic -v
-
-# Run with coverage
-pytest tests/ -m synthetic --cov=openstan --cov-report=html
-```
-
-**Why**: Synthetic tests are deterministic, fast, and need no SSH setup.
-
-### 2. CI/CD (Pull Requests)
-
-Uses **synthetic PDFs by default**, with optional anonymised PDFs:
-
-```bash
-# PR CI runs this (graceful fallback to synthetic if SSH unavailable)
-pytest tests/ -v
-
-# Both synthetic and anonymised if SSH secret available
-pytest tests/ -m "synthetic or anonymised" -v
-```
-
-**Configuration**: See `.github/workflows/ci.yml`
-
-### 3. Release Testing
-
-Uses **both synthetic AND anonymised PDFs** for thorough validation:
-
-```bash
-# Run all tests (both synthetic and anonymised)
-pytest tests/ -v
-
-# Or explicitly require anonymised tests
-pytest tests/ -m anonymised -v
-```
-
-**Requirement**: SSH secret `SSH_PRIVATE_KEY_TEST_DATA` must be available.
-
----
-
-## Test Fixtures
-
-All fixtures are defined in `tests/conftest.py`:
-
-### `qt_app` (session scope)
-Provides the global QApplication instance for the entire test session.
-
-**Why**: Ensures view widgets can be instantiated in tests.
-
-**Usage in tests**:
-```python
-def test_with_qt_widgets(qt_app):
-    # Can create PySide6 widgets safely
-    widget = MyWidget()
-```
-
-### `bsp_harness` (session scope)
-Builds the BSP reference project using bundled anonymised PDFs.
-
-**Provides**:
-- `harness.db_path` - Path to project.db for comparison
-- `harness.project_path` - Path to temporary BSP project
-- `harness.batch` - StatementBatch with processing results
-
-**Usage in tests**:
-```python
-def test_compare_with_bsp(bsp_harness):
-    bsp_results = get_bsp_results(bsp_harness.db_path)
-    openstan_results = get_openstan_results()
-    assert bsp_results == openstan_results
-```
-
-### `openstan_env` (session scope, depends on bsp_harness)
-Drives the complete openstan import pipeline.
-
-**Provides**:
-- `env.project_path` - Path to openstan project
-- `env.project_id` - Project UUID
-- `env.n_success` - Count of successful imports
-- `env.n_review` - Count of CAB review required
-- `env.n_failure` - Count of failures
-- `env.bsp_n_success` - BSP success count for comparison
-- `env.bsp_n_review` - BSP review count for comparison
-- `env.processed_pdfs` - List of PdfResult objects
-
-**Usage in tests**:
-```python
-def test_import_pipeline(openstan_env):
-    # Validate openstan produced same results as BSP
-    assert openstan_env.n_success == openstan_env.bsp_n_success
-    assert openstan_env.n_review == openstan_env.bsp_n_review
-```
-
-### `synthetic_pdf_dir` (session scope)
-Returns Path to synthetic PDFs committed to this repo.
-
-**Usage in tests**:
-```python
-def test_with_synthetic_pdf(synthetic_pdf_dir):
-    pdf = list((synthetic_pdf_dir / "good").glob("*.pdf"))[0]
-    result = import_pdf(pdf)
-    assert result.success
-```
-
-### `sample_pdf_for_import` (function scope)
-Returns a random synthetic PDF for unit tests.
-
-**Usage in tests**:
-```python
-def test_pdf_metadata_extraction(sample_pdf_for_import):
-    if sample_pdf_for_import:
-        metadata = extract_metadata(sample_pdf_for_import)
-        assert metadata is not None
-```
-
----
-
-## Running Tests with Different Markers
-
-### Combination Patterns
-
-```bash
-# Run synthetic OR integration tests
-pytest tests/ -m "synthetic or integration" -v
-
-# Run integration tests but not synthetic
-pytest tests/ -m "integration and not synthetic" -v
-
-# Run anonymised integration tests
-pytest tests/ -m "anonymised and integration" -v
-
-# Run everything except integration
-pytest tests/ -m "not integration" -v
-```
-
----
-
-## Test Organization
-
-Tests are organized by functionality:
+## Test Structure
 
 ```
 tests/
-├── conftest.py                           # Shared fixtures (bsp_harness, openstan_env, etc.)
-├── test_integration.py                   # Integration tests (openstan ↔ BSP comparison)
-├── test_pdf_result_serialisation.py      # Serialization tests
-├── unit/                                 # Unit tests by component
-│   ├── models/                           # Model tests
-│   ├── presenters/                       # Presenter tests
-│   └── ...
-└── fixtures/                             # Test data directory
-    └── pdfs/                             # Synthetic PDFs (pushed by bank-statement-data)
-        ├── good/
-        └── bad/
-```
-
-### Running by Category
-
-**Integration tests** (BSP comparison):
-```bash
-pytest tests/test_integration.py -m integration -v
-```
-
-**Unit tests** (component-level):
-```bash
-pytest tests/unit/ -v
-```
-
-**Serialization tests**:
-```bash
-pytest tests/test_pdf_result_serialisation.py -v
-```
-
-**Contract validation tests** (BSP API):
-```bash
-pytest tests/test_bsp_contract.py -v
+├── fixtures/
+│   └── pdfs/               # PDF test data (symlinked or bundled)
+│       ├── anonymised_good -> ~/bank-statement-data/pdfs/good (if available)
+│       ├── anonymised_bad  -> ~/bank-statement-data/pdfs/bad (if available)
+│       └── .gitkeep        # Ensures directory exists in git
+├── unit/
+│   ├── conftest.py         # Unit test fixtures
+│   ├── test_base_result_model.py
+│   ├── test_paths.py
+│   └── ... (other unit tests)
+├── conftest.py             # Integration test fixtures
+├── test_bsp_contract.py    # BSP API contract tests
+├── test_integration.py     # Full pipeline integration tests
+├── test_pdf_result_serialisation.py
+└── ... (other tests)
 ```
 
 ---
 
-## BSP Contract Validation
+## Test Categories
 
-### test_bsp_contract.py
+### Unit Tests (`tests/unit/`)
 
-Validates that BSP's API hasn't changed in breaking ways.
-
-**Test categories**:
-- Function existence (process_pdf_statement, update_db, etc.)
-- Result types (Success, Review, Failure classes)
-- Exception types (ProjectError, StatementError, etc.)
-- Version compatibility (bsp==0.2.1b7)
-- TestHarness API
-
-**Why important**: Detects breaking changes in BSP at test time, not in production.
-
-**Run contract tests**:
+Fast, isolated tests for individual components:
 ```bash
-pytest tests/test_bsp_contract.py -v
+uv run pytest tests/unit/ -v
 ```
 
-**Expected output**:
-```
-test_process_pdf_statement_exists PASSED
-test_update_db_exists PASSED
-test_result_classes_exist PASSED
-test_pdf_result_has_required_fields PASSED
-test_expected_exceptions_exist PASSED
-test_bsp_version_is_expected PASSED
-test_test_harness_exists PASSED
-test_test_harness_context_manager PASSED
-test_test_harness_callable PASSED
+No PDF fixtures required - use mocks.
 
-======================== 9 passed in 0.04s =========================
+### Contract Tests (`test_bsp_contract.py`)
+
+Verify compatibility with `bank_statement_parser` API:
+```bash
+uv run pytest tests/test_bsp_contract.py -v
+```
+
+No PDF fixtures required.
+
+### Integration Tests (`test_integration.py`)
+
+Full pipeline tests requiring PDF fixtures:
+```bash
+uv run pytest tests/test_integration.py -v
+```
+
+**With anonymised PDFs**: Verifies complete data flow
+**With bundled PDFs**: Verifies basic functionality
+**Without PDFs**: Tests skip gracefully
+
+---
+
+## PDF Access
+
+### How Tests Find PDFs
+
+Tests automatically detect:
+1. **Anonymised symlinks** (if you set them up) → Use real data
+2. **Bundled PDFs** (from installed `bank_statement_parser` package) → Use fallback
+3. **Neither** → Skip with helpful message
+
+### Checking Which PDFs You're Using
+
+```bash
+uv run pytest tests/ -v 2>&1 | grep "PDF_FIXTURES"
+
+# Example output:
+# [PDF_FIXTURES] Mode: ANONYMISED
+# [PDF_FIXTURES] Using ANONYMISED PDFs (symlinks detected)
+# [PDF_FIXTURES] Location: /home/user/repos/bank-statement-data/pdfs/good
+```
+
+### If Tests Skip
+
+```bash
+# Check the skip message
+uv run pytest tests/ -v -rs  # -rs shows skip reasons
+
+# Example output:
+# SKIPPED tests/test_integration.py::TestImportResults - No PDF fixtures available...
 ```
 
 ---
 
-## Continuous Integration
+## Qt Headless Mode
 
-### Development/PR CI (.github/workflows/ci.yml)
+Tests run headless on CI/CD (no GUI):
 
-Runs tests with synthetic PDFs; gracefully falls back if anonymised unavailable:
+```bash
+# This is set automatically in conftest.py on Linux
+export QT_QPA_PLATFORM=offscreen
 
-```yaml
-- name: Fetch anonymised PDFs for testing (graceful fallback)
-  continue-on-error: true
-  if: secrets.SSH_PRIVATE_KEY_TEST_DATA != ''
-  run: |
-    # Attempts to clone private bank-statement-data repo
-    # Falls back to synthetic if SSH key unavailable
-    
-- name: Test (pytest)
-  run: uv run pytest tests/ -v
-  env:
-    QT_QPA_PLATFORM: offscreen
+uv run pytest tests/ -v
 ```
 
-**Result**: ✅ PR passes even without anonymised PDFs.
+On macOS/Windows, GUI is allowed (if running locally with display).
 
-### Release CI
+---
 
-Would enforce anonymised PDFs before release (future enhancement).
+## CI/CD Behavior
+
+When tests run in GitHub Actions:
+
+1. **Fetch Phase**: If SSH key available, clones anonymised PDFs to `/tmp/`
+2. **Test Phase**: Runs full integration with anonymised PDFs (if available)
+3. **Cleanup Phase**: Removes all PDFs (security: prevent accidental commits)
+4. **Fallback**: If SSH unavailable, uses bundled PDFs
+
+---
+
+## Before Submitting PR
+
+```bash
+# 1. Linting
+uv run ruff check .
+
+# 2. Format check
+uv run ruff format --check .
+
+# 3. Type checking (if available)
+uv run pyrefly check
+
+# 4. All tests pass
+uv run pytest tests/ -v
+
+# Optional: Run only unit tests (faster)
+uv run pytest tests/unit/ -v
+```
 
 ---
 
 ## Troubleshooting
 
-### No tests collected (marker mismatch)
+### Q: Tests are skipping with "No PDF fixtures available"?
 
-**Problem**: `pytest -m unknown_marker` collects 0 items
+**A:** Tests can't find PDF data. Either:
+- Set up symlinks to anonymised PDFs (see Option 1 above), OR
+- Ignore it - tests will fall back to bundled PDFs automatically
 
-**Solution**: List available markers:
 ```bash
-pytest --markers
+# Check what's available
+ls -la tests/fixtures/pdfs/
 ```
 
-Expected output includes:
-```
-@pytest.mark.synthetic: tests using synthetic PDFs (fast, CI-safe)
-@pytest.mark.anonymised: comparison tests using anonymised PDFs (requires CI secret)
-@pytest.mark.integration: cross-process tests with BSP
-```
+### Q: Tests are slow on first run?
 
-### Tests fail with "Qt platform plugin not found"
+**A:** First run builds BSP reference project (expensive). Subsequent runs reuse it. This is expected.
 
-**Problem**: `Could not find the Qt platform plugin`
+### Q: `QT_QPA_PLATFORM` errors on headless system?
 
-**Solution**: Set headless mode:
+**A:** Should be set automatically. If not:
+
 ```bash
 export QT_QPA_PLATFORM=offscreen
-pytest tests/ -v
-```
-
-Or use uv (automatically sets this):
-```bash
 uv run pytest tests/ -v
 ```
 
-### Tests fail with "No anonymised PDFs found"
+### Q: Import errors?
 
-**Problem**: Some tests require anonymised PDFs but they're not available
+**A:** Reinstall dependencies:
 
-**Solution**: Use synthetic-only tests during development:
 ```bash
-pytest tests/ -m synthetic -v
+uv sync
 ```
 
-### Import errors
+### Q: How do I run tests with extra debugging?
 
-**Problem**: `ModuleNotFoundError: No module named 'openstan'`
-
-**Solution**: Install dependencies:
 ```bash
-uv sync --group dev
-uv run pytest tests/ -v
-```
+# Show print statements
+uv run pytest tests/ -v -s
 
-### Database lock errors in openstan_env
+# Extra verbose
+uv run pytest tests/ -vv
 
-**Problem**: `SQLite database is locked`
+# Stop on first failure
+uv run pytest tests/ -x
 
-**Solution**: Ensure only one test session runs at a time:
-```bash
-# Don't use pytest-xdist with -n flag
-pytest tests/ -v  # ✓ Correct
-
-pytest tests/ -n 4  # ✗ Will cause lock errors
+# Run with pdb debugger
+uv run pytest tests/test_integration.py::TestImportResults -v --pdb
 ```
 
 ---
 
-## Test Development Workflow
+## Performance Notes
 
-When writing new tests:
-
-1. **Use `@pytest.mark.synthetic` by default** (fastest):
-   ```python
-   @pytest.mark.synthetic
-   def test_new_feature(synthetic_pdf_dir):
-       pdf = list((synthetic_pdf_dir / "good").glob("*.pdf"))[0]
-       # Test new feature
-   ```
-
-2. **Use `@pytest.mark.integration`** for BSP comparison:
-   ```python
-   @pytest.mark.integration
-   def test_import_matches_bsp(openstan_env):
-       assert openstan_env.n_success == openstan_env.bsp_n_success
-   ```
-
-3. **Use `@pytest.mark.anonymised`** for real-world edge cases:
-   ```python
-   @pytest.mark.anonymised
-   def test_edge_case_with_real_pdf(anonymised_pdf_dir):
-       # Test with real bank statement structure
-   ```
-
-4. **Combine markers** if test should pass in all scenarios:
-   ```python
-   @pytest.mark.synthetic
-   @pytest.mark.anonymised
-   def test_core_import_logic(sample_pdf_for_import):
-       # Works with any valid PDF
-   ```
+| Scenario | Time | Notes |
+|----------|------|-------|
+| Full integration suite (anonymised) | 2-5 min | First run builds BSP project (slow), later runs faster |
+| Full integration suite (bundled) | 1-2 min | Uses pre-built BSP project |
+| Unit tests only | <30 sec | No PDF processing |
+| Single integration test | 30-60 sec | Depends on PDF count |
 
 ---
 
-## Version Pinning
+## Related Documentation
 
-openstan is pinned to specific versions to prevent silent version drift:
-
-- **bank_statement_parser**: `==0.2.1b7` (tight coupling for stability)
-- **bank_statement_anonymiser**: `==0.1.1`
-
-When BSP or anonymiser updates, both version pins must be updated and all tests must pass before release.
-
----
-
-## Further Reading
-
-- [pytest markers documentation](https://docs.pytest.org/en/stable/how-to.html#marking-whole-classes-or-modules)
-- [Conftest.py guide](https://docs.pytest.org/en/stable/conftest.html)
-- [Test fixtures documentation](https://docs.pytest.org/en/stable/fixture.html)
-- [Central PDF strategy](../../bank-statement-data/README.md)
-- [BSP Testing Guide](../bank_statement_parser/TESTING.md)
-- [Anonymiser Testing Guide](../bank_statement_anonymiser/TESTING.md)
+- **Setup Guide**: [SYMLINK_SETUP.md](https://github.com/boscorat/bank-statement-data/blob/master/SYMLINK_SETUP.md) (private repo)
+- **Security**: [SECURITY.md](./SECURITY.md) (if available)
+- **Contributing**: [CONTRIBUTING.md](./CONTRIBUTING.md) (if available)
+- **Test Data Hub**: Private repo [bank-statement-data](https://github.com/boscorat/bank-statement-data)
+- **BSP Documentation**: [bank_statement_parser](https://github.com/boscorat/bank_statement_parser)
