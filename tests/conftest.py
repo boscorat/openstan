@@ -33,6 +33,51 @@ import bank_statement_parser as bsp
 import pytest
 from bank_statement_parser.testing import TestHarness, _pdf_dir
 
+# ============================================================================
+# PDF Mode Detection (Anonymised vs. Synthetic)
+# ============================================================================
+
+def _detect_pdf_mode() -> tuple[str, Path, Path]:
+    """
+    Detect which PDF set is available and return mode + paths.
+    
+    Returns:
+        Tuple of (mode, good_pdfs_dir, bad_pdfs_dir) where:
+        - mode: "anonymised" if symlinks exist, "bundled" otherwise
+        - good_pdfs_dir: Path to good PDFs directory
+        - bad_pdfs_dir: Path to bad PDFs directory
+    """
+    # Check for anonymised symlinks (manual setup by developer)
+    test_dir = Path(__file__).parent
+    anonymised_good = test_dir / "fixtures/pdfs/anonymised_good"
+    anonymised_bad = test_dir / "fixtures/pdfs/anonymised_bad"
+    
+    if anonymised_good.is_symlink() and anonymised_bad.is_symlink():
+        return ("anonymised", anonymised_good, anonymised_bad)
+    
+    # Fallback to bundled PDFs from installed package
+    fallback_good = _pdf_dir("good")
+    fallback_bad = _pdf_dir("bad")
+    
+    if list(fallback_good.glob("*.pdf")) and list(fallback_bad.glob("*.pdf")):
+        return ("bundled", fallback_good, fallback_bad)
+    
+    return ("none", fallback_good, fallback_bad)
+
+
+# Initialize PDF mode at module load time
+PDF_MODE, _GOOD_PDF_DIR_OVERRIDE, _BAD_PDF_DIR_OVERRIDE = _detect_pdf_mode()
+
+# Output PDF mode to test session
+print(f"\n[PDF_FIXTURES] Mode: {PDF_MODE.upper()}")
+if PDF_MODE == "anonymised":
+    print(f"[PDF_FIXTURES] Using ANONYMISED PDFs (symlinks detected)")
+    print(f"[PDF_FIXTURES] Location: {_GOOD_PDF_DIR_OVERRIDE}")
+elif PDF_MODE == "bundled":
+    print(f"[PDF_FIXTURES] Using BUNDLED PDFs from installed package")
+else:
+    print(f"[PDF_FIXTURES] No PDFs available (tests will skip)")
+
 # ---------------------------------------------------------------------------
 # Ensure Qt can run headless on Linux CI (no-op on macOS/Windows)
 # ---------------------------------------------------------------------------
@@ -266,8 +311,15 @@ def openstan_env(bsp_harness: TestHarness) -> Generator[OpenStanEnv, None, None]
     queue_model.set_project(project_id)
 
     # ── 7. Populate the queue: two folder entries + child PDFs ────────────
-    good_dir: Path = _pdf_dir("good")
-    bad_dir: Path = _pdf_dir("bad")
+    # Use detected PDF directories (anonymised if symlinked, bundled as fallback)
+    good_dir: Path = _GOOD_PDF_DIR_OVERRIDE
+    bad_dir: Path = _BAD_PDF_DIR_OVERRIDE
+    
+    if PDF_MODE == "none":
+        pytest.skip(
+            "No PDF fixtures available. Set up symlinks to anonymised PDFs "
+            "for comprehensive testing. See: bank-statement-data/SYMLINK_SETUP.md"
+        )
 
     for folder_path in (good_dir, bad_dir):
         folder_id: str = uuid4().hex
