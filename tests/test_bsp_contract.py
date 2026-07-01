@@ -12,8 +12,6 @@ Tests cover:
 - Dataclass fields (PdfResult, Success, Review, Failure)
 """
 
-import inspect
-from pathlib import Path
 from typing import get_type_hints
 
 import pytest
@@ -116,22 +114,6 @@ class TestBSPExceptions:
         assert issubclass(ProjectError, Exception), "ProjectError is not an Exception"
         assert issubclass(StatementError, Exception), "StatementError is not an Exception"
         assert issubclass(TestGateFailure, Exception), "TestGateFailure is not an Exception"
-
-
-class TestBSPVersionCompatibility:
-    """Validate version compatibility with pinned BSP version."""
-
-    @pytest.mark.integration
-    def test_bsp_version_is_expected(self):
-        """Validate that BSP version matches expected pinned version."""
-        # We're pinned to 0.2.1b7
-        expected_version = "0.2.1b7"
-
-        actual_version = bsp.__version__ if hasattr(bsp, "__version__") else "unknown"
-
-        assert (
-            actual_version == expected_version
-        ), f"BSP version mismatch: expected {expected_version}, got {actual_version}"
 
 
 class TestBSPTestHarness:

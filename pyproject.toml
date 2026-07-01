@@ -11,8 +11,8 @@ requires-python = ">=3.14"
 dependencies = [
     "pyside6-essentials>=6.7.0",
     "tomli-w>=1.2.0",
-    "uk-bank-statement-parser==0.2.1b7",
-    "uk-bank-statement-anonymiser==0.1.1",
+    "uk-bank-statement-parser>=0.3.0",
+    "uk-bank-statement-anonymiser>=0.1.6",
 ]
 
 [project.urls]
