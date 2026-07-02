@@ -58,10 +58,9 @@ build = [
 #uk-bank-statement-parser = { git = "https://github.com/boscorat/bank_statement_parser", tag = "v0.2.1a9" }
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 markers = [
-    "synthetic: tests using synthetic PDFs (fast, CI-safe)",
-    "anonymised: comparison tests using anonymised PDFs (requires CI secret)",
-    "integration: cross-process tests with BSP",
+    "integration: cross-process tests with BSP (requires anonymised PDFs; skips without them)",
 ]
 
 [tool.pyrefly]

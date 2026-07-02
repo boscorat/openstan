@@ -20,6 +20,7 @@ Run with::
 """
 
 import sqlite3
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bank_statement_parser.testing import _pdf_dir
@@ -28,6 +29,16 @@ if TYPE_CHECKING:
     from bank_statement_parser.testing import TestHarness
 
 from tests.conftest import OpenStanEnv
+
+
+def _require_pdf_dir(category: str) -> Path:
+    """Return the PDF directory for *category*, failing if unavailable."""
+    result = _pdf_dir(category)
+    assert result is not None, (
+        f"_pdf_dir('{category}') returned None — no PDFs available"
+    )
+    return result
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -75,8 +86,8 @@ class TestImportResults:
 
     def test_total_pdfs_processed(self, openstan_env: OpenStanEnv) -> None:
         """Total processed PDFs equals the number of PDFs in good/ + bad/."""
-        good_count = len(list(_pdf_dir("good").glob("*.pdf")))
-        bad_count = len(list(_pdf_dir("bad").glob("*.pdf")))
+        good_count = len(list(_require_pdf_dir("good").glob("*.pdf")))
+        bad_count = len(list(_require_pdf_dir("bad").glob("*.pdf")))
         expected_total = good_count + bad_count
         actual_total = (
             openstan_env.n_success + openstan_env.n_review + openstan_env.n_failure
@@ -117,8 +128,8 @@ class TestImportResults:
         The bad/ folder contains 5 PDFs with the same filenames as some good/
         PDFs but different content.  They must not be silently skipped.
         """
-        bad_count = len(list(_pdf_dir("bad").glob("*.pdf")))
-        good_count = len(list(_pdf_dir("good").glob("*.pdf")))
+        bad_count = len(list(_require_pdf_dir("bad").glob("*.pdf")))
+        good_count = len(list(_require_pdf_dir("good").glob("*.pdf")))
         actual_total = (
             openstan_env.n_success + openstan_env.n_review + openstan_env.n_failure
         )

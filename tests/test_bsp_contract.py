@@ -14,15 +14,16 @@ Tests cover:
 
 from typing import get_type_hints
 
-import pytest
-
 import bank_statement_parser as bsp
+import pytest
 from bank_statement_parser.modules.errors import (
     ProjectError,
     StatementError,
-    TestGateFailure,
 )
-from bank_statement_parser.modules.statements import PdfResult, Success, Review, Failure
+from bank_statement_parser.modules.errors import (
+    TestGateFailure as _TestGateFailure,
+)
+from bank_statement_parser.modules.statements import Failure, PdfResult, Review, Success
 
 
 class TestBSPFunctionSignatures:
@@ -31,8 +32,12 @@ class TestBSPFunctionSignatures:
     @pytest.mark.integration
     def test_process_pdf_statement_exists(self):
         """Validate process_pdf_statement() is still available."""
-        assert hasattr(bsp, "process_pdf_statement"), "process_pdf_statement() not found in bsp"
-        assert callable(bsp.process_pdf_statement), "process_pdf_statement is not callable"
+        assert hasattr(bsp, "process_pdf_statement"), (
+            "process_pdf_statement() not found in bsp"
+        )
+        assert callable(bsp.process_pdf_statement), (
+            "process_pdf_statement is not callable"
+        )
 
     @pytest.mark.integration
     def test_update_db_exists(self):
@@ -43,8 +48,12 @@ class TestBSPFunctionSignatures:
     @pytest.mark.integration
     def test_copy_statements_to_project_exists(self):
         """Validate copy_statements_to_project() is still available."""
-        assert hasattr(bsp, "copy_statements_to_project"), "copy_statements_to_project() not found"
-        assert callable(bsp.copy_statements_to_project), "copy_statements_to_project is not callable"
+        assert hasattr(bsp, "copy_statements_to_project"), (
+            "copy_statements_to_project() not found"
+        )
+        assert callable(bsp.copy_statements_to_project), (
+            "copy_statements_to_project is not callable"
+        )
 
 
 class TestBSPResultEnums:
@@ -92,7 +101,7 @@ class TestBSPResultEnums:
         """Validate that PdfResult accepts expected literal values."""
         hints = get_type_hints(PdfResult)
         result_hint = hints.get("result")
-        
+
         # Should support SUCCESS, REVIEW, FAILURE
         assert result_hint is not None, "PdfResult.result field not found in hints"
 
@@ -106,14 +115,18 @@ class TestBSPExceptions:
         # These are caught by openstan's error handling
         assert ProjectError is not None, "ProjectError not found"
         assert StatementError is not None, "StatementError not found"
-        assert TestGateFailure is not None, "TestGateFailure not found"
+        assert _TestGateFailure is not None, "TestGateFailure not found"
 
     @pytest.mark.integration
     def test_exceptions_are_exception_subclasses(self):
         """Validate that exceptions actually inherit from Exception."""
         assert issubclass(ProjectError, Exception), "ProjectError is not an Exception"
-        assert issubclass(StatementError, Exception), "StatementError is not an Exception"
-        assert issubclass(TestGateFailure, Exception), "TestGateFailure is not an Exception"
+        assert issubclass(StatementError, Exception), (
+            "StatementError is not an Exception"
+        )
+        assert issubclass(_TestGateFailure, Exception), (
+            "TestGateFailure is not an Exception"
+        )
 
 
 class TestBSPTestHarness:
@@ -132,7 +145,9 @@ class TestBSPTestHarness:
         from bank_statement_parser.testing import TestHarness
 
         # Should be able to use as context manager
-        assert hasattr(TestHarness, "__enter__"), "TestHarness doesn't support __enter__"
+        assert hasattr(TestHarness, "__enter__"), (
+            "TestHarness doesn't support __enter__"
+        )
         assert hasattr(TestHarness, "__exit__"), "TestHarness doesn't support __exit__"
 
     @pytest.mark.integration

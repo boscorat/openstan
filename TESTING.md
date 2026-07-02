@@ -1,290 +1,169 @@
 # Testing Guide
 
-## Overview
-
-This project contains integration tests that verify the complete openstan pipeline against real (anonymised) bank statement data. Tests require PDF fixtures and are most comprehensive with private repo access.
-
----
-
-## Test Data Strategy
-
-Tests use a tiered approach:
-
-1. **Anonymised PDFs** (if available via symlinks): Full integration testing with real data structures
-2. **Bundled PDFs** (fallback): Functional testing with pre-generated fixtures
-3. **None**: Tests skip gracefully with helpful message
-
-### Why Tiered?
-
-- **Security**: Never commit real data to public repos
-- **Completeness**: Developers with access get comprehensive testing
-- **Accessibility**: All developers can run tests (fallback to bundled)
-
----
-
-## Running Tests
-
-### Option 1: Full Integration Tests with Anonymised PDFs
-
-Requires SSH access to private `bank-statement-data` repo.
-
-**Step 1: Set up symlinks (one-time)**
-
-```bash
-# See detailed setup guide:
-# https://github.com/boscorat/bank-statement-data/blob/master/SYMLINK_SETUP.md
-
-# Quick reference for Linux/macOS:
-ln -s ~/repos/bank-statement-data/pdfs/good \
-      ~/repos/openstan/tests/fixtures/pdfs/anonymised_good
-
-ln -s ~/repos/bank-statement-data/pdfs/bad \
-      ~/repos/openstan/tests/fixtures/pdfs/anonymised_bad
-```
-
-**Step 2: Verify symlinks**
-
-```bash
-ls -la tests/fixtures/pdfs/
-
-# You should see:
-# anonymised_good -> ~/repos/bank-statement-data/pdfs/good
-# anonymised_bad -> ~/repos/bank-statement-data/pdfs/bad
-```
-
-**Step 3: Run tests**
-
-```bash
-# Run all tests (may take 2-5 minutes on first run)
-uv run pytest tests/ -v
-
-# Output should show:
-# [PDF_FIXTURES] Mode: ANONYMISED
-# [PDF_FIXTURES] Using ANONYMISED PDFs (symlinks detected)
-
-# Run only integration tests
-uv run pytest tests/test_integration.py -v
-
-# Run specific test
-uv run pytest tests/test_integration.py::TestImportResults::test_total_pdfs_processed -v
-```
-
-### Option 2: Standard Tests with Bundled PDFs
-
-No setup required.
+## Quick Start
 
 ```bash
 uv run pytest tests/ -v
-
-# Output should show:
-# [PDF_FIXTURES] Mode: BUNDLED
-# [PDF_FIXTURES] Using BUNDLED PDFs from installed package
 ```
 
----
-
-## Test Structure
-
-```
-tests/
-├── fixtures/
-│   └── pdfs/               # PDF test data (symlinked or bundled)
-│       ├── anonymised_good -> ~/bank-statement-data/pdfs/good (if available)
-│       ├── anonymised_bad  -> ~/bank-statement-data/pdfs/bad (if available)
-│       └── .gitkeep        # Ensures directory exists in git
-├── unit/
-│   ├── conftest.py         # Unit test fixtures
-│   ├── test_base_result_model.py
-│   ├── test_paths.py
-│   └── ... (other unit tests)
-├── conftest.py             # Integration test fixtures
-├── test_bsp_contract.py    # BSP API contract tests
-├── test_integration.py     # Full pipeline integration tests
-├── test_pdf_result_serialisation.py
-└── ... (other tests)
-```
+This runs the full suite. Most tests are self-contained and don't need external data.
+Integration tests (16 of 129) skip automatically when anonymised PDFs are unavailable.
 
 ---
 
 ## Test Categories
 
-### Unit Tests (`tests/unit/`)
+| Category | Location | PDFs needed? | Tests |
+|---|---|---|---|
+| **Unit** | `tests/unit/` | No | ~62 |
+| **Contract** | `tests/test_bsp_contract.py` | No | 13 |
+| **Serialisation** | `tests/test_pdf_result_serialisation.py` | No | 22 |
+| **Integration** | `tests/test_integration.py` | Yes | 16 |
 
-Fast, isolated tests for individual components:
+Unit, contract, and serialisation tests are fully self-contained — no external data required.
+
+Integration tests compare the openstan pipeline output against a reference database
+built from anonymised bank statements. They skip gracefully when the data isn't available.
+
+### Running specific categories
+
 ```bash
+# Unit tests only (fastest)
 uv run pytest tests/unit/ -v
-```
 
-No PDF fixtures required - use mocks.
-
-### Contract Tests (`test_bsp_contract.py`)
-
-Verify compatibility with `bank_statement_parser` API:
-```bash
+# BSP contract tests only
 uv run pytest tests/test_bsp_contract.py -v
-```
 
-No PDF fixtures required.
-
-### Integration Tests (`test_integration.py`)
-
-Full pipeline tests requiring PDF fixtures:
-```bash
+# Integration tests only (skips without PDFs)
 uv run pytest tests/test_integration.py -v
-```
 
-**With anonymised PDFs**: Verifies complete data flow
-**With bundled PDFs**: Verifies basic functionality
-**Without PDFs**: Tests skip gracefully
+# Or use the helper script
+uv run python scripts/test_runner.py unit
+uv run python scripts/test_runner.py contract
+uv run python scripts/test_runner.py integration
+```
 
 ---
 
-## PDF Access
+## Testing Your Own PDFs
 
-### How Tests Find PDFs
+The easiest way to test your own bank statement PDFs is through the application itself:
 
-Tests automatically detect:
-1. **Anonymised symlinks** (if you set them up) → Use real data
-2. **Bundled PDFs** (from installed `bank_statement_parser` package) → Use fallback
-3. **Neither** → Skip with helpful message
+1. Open openstan
+2. Create or select a project
+3. Import your PDF via the Statement Queue
 
-### Checking Which PDFs You're Using
+This exercises the full parsing pipeline and provides detailed debugging output for any
+extraction issues — no test infrastructure needed.
+
+---
+
+## Integration Tests with Anonymised PDFs
+
+Integration tests require anonymised bank statement PDFs from the private
+`bank-statement-data` repository. This is primarily for maintainers with SSH access.
+
+### Setup (one-time)
+
+```bash
+git clone git@github.com:boscorat/bank-statement-data.git ../bank-statement-data
+
+ln -s ../bank-statement-data/pdfs/good tests/fixtures/pdfs/anonymised_good
+ln -s ../bank-statement-data/pdfs/bad tests/fixtures/pdfs/anonymised_bad
+```
+
+### Verify
 
 ```bash
 uv run pytest tests/ -v 2>&1 | grep "PDF_FIXTURES"
-
-# Example output:
-# [PDF_FIXTURES] Mode: ANONYMISED
-# [PDF_FIXTURES] Using ANONYMISED PDFs (symlinks detected)
-# [PDF_FIXTURES] Location: /home/user/repos/bank-statement-data/pdfs/good
+# Should show: [PDF_FIXTURES] Mode: ANONYMISED
 ```
 
-### If Tests Skip
+Without these symlinks, integration tests skip automatically. This is fine for
+most development work.
+
+---
+
+## CI Behavior
+
+When you open a pull request, GitHub Actions runs the full test suite:
+
+1. If the `SSH_PRIVATE_KEY_TEST_DATA` secret is available, CI fetches anonymised
+   PDFs from the private repository
+2. All 129 tests run (integration tests included)
+3. After tests complete, fetched PDFs are cleaned up (security measure)
+
+You don't need to do anything special — just open the PR and CI handles the rest.
+
+---
+
+## Pre-PR Checklist
 
 ```bash
-# Check the skip message
-uv run pytest tests/ -v -rs  # -rs shows skip reasons
+# 1. Lint
+uv run ruff check .
 
-# Example output:
-# SKIPPED tests/test_integration.py::TestImportResults - No PDF fixtures available...
+# 2. Format check
+uv run ruff format --check .
+
+# 3. Type check
+uv run pyrefly check
+
+# 4. Tests
+uv run pytest tests/ -v
 ```
 
 ---
 
 ## Qt Headless Mode
 
-Tests run headless on CI/CD (no GUI):
+Tests run headless on CI (no GUI). On Linux without a display, set:
 
 ```bash
-# This is set automatically in conftest.py on Linux
 export QT_QPA_PLATFORM=offscreen
-
-uv run pytest tests/ -v
 ```
 
-On macOS/Windows, GUI is allowed (if running locally with display).
-
----
-
-## CI/CD Behavior
-
-When tests run in GitHub Actions:
-
-1. **Fetch Phase**: If SSH key available, clones anonymised PDFs to `/tmp/`
-2. **Test Phase**: Runs full integration with anonymised PDFs (if available)
-3. **Cleanup Phase**: Removes all PDFs (security: prevent accidental commits)
-4. **Fallback**: If SSH unavailable, uses bundled PDFs
-
----
-
-## Before Submitting PR
-
-```bash
-# 1. Linting
-uv run ruff check .
-
-# 2. Format check
-uv run ruff format --check .
-
-# 3. Type checking (if available)
-uv run pyrefly check
-
-# 4. All tests pass
-uv run pytest tests/ -v
-
-# Optional: Run only unit tests (faster)
-uv run pytest tests/unit/ -v
-```
+This is set automatically in `conftest.py` on Linux CI.
 
 ---
 
 ## Troubleshooting
 
-### Q: Tests are skipping with "No PDF fixtures available"?
+### Integration tests are skipping
 
-**A:** Tests can't find PDF data. Either:
-- Set up symlinks to anonymised PDFs (see Option 1 above), OR
-- Ignore it - tests will fall back to bundled PDFs automatically
+This is expected when anonymised PDFs aren't available. The tests require real
+(but anonymised) bank statement data to build a reference database for comparison.
 
-```bash
-# Check what's available
-ls -la tests/fixtures/pdfs/
-```
+### Tests are slow on first run
 
-### Q: Tests are slow on first run?
+The first run builds the BSP reference project (processes ~45 PDFs). This takes
+2-5 minutes. Subsequent runs reuse the cached project.
 
-**A:** First run builds BSP reference project (expensive). Subsequent runs reuse it. This is expected.
+### Import errors
 
-### Q: `QT_QPA_PLATFORM` errors on headless system?
-
-**A:** Should be set automatically. If not:
-
-```bash
-export QT_QPA_PLATFORM=offscreen
-uv run pytest tests/ -v
-```
-
-### Q: Import errors?
-
-**A:** Reinstall dependencies:
+Reinstall dependencies:
 
 ```bash
 uv sync
 ```
 
-### Q: How do I run tests with extra debugging?
+### Extra debugging output
 
 ```bash
 # Show print statements
 uv run pytest tests/ -v -s
 
-# Extra verbose
-uv run pytest tests/ -vv
-
 # Stop on first failure
 uv run pytest tests/ -x
 
-# Run with pdb debugger
-uv run pytest tests/test_integration.py::TestImportResults -v --pdb
+# Verbose tracebacks
+uv run pytest tests/ --tb=long
 ```
-
----
-
-## Performance Notes
-
-| Scenario | Time | Notes |
-|----------|------|-------|
-| Full integration suite (anonymised) | 2-5 min | First run builds BSP project (slow), later runs faster |
-| Full integration suite (bundled) | 1-2 min | Uses pre-built BSP project |
-| Unit tests only | <30 sec | No PDF processing |
-| Single integration test | 30-60 sec | Depends on PDF count |
 
 ---
 
 ## Related Documentation
 
-- **Setup Guide**: [SYMLINK_SETUP.md](https://github.com/boscorat/bank-statement-data/blob/master/SYMLINK_SETUP.md) (private repo)
-- **Security**: [SECURITY.md](./SECURITY.md) (if available)
-- **Contributing**: [CONTRIBUTING.md](./CONTRIBUTING.md) (if available)
-- **Test Data Hub**: Private repo [bank-statement-data](https://github.com/boscorat/bank-statement-data)
+- **Security**: [SECURITY.md](./SECURITY.md)
 - **BSP Documentation**: [bank_statement_parser](https://github.com/boscorat/bank_statement_parser)
+- **Test Data**: Private repo [bank-statement-data](https://github.com/boscorat/bank-statement-data)

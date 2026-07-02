@@ -136,22 +136,21 @@ If you have access to the private `bank-statement-data` repository:
 1. **Setup local testing** (optional, for contributors with access):
    ```bash
    git clone git@github.com:boscorat/bank-statement-data.git ../bank-statement-data
-   ln -s ../bank-statement-data/pdfs tests/fixtures/pdfs/anonymised
+
+   ln -s ../bank-statement-data/pdfs/good tests/fixtures/pdfs/anonymised_good
+   ln -s ../bank-statement-data/pdfs/bad tests/fixtures/pdfs/anonymised_bad
    ```
 
-2. **Run tests with anonymised PDFs**:
+2. **Run tests**:
    ```bash
-   # All tests (including anonymised)
-   python test_runner.py all
-   
-   # Only anonymised PDFs (if available)
-   python test_runner.py anonymised
-   
-   # Only synthetic PDFs (public/safe)
-   python test_runner.py synthetic
+   # Full suite (integration tests now run with anonymised PDFs)
+   uv run python scripts/test_runner.py all
+
+   # Unit tests only (no PDFs needed)
+   uv run python scripts/test_runner.py unit
    ```
 
-3. **Results are private** - Don't commit the cloned PDFs
+3. **Results are private** - Don't commit the cloned PDFs or symlinks
 
 ### Reporting Issues with Real Data
 
