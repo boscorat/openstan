@@ -175,6 +175,7 @@ jobs:
       - name: Upload .deb and .rpm to release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda  # v3.0.0
         with:
+          draft: true
           files: |
             dist/*.deb
             dist/*.rpm
@@ -289,6 +290,7 @@ jobs:
       - name: Upload ARM64 .deb and .rpm to release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda  # v3.0.0
         with:
+          draft: true
           files: |
             dist/*.deb
             dist/*.rpm
@@ -436,6 +438,7 @@ jobs:
       - name: Upload .msi to release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda  # v3.0.0
         with:
+          draft: true
           files: dist/*.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -782,6 +785,7 @@ jobs:
       - name: Upload .dmg to release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda  # v3.0.0
         with:
+          draft: true
           files: dist/*.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -840,6 +844,16 @@ jobs:
 
             if [ "$INDEX" -le "$KEEP" ]; then
               echo "[${INDEX}] KEEP   ${TAG}"
+              continue
+            fi
+
+            # ── Skip draft releases — they will be cleaned up after promotion ──
+            IS_DRAFT=$(gh release view "$TAG" \
+                        --repo "$REPO" \
+                        --json isDraft \
+                        --jq '.isDraft' 2>/dev/null || echo "false")
+            if [ "$IS_DRAFT" = "true" ]; then
+              echo "[${INDEX}] SKIP   ${TAG} (draft release — waiting for manual promotion)"
               continue
             fi
 
