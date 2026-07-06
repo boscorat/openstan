@@ -4,7 +4,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from bank_statement_parser import ProjectPaths
-from PySide6.QtCore import Qt, QObject, QRectF, QSysInfo, QThreadPool, Slot, qDebug
+from PySide6.QtCore import QObject, QRectF, QSysInfo, Qt, QThreadPool, Slot, qDebug
 from PySide6.QtGui import (
     QColor,
     QFontDatabase,
@@ -130,17 +130,13 @@ def _dark_palette() -> QPalette:
         QPalette.ColorRole.WindowText,
         QColor(127, 127, 127),
     )
-    p.setColor(
-        QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(127, 127, 127)
-    )
+    p.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(127, 127, 127))
     p.setColor(
         QPalette.ColorGroup.Disabled,
         QPalette.ColorRole.ButtonText,
         QColor(127, 127, 127),
     )
-    p.setColor(
-        QPalette.ColorGroup.Disabled, QPalette.ColorRole.Highlight, QColor(80, 80, 80)
-    )
+    p.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Highlight, QColor(80, 80, 80))
     p.setColor(
         QPalette.ColorGroup.Disabled,
         QPalette.ColorRole.HighlightedText,
@@ -206,9 +202,7 @@ def _detect_scheme_via_dbus() -> Qt.ColorScheme:
             return Qt.ColorScheme.Dark
         print("[openstan] _detect_scheme_via_dbus: detected → Light")
     except Exception as exc:
-        print(
-            f"[openstan] _detect_scheme_via_dbus: exception {type(exc).__name__}({exc}) → Light"
-        )
+        print(f"[openstan] _detect_scheme_via_dbus: exception {type(exc).__name__}({exc}) → Light")
     return Qt.ColorScheme.Light
 
 
@@ -223,9 +217,7 @@ def _apply_palette(app: QApplication, scheme: Qt.ColorScheme) -> None:
         print("[openstan] _apply_palette: applying Dark palette")
         app.setPalette(_dark_palette())
     else:
-        print(
-            f"[openstan] _apply_palette: scheme={scheme.name}  applying Light palette"
-        )
+        print(f"[openstan] _apply_palette: scheme={scheme.name}  applying Light palette")
         # Restore Fusion's default (light) palette
         app.setPalette(app.style().standardPalette())
 
@@ -277,15 +269,8 @@ def _make_splash(app: QApplication) -> QSplashScreen:
     import os as _os
 
     logo_exists = _os.path.isfile(logo_path)
-    print(
-        f"[openstan] _make_splash: dpr={dpr}  logical={pix_w}x{pix_h}"
-        f"  physical={phys_w}x{phys_h}"
-    )
-    print(
-        f"[openstan] _make_splash: logo={logo_path!r}"
-        f"  exists={logo_exists}"
-        f"  palette_bg=#{bg.red():02x}{bg.green():02x}{bg.blue():02x}"
-    )
+    print(f"[openstan] _make_splash: dpr={dpr}  logical={pix_w}x{pix_h}  physical={phys_w}x{phys_h}")
+    print(f"[openstan] _make_splash: logo={logo_path!r}  exists={logo_exists}  palette_bg=#{bg.red():02x}{bg.green():02x}{bg.blue():02x}")
 
     pixmap = QPixmap(phys_w, phys_h)
     pixmap.setDevicePixelRatio(dpr)
@@ -300,9 +285,7 @@ def _make_splash(app: QApplication) -> QSplashScreen:
         renderer.render(painter, QRectF(pad, pad, logo_w, logo_h))
         print("[openstan] _make_splash: SVG rendered OK")
     else:
-        print(
-            "[openstan] _make_splash: QSvgRenderer reports invalid — splash will have blank logo"
-        )
+        print("[openstan] _make_splash: QSvgRenderer reports invalid — splash will have blank logo")
 
     # Version string — bottom-right corner, slightly muted
     try:
@@ -330,10 +313,7 @@ def _make_splash(app: QApplication) -> QSplashScreen:
 def main() -> None:
     qDebug("Starting openstan GUI application...")
 
-    print(
-        f"[openstan] startup: sys.frozen={getattr(sys, 'frozen', False)}"
-        f"  platform={sys.platform}"
-    )
+    print(f"[openstan] startup: sys.frozen={getattr(sys, 'frozen', False)}  platform={sys.platform}")
 
     # On Linux, frozen binaries bundle libqxdgdesktopportal.so / libqgtk3.so but
     # their system library dependencies are typically absent on users' machines.
@@ -385,9 +365,7 @@ def main() -> None:
         # fully initialised.
         hints = app.styleHints()
         qt_scheme = hints.colorScheme()
-        print(
-            f"[openstan] colorScheme() at startup={qt_scheme.name!r} (may be unreliable — using dbus for initial detection)"
-        )
+        print(f"[openstan] colorScheme() at startup={qt_scheme.name!r} (may be unreliable — using dbus for initial detection)")
         _apply_palette(app, _detect_scheme_via_dbus())
         theme_manager = _ThemeManager(app)
         hints.colorSchemeChanged.connect(theme_manager.on_color_scheme_changed)
@@ -525,21 +503,15 @@ class Stan(QMainWindow):
         self.content_stack = QStackedWidget()
         self.nav_idx_welcome: int = self.content_stack.addWidget(self.welcome_view)
         self.nav_idx_info: int = self.content_stack.addWidget(self.project_info_block)
-        self.nav_idx_import: int = self.content_stack.addWidget(
-            self.statement_queue_block
-        )
+        self.nav_idx_import: int = self.content_stack.addWidget(self.statement_queue_block)
         self.nav_idx_export: int = self.content_stack.addWidget(self.export_data_block)
         self.nav_idx_reports: int = self.content_stack.addWidget(self.run_reports_block)
-        self.nav_idx_results: int = self.content_stack.addWidget(
-            self.statement_result_block
-        )
+        self.nav_idx_results: int = self.content_stack.addWidget(self.statement_result_block)
 
         # ── Presenters ────────────────────────────────────────────────────
         self.user_presenter = UserPresenter(model=self.user_model, view=None)
         self.session_presenter = SessionPresenter(model=self.session_model, view=None)
-        self.project_presenter = ProjectPresenter(
-            model=self.project_model, view=self.project_view
-        )
+        self.project_presenter = ProjectPresenter(model=self.project_model, view=self.project_view)
         self.statement_queue_presenter = StatementQueuePresenter(
             model=self.statement_queue_model,
             view=self.statement_queue_view,
@@ -592,17 +564,15 @@ class Stan(QMainWindow):
         layout.setSpacing(0)
 
         layout.addWidget(self.title_view, stretch=0)
-        layout.addWidget(
-            self.project_view, stretch=0, alignment=Qt.AlignmentFlag.AlignTop
-        )
+        layout.addWidget(self.project_view, stretch=0, alignment=Qt.AlignmentFlag.AlignTop)
         layout.addWidget(self.project_nav_view, stretch=0)
         layout.addWidget(self.content_stack, stretch=1)
         layout.addWidget(self.footer_view, stretch=0)
 
         self.stan.setLayout(layout)
         self.setCentralWidget(self.stan)
-        self.setMinimumSize(1100, 700)
-        self.resize(1280, 800)
+        self.setMinimumSize(1400, 900)
+        self.resize(1400, 900)
 
         # Status bar — used by StanPresenter to display transient contextual messages.
         status_bar = self.statusBar()
@@ -617,14 +587,8 @@ class Stan(QMainWindow):
         # Warn the user if an import is currently in progress
         if self.stan_presenter.statement_result_presenter._importing:  # noqa: SLF001
             warn = StanInfoMessage(self)
-            warn.setText(
-                "An import is currently in progress.\n\n"
-                "Closing now will abandon the current batch. Are you sure?"
-            )
-            warn.setStandardButtons(
-                StanInfoMessage.StandardButton.Yes
-                | StanInfoMessage.StandardButton.Cancel
-            )
+            warn.setText("An import is currently in progress.\n\nClosing now will abandon the current batch. Are you sure?")
+            warn.setStandardButtons(StanInfoMessage.StandardButton.Yes | StanInfoMessage.StandardButton.Cancel)
             warn.setDefaultButton(StanInfoMessage.StandardButton.Cancel)
             if warn.exec() != StanInfoMessage.StandardButton.Yes:
                 if a0:
