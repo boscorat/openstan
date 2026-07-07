@@ -22,8 +22,8 @@ class AdminView(StanDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Admin")
-        self.setMinimumSize(520, 680)
-        self.resize(520, 680)
+        self.setMinimumSize(700, 800)
+        self.resize(700, 800)
 
         outer = QVBoxLayout()
         outer.setSpacing(16)
