@@ -2,22 +2,23 @@
 
 Allows the user to:
    1. Select a source PDF via file browser.
-   2. View and edit the project's config files in two tabs:
-      - Always Anonymise: forced replacements
+   2. View and edit the project's config in two tabs:
+      - Always Anonymise: forced replacements (original + replacement pairs)
       - Never Anonymise: excluded phrases
-   3. Save the config.
-   4. Run the anonymisation (in a background worker).
-   5. Open the original and anonymised PDFs side-by-side in the OS viewer.
+   3. Run the anonymisation (in a background worker).
+   4. Open the original and anonymised PDFs side-by-side in the OS viewer.
 
 Business logic lives entirely in ``AnonymisePresenter``.
 """
 
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QDialogButtonBox,
     QHBoxLayout,
-    QPlainTextEdit,
     QSizePolicy,
     QTabWidget,
+    QTableWidget,
+    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
@@ -42,8 +43,8 @@ class AnonymiseDialog(StanDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Anonymise PDF")
-        self.setMinimumWidth(700)
-        self.setMinimumHeight(620)
+        self.setMinimumWidth(800)
+        self.setMinimumHeight(700)
 
         outer = QVBoxLayout()
         outer.setSpacing(16)
@@ -75,7 +76,7 @@ class AnonymiseDialog(StanDialog):
         section_pdf.setLayout(layout_pdf)
 
         # ------------------------------------------------------------------
-        # Section 2 — Config editors (two tabs)
+        # Section 2 — Config editors (two tabs with tables)
         # ------------------------------------------------------------------
         section_config = StanFrame()
         layout_config = QVBoxLayout()
@@ -86,7 +87,7 @@ class AnonymiseDialog(StanDialog):
         # Create tab widget
         self.tab_widget = QTabWidget()
 
-        # Tab 1: Always Anonymise
+        # Tab 1: Always Anonymise (2 columns: Original | Replacement)
         self.tab_always = StanFrame()
         layout_always = QVBoxLayout()
         layout_always.setSpacing(8)
@@ -94,25 +95,38 @@ class AnonymiseDialog(StanDialog):
         lbl_always_title = StanLabel("**Force Exact Replacements**")
         lbl_always_info = StanLabel(
             "Entries force exact string replacements before the scramble pass.\n"
-            'Format: `"original" = "replacement"`'
+            "Add rows with original text and replacement value."
         )
         lbl_always_info.setWordWrap(True)
 
-        self.text_edit_always = QPlainTextEdit()
-        self.text_edit_always.setAutoFillBackground(True)
-        self.text_edit_always.setSizePolicy(
+        self.table_always = QTableWidget()
+        self.table_always.setColumnCount(2)
+        self.table_always.setHorizontalHeaderLabels(["Original Text", "Replacement"])
+        self.table_always.horizontalHeader().setStretchLastSection(True)
+        self.table_always.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows
+        )
+        self.table_always.setSelectionMode(
+            QAbstractItemView.SelectionMode.SingleSelection
+        )
+        self.table_always.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        font_always = self.text_edit_always.font()
-        font_always.setFamily("Monospace")
-        self.text_edit_always.setFont(font_always)
+
+        row_always_buttons = QHBoxLayout()
+        self.button_add_always = StanButton("Add Row", min_width=100)
+        self.button_remove_always = StanButton("Remove Selected", min_width=100)
+        row_always_buttons.addWidget(self.button_add_always)
+        row_always_buttons.addWidget(self.button_remove_always)
+        row_always_buttons.addStretch()
 
         layout_always.addWidget(lbl_always_title)
         layout_always.addWidget(lbl_always_info)
-        layout_always.addWidget(self.text_edit_always, stretch=1)
+        layout_always.addWidget(self.table_always, stretch=1)
+        layout_always.addLayout(row_always_buttons)
         self.tab_always.setLayout(layout_always)
 
-        # Tab 2: Never Anonymise
+        # Tab 2: Never Anonymise (1 column: Phrase)
         self.tab_never = StanFrame()
         layout_never = QVBoxLayout()
         layout_never.setSpacing(8)
@@ -120,36 +134,43 @@ class AnonymiseDialog(StanDialog):
         lbl_never_title = StanLabel("**Exclude from Scrambling**")
         lbl_never_info = StanLabel(
             "Phrases listed here are left unchanged during the scramble pass.\n"
-            "Add them to the `exclude` array. Matching is case-insensitive."
+            "Matching is case-insensitive."
         )
         lbl_never_info.setWordWrap(True)
 
-        self.text_edit_never = QPlainTextEdit()
-        self.text_edit_never.setAutoFillBackground(True)
-        self.text_edit_never.setSizePolicy(
+        self.table_never = QTableWidget()
+        self.table_never.setColumnCount(1)
+        self.table_never.setHorizontalHeaderLabels(["Phrase"])
+        self.table_never.horizontalHeader().setStretchLastSection(True)
+        self.table_never.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows
+        )
+        self.table_never.setSelectionMode(
+            QAbstractItemView.SelectionMode.SingleSelection
+        )
+        self.table_never.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        font_never = self.text_edit_never.font()
-        font_never.setFamily("Monospace")
-        self.text_edit_never.setFont(font_never)
+
+        row_never_buttons = QHBoxLayout()
+        self.button_add_never = StanButton("Add Row", min_width=100)
+        self.button_remove_never = StanButton("Remove Selected", min_width=100)
+        row_never_buttons.addWidget(self.button_add_never)
+        row_never_buttons.addWidget(self.button_remove_never)
+        row_never_buttons.addStretch()
 
         layout_never.addWidget(lbl_never_title)
         layout_never.addWidget(lbl_never_info)
-        layout_never.addWidget(self.text_edit_never, stretch=1)
+        layout_never.addWidget(self.table_never, stretch=1)
+        layout_never.addLayout(row_never_buttons)
         self.tab_never.setLayout(layout_never)
 
         # Add tabs to tab widget
         self.tab_widget.addTab(self.tab_always, "Always Anonymise")
         self.tab_widget.addTab(self.tab_never, "Never Anonymise")
 
-        # Add tab widget to config section
-        self.button_save_toml = StanButton("Save Config", min_width=160)
-
         layout_config.addWidget(lbl_config_title)
         layout_config.addWidget(self.tab_widget, stretch=1)
-        layout_config.addWidget(
-            self.button_save_toml, alignment=Qt.AlignmentFlag.AlignLeft
-        )
         section_config.setLayout(layout_config)
 
         # ------------------------------------------------------------------
@@ -214,3 +235,84 @@ class AnonymiseDialog(StanDialog):
         outer.addWidget(section_open)
         outer.addWidget(button_box)
         self.setLayout(outer)
+
+    # ---------------------------------------------------------------------------
+    # Table population and data extraction
+    # ---------------------------------------------------------------------------
+
+    def populate_always_table(self, replacements: dict[str, str]) -> None:
+        """Populate the 'Always Anonymise' table with replacement pairs."""
+        self.table_always.setRowCount(0)
+
+        for original, replacement in replacements.items():
+            row_pos = self.table_always.rowCount()
+            self.table_always.insertRow(row_pos)
+
+            item_orig = QTableWidgetItem(original)
+            item_repl = QTableWidgetItem(replacement)
+
+            self.table_always.setItem(row_pos, 0, item_orig)
+            self.table_always.setItem(row_pos, 1, item_repl)
+
+        # Add one empty row for convenience
+        self._add_empty_always_row()
+
+    def populate_never_table(self, phrases: list[str]) -> None:
+        """Populate the 'Never Anonymise' table with excluded phrases."""
+        self.table_never.setRowCount(0)
+
+        for phrase in phrases:
+            row_pos = self.table_never.rowCount()
+            self.table_never.insertRow(row_pos)
+
+            item = QTableWidgetItem(phrase)
+            self.table_never.setItem(row_pos, 0, item)
+
+        # Add one empty row for convenience
+        self._add_empty_never_row()
+
+    def get_always_table_data(self) -> dict[str, str]:
+        """Extract data from the 'Always Anonymise' table."""
+        replacements = {}
+
+        for row in range(self.table_always.rowCount()):
+            item_orig = self.table_always.item(row, 0)
+            item_repl = self.table_always.item(row, 1)
+
+            original = item_orig.text() if item_orig else ""
+            replacement = item_repl.text() if item_repl else ""
+
+            # Skip empty rows
+            if original.strip():
+                replacements[original] = replacement
+
+        return replacements
+
+    def get_never_table_data(self) -> list[str]:
+        """Extract data from the 'Never Anonymise' table."""
+        phrases = []
+
+        for row in range(self.table_never.rowCount()):
+            item = self.table_never.item(row, 0)
+            phrase = item.text() if item else ""
+
+            # Skip empty rows
+            if phrase.strip():
+                phrases.append(phrase)
+
+        return phrases
+
+    def _add_empty_always_row(self) -> None:
+        """Add an empty row to the 'Always Anonymise' table."""
+        row_pos = self.table_always.rowCount()
+        self.table_always.insertRow(row_pos)
+
+        self.table_always.setItem(row_pos, 0, QTableWidgetItem(""))
+        self.table_always.setItem(row_pos, 1, QTableWidgetItem(""))
+
+    def _add_empty_never_row(self) -> None:
+        """Add an empty row to the 'Never Anonymise' table."""
+        row_pos = self.table_never.rowCount()
+        self.table_never.insertRow(row_pos)
+
+        self.table_never.setItem(row_pos, 0, QTableWidgetItem(""))
