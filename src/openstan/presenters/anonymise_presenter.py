@@ -1,12 +1,13 @@
 """anonymise_presenter.py — Presenter for the AnonymiseDialog.
 
 Owns all logic for the anonymisation workflow:
-  - loading and saving ``anonymise.toml``
+  - loading and saving config TOML files
   - browsing for a source PDF
-  - running ``bsp.anonymise_pdf`` in a background worker
+  - running ``bsa.anonymise_pdf`` in a background worker
   - opening the original / anonymised PDFs via the OS viewer
 """
 
+import time
 import tomllib
 import traceback
 from pathlib import Path
@@ -18,12 +19,93 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QFileDialog
 
-from openstan.components import StanErrorMessage, StanInfoMessage
+from openstan.components import StanErrorMessage
 
 if TYPE_CHECKING:
     from bank_statement_parser import ProjectPaths
 
     from openstan.views.anonymise_dialog import AnonymiseDialog
+
+
+# ---------------------------------------------------------------------------
+# Data models for config
+# ---------------------------------------------------------------------------
+
+
+class NeverAnonymiseConfig:
+    """Represents the never_anonymise.toml config (phrases to exclude from scrambling)."""
+
+    def __init__(self, exclude: list[str] | None = None) -> None:
+        self.exclude = exclude or []
+
+    def to_toml(self) -> str:
+        """Generate TOML content for this config."""
+        if not self.exclude:
+            return "exclude = [\n]\n"
+
+        lines = ["exclude = ["]
+        for phrase in self.exclude:
+            # Escape quotes in phrases
+            escaped = phrase.replace('"', '\\"')
+            lines.append(f'    "{escaped}",')
+        lines.append("]")
+        return "\n".join(lines)
+
+    @classmethod
+    def from_toml(cls, toml_path: Path) -> "NeverAnonymiseConfig":
+        """Load from a TOML file."""
+        if not toml_path.exists():
+            return cls()
+
+        try:
+            text = toml_path.read_text(encoding="utf-8")
+            config = tomllib.loads(text)
+            exclude = config.get("exclude", [])
+            return cls(exclude=exclude)
+        except Exception:
+            traceback.print_exc()
+            return cls()
+
+
+class AlwaysAnonymiseConfig:
+    """Represents the always_anonymise.toml config (forced replacements)."""
+
+    def __init__(self, replacements: dict[str, str] | None = None) -> None:
+        self.replacements = replacements or {}
+
+    def to_toml(self) -> str:
+        """Generate TOML content for this config."""
+        if not self.replacements:
+            return "# Forced replacements (applied before scramble)\n"
+
+        lines = ["# Forced replacements (applied before scramble)"]
+        for original, replacement in self.replacements.items():
+            # Escape quotes in both original and replacement
+            orig_escaped = original.replace('"', '\\"')
+            repl_escaped = replacement.replace('"', '\\"')
+            lines.append(f'"{orig_escaped}" = "{repl_escaped}"')
+        return "\n".join(lines)
+
+    @classmethod
+    def from_toml(cls, toml_path: Path) -> "AlwaysAnonymiseConfig":
+        """Load from a TOML file."""
+        if not toml_path.exists():
+            return cls()
+
+        try:
+            text = toml_path.read_text(encoding="utf-8")
+            config = tomllib.loads(text)
+            # TOML top-level keys (excluding standard metadata) are the replacements
+            # Filter out comment-only lines; BSA uses key=value pairs
+            replacements = {
+                k: v
+                for k, v in config.items()
+                if isinstance(v, str) and not k.startswith("_")
+            }
+            return cls(replacements=replacements)
+        except Exception:
+            traceback.print_exc()
+            return cls()
 
 
 # ---------------------------------------------------------------------------
@@ -34,7 +116,6 @@ if TYPE_CHECKING:
 class _AnonymiseSignals(QObject):
     """Signals emitted by the background anonymisation worker."""
 
-    started: Signal = Signal()
     finished: Signal = Signal(Path)  # output path
     error: Signal = Signal(str)
 
@@ -81,7 +162,7 @@ class AnonymisePresenter(QObject):
         The view this presenter manages.
     project_paths:
         ``ProjectPaths`` for the active project — used to locate
-        ``config/user/anonymise.toml``.
+        ``config/user/always_anonymise.toml`` and ``never_anonymise.toml``.
     initial_pdf:
         Optional pre-selected PDF path (e.g. passed in from the debug screen).
     """
@@ -98,7 +179,6 @@ class AnonymisePresenter(QObject):
         self._config_dir: Path = Path(str(project_paths.root)) / "config" / "user"
         self._always_anonymise_path: Path = self._config_dir / "always_anonymise.toml"
         self._never_anonymise_path: Path = self._config_dir / "never_anonymise.toml"
-        self._legacy_path: Path = self._config_dir / "anonymise_legacy.toml"
         self._input_path: Path | None = initial_pdf
         self._output_path: Path | None = None
         # Remembers the parent of the last PDF the user selected.
@@ -106,232 +186,137 @@ class AnonymisePresenter(QObject):
             initial_pdf.parent if initial_pdf is not None else None
         )
 
-        # Dirty-state tracking
-        self._always_dirty: bool = False
-        self._never_dirty: bool = False
+        # Current config state (loaded from TOML)
+        self._always_config = AlwaysAnonymiseConfig()
+        self._never_config = NeverAnonymiseConfig()
 
         # Wire buttons
         self.dialog.button_browse.clicked.connect(self._browse_pdf)
-        self.dialog.button_save_toml.clicked.connect(self._save_toml)
         self.dialog.button_run.clicked.connect(self._run_anonymisation)
         self.dialog.button_open_original.clicked.connect(self._open_original)
         self.dialog.button_open_anonymised.clicked.connect(self._open_anonymised)
 
-        # Wire text editor signals for dirty tracking
-        self.dialog.text_edit_always.textChanged.connect(self._mark_always_dirty)
-        self.dialog.text_edit_never.textChanged.connect(self._mark_never_dirty)
+        # Wire table buttons
+        self.dialog.button_add_always.clicked.connect(self._add_always_row)
+        self.dialog.button_remove_always.clicked.connect(self._remove_always_row)
+        self.dialog.button_add_never.clicked.connect(self._add_never_row)
+        self.dialog.button_remove_never.clicked.connect(self._remove_never_row)
 
-        # Ensure config files exist and handle legacy migration
-        self._ensure_config_files()
+        # Ensure config directory exists
+        self._config_dir.mkdir(parents=True, exist_ok=True)
 
-        # Populate both editors
-        self._load_always_toml()
-        self._load_never_toml()
+        # Load and populate tables
+        self._load_and_populate_tables()
 
         # Pre-populate PDF path if supplied
         if initial_pdf is not None:
             self._set_input_path(initial_pdf)
 
+        # Wire dialog close event to save before exit
+        self.dialog.finished.connect(self._on_dialog_finished)
+
     # ---------------------------------------------------------------------------
-    # Config file management
+    # Config loading and table population
     # ---------------------------------------------------------------------------
 
-    def _ensure_config_files(self) -> None:
-        """Check for legacy file and migrate if needed; ensure directories exist."""
-        self._config_dir.mkdir(parents=True, exist_ok=True)
+    def _load_and_populate_tables(self) -> None:
+        """Load TOML files and populate table widgets."""
+        self._always_config = AlwaysAnonymiseConfig.from_toml(
+            self._always_anonymise_path
+        )
+        self._never_config = NeverAnonymiseConfig.from_toml(self._never_anonymise_path)
 
-        # If legacy file exists and new files don't, migrate
-        if (
-            self._legacy_path.exists()
-            and not self._always_anonymise_path.exists()
-            and not self._never_anonymise_path.exists()
-        ):
+        # Populate "Always Anonymise" table
+        self.dialog.populate_always_table(self._always_config.replacements)
+
+        # Populate "Never Anonymise" table
+        self.dialog.populate_never_table(self._never_config.exclude)
+
+    # ---------------------------------------------------------------------------
+    # Config saving with retry logic
+    # ---------------------------------------------------------------------------
+
+    def _save_configs(self) -> bool:
+        """Save both configs to disk with 3-retry logic.
+
+        Returns True on success, False on failure.
+        """
+        # Read current state from tables
+        self._always_config.replacements = self.dialog.get_always_table_data()
+        self._never_config.exclude = self.dialog.get_never_table_data()
+
+        max_retries = 3
+        retry_delay = 1.0  # seconds
+
+        for attempt in range(max_retries):
             try:
-                self._migrate_legacy_config()
-            except Exception:
+                # Try to write both files
+                self._always_anonymise_path.write_text(
+                    self._always_config.to_toml(), encoding="utf-8"
+                )
+                self._never_anonymise_path.write_text(
+                    self._never_config.to_toml(), encoding="utf-8"
+                )
+                # Success
+                return True
+            except Exception as exc:
                 traceback.print_exc()
-                # Fall through to create empty templates
+                if attempt < max_retries - 1:
+                    # Retry after delay
+                    time.sleep(retry_delay)
+                else:
+                    # Final attempt failed
+                    StanErrorMessage(parent=self.dialog).showMessage(
+                        f"Failed to save config files after {max_retries} attempts:\n\n{exc}"
+                    )
+                    return False
 
-    def _migrate_legacy_config(self) -> None:
-        """Parse anonymise.toml and split into two new files."""
-        try:
-            text = self._legacy_path.read_text(encoding="utf-8")
-            config = tomllib.loads(text)
-        except tomllib.TOMLDecodeError as exc:
-            raise ValueError(f"Legacy config is invalid TOML: {exc}") from exc
-
-        # Extract sections
-        numbers_section = config.get("numbers_to_scramble", {})
-        words_section = config.get("words_to_not_scramble", {})
-        filename_section = config.get("filename_replacements", {})
-
-        # Build always_anonymise.toml
-        always_content = self._build_always_toml(numbers_section)
-        self._always_anonymise_path.write_text(always_content, encoding="utf-8")
-
-        # Build never_anonymise.toml
-        never_content = self._build_never_toml(words_section, filename_section)
-        self._never_anonymise_path.write_text(never_content, encoding="utf-8")
-
-    def _build_always_toml(self, numbers_section: dict) -> str:
-        """Reconstruct always_anonymise.toml content from legacy config section."""
-        if not numbers_section:
-            return "# Add any forced replacements here\n"
-
-        lines = ["# Forced replacements (applied before scramble)"]
-        for key, val in numbers_section.items():
-            if isinstance(val, str):
-                lines.append(f'"{key}" = "{val}"')
-        return "\n".join(lines)
-
-    def _build_never_toml(self, words_section: dict, filename_section: dict) -> str:
-        """Reconstruct never_anonymise.toml content from legacy config sections."""
-        lines = []
-
-        if words_section or filename_section:
-            exclude = words_section.get("exclude", [])
-            if exclude:
-                lines.append("exclude = [")
-                for word in exclude:
-                    lines.append(f'    "{word}",')
-                lines.append("]")
-
-        if not lines:
-            lines = [
-                "# Add phrases to exclude from scrambling here",
-                "exclude = [",
-                "]",
-            ]
-
-        return "\n".join(lines)
-
-    # ---------------------------------------------------------------------------
-    # TOML loading
-    # ---------------------------------------------------------------------------
-
-    def _load_always_toml(self) -> None:
-        """Load always_anonymise.toml into editor."""
-        if self._always_anonymise_path.exists():
-            try:
-                text = self._always_anonymise_path.read_text(encoding="utf-8")
-            except Exception:
-                traceback.print_exc()
-                text = ""
-        else:
-            text = ""
-
-        if not text:
-            text = "# Add any forced replacements here\n"
-
-        self.dialog.text_edit_always.setPlainText(text)
-        self._always_dirty = False
-
-    def _load_never_toml(self) -> None:
-        """Load never_anonymise.toml into editor."""
-        if self._never_anonymise_path.exists():
-            try:
-                text = self._never_anonymise_path.read_text(encoding="utf-8")
-            except Exception:
-                traceback.print_exc()
-                text = ""
-        else:
-            text = ""
-
-        if not text:
-            text = "# Add phrases to exclude from scrambling here\nexclude = [\n]\n"
-
-        self.dialog.text_edit_never.setPlainText(text)
-        self._never_dirty = False
-
-    # ---------------------------------------------------------------------------
-    # Dirty-state tracking
-    # ---------------------------------------------------------------------------
-
-    @Slot()
-    def _mark_always_dirty(self) -> None:
-        """Mark always_anonymise editor as modified."""
-        self._always_dirty = True
-        self._update_status()
-
-    @Slot()
-    def _mark_never_dirty(self) -> None:
-        """Mark never_anonymise editor as modified."""
-        self._never_dirty = True
-        self._update_status()
-
-    def _update_status(self) -> None:
-        """Update status label to show if unsaved changes exist."""
-        if self._always_dirty or self._never_dirty:
-            self.dialog.label_status.setText(
-                "⚠ Unsaved changes (click 'Save Config' before anonymising)"
-            )
-        else:
-            self.dialog.label_status.setText(
-                "Ready — select a PDF and click 'Run Anonymisation'"
-            )
-
-    # ---------------------------------------------------------------------------
-    # TOML validation and saving
-    # ---------------------------------------------------------------------------
-
-    def _save_always_toml(self) -> bool:
-        """Validate and save always_anonymise.toml. Returns True on success."""
-        text = self.dialog.text_edit_always.toPlainText()
-        try:
-            tomllib.loads(text)  # Validate TOML syntax
-        except tomllib.TOMLDecodeError as exc:
-            StanErrorMessage(parent=self.dialog).showMessage(
-                f"always_anonymise.toml contains invalid TOML:\n\n{exc}"
-            )
-            return False
-
-        try:
-            self._always_anonymise_path.write_text(text, encoding="utf-8")
-            self._always_dirty = False
-            return True
-        except Exception as exc:
-            traceback.print_exc()
-            StanErrorMessage(parent=self.dialog).showMessage(
-                f"Failed to save always_anonymise.toml:\n\n{exc}"
-            )
-            return False
-
-    def _save_never_toml(self) -> bool:
-        """Validate and save never_anonymise.toml. Returns True on success."""
-        text = self.dialog.text_edit_never.toPlainText()
-        try:
-            tomllib.loads(text)  # Validate TOML syntax
-        except tomllib.TOMLDecodeError as exc:
-            StanErrorMessage(parent=self.dialog).showMessage(
-                f"never_anonymise.toml contains invalid TOML:\n\n{exc}"
-            )
-            return False
-
-        try:
-            self._never_anonymise_path.write_text(text, encoding="utf-8")
-            self._never_dirty = False
-            return True
-        except Exception as exc:
-            traceback.print_exc()
-            StanErrorMessage(parent=self.dialog).showMessage(
-                f"Failed to save never_anonymise.toml:\n\n{exc}"
-            )
-            return False
-
-    @Slot()
-    def _save_toml(self) -> None:
-        """Validate and save both config files."""
-        save_always_ok = self._save_always_toml()
-        save_never_ok = self._save_never_toml()
-
-        if save_always_ok and save_never_ok:
-            self.dialog.label_status.setText("Config saved.")
-        else:
-            self.dialog.label_status.setText("Config has errors — see messages above.")
+        return False
 
     # ---------------------------------------------------------------------------
     # PDF selection
     # ---------------------------------------------------------------------------
+
+    @Slot()
+    def _add_always_row(self) -> None:
+        """Add a new empty row to the 'Always Anonymise' table."""
+        from PySide6.QtWidgets import QTableWidgetItem
+
+        row_pos = self.dialog.table_always.rowCount()
+        self.dialog.table_always.insertRow(row_pos)
+
+        self.dialog.table_always.setItem(row_pos, 0, QTableWidgetItem(""))
+        self.dialog.table_always.setItem(row_pos, 1, QTableWidgetItem(""))
+
+        # Set focus to the new row
+        self.dialog.table_always.setCurrentCell(row_pos, 0)
+
+    @Slot()
+    def _remove_always_row(self) -> None:
+        """Remove the selected row from the 'Always Anonymise' table."""
+        current_row = self.dialog.table_always.currentRow()
+        if current_row >= 0:
+            self.dialog.table_always.removeRow(current_row)
+
+    @Slot()
+    def _add_never_row(self) -> None:
+        """Add a new empty row to the 'Never Anonymise' table."""
+        from PySide6.QtWidgets import QTableWidgetItem
+
+        row_pos = self.dialog.table_never.rowCount()
+        self.dialog.table_never.insertRow(row_pos)
+
+        self.dialog.table_never.setItem(row_pos, 0, QTableWidgetItem(""))
+
+        # Set focus to the new row
+        self.dialog.table_never.setCurrentCell(row_pos, 0)
+
+    @Slot()
+    def _remove_never_row(self) -> None:
+        """Remove the selected row from the 'Never Anonymise' table."""
+        current_row = self.dialog.table_never.currentRow()
+        if current_row >= 0:
+            self.dialog.table_never.removeRow(current_row)
 
     @Slot()
     def _browse_pdf(self) -> None:
@@ -367,7 +352,11 @@ class AnonymisePresenter(QObject):
 
     @Slot()
     def _run_anonymisation(self) -> None:
-        """Kick off background anonymisation, prompting to save if dirty."""
+        """Save configs and kick off background anonymisation.
+        
+        Automatically saves the current table state to both TOML files
+        (with 3-retry logic) before starting the anonymisation process.
+        """
         if self._input_path is None:
             return
 
@@ -377,28 +366,10 @@ class AnonymisePresenter(QObject):
             )
             return
 
-        # Prompt to save if editors are dirty
-        if self._always_dirty or self._never_dirty:
-            reply = StanInfoMessage.question(
-                self.dialog,
-                "Unsaved Changes",
-                "You have unsaved changes in the config editor.\n\n"
-                "Save them before anonymising?",
-                StanInfoMessage.StandardButton.Yes
-                | StanInfoMessage.StandardButton.Cancel,
-                StanInfoMessage.StandardButton.Yes,
-            )
-            if reply == StanInfoMessage.StandardButton.Cancel:
-                return
-
-            # Save both (if save fails, abort anonymisation)
-            save_always_ok = self._save_always_toml()
-            save_never_ok = self._save_never_toml()
-            if not (save_always_ok and save_never_ok):
-                self.dialog.label_status.setText(
-                    "Fix config errors before anonymising."
-                )
-                return
+        # Save configs before anonymising
+        if not self._save_configs():
+            self.dialog.label_status.setText("Fix config errors before anonymising.")
+            return
 
         # Pass None if file doesn't exist (bsa uses system defaults)
         always_path = (
@@ -411,7 +382,6 @@ class AnonymisePresenter(QObject):
         )
 
         self.dialog.button_run.setEnabled(False)
-        self.dialog.button_save_toml.setEnabled(False)
         self.dialog.button_browse.setEnabled(False)
         self.dialog.button_open_anonymised.setEnabled(False)
         self.dialog.label_status.setText("Running anonymisation…")
@@ -432,7 +402,6 @@ class AnonymisePresenter(QObject):
         """Called on the GUI thread when the worker completes successfully."""
         self._output_path = output_path
         self.dialog.button_run.setEnabled(True)
-        self.dialog.button_save_toml.setEnabled(True)
         self.dialog.button_browse.setEnabled(True)
         self.dialog.button_open_anonymised.setEnabled(True)
         self.dialog.label_status.setText(
@@ -443,12 +412,26 @@ class AnonymisePresenter(QObject):
     def _on_error(self, message: str) -> None:
         """Called on the GUI thread when the worker raises an exception."""
         self.dialog.button_run.setEnabled(True)
-        self.dialog.button_save_toml.setEnabled(True)
         self.dialog.button_browse.setEnabled(True)
         self.dialog.label_status.setText("Anonymisation failed — see error dialog.")
         StanErrorMessage(parent=self.dialog).showMessage(
             f"Anonymisation failed:\n\n{message}"
         )
+
+    # ---------------------------------------------------------------------------
+    # Dialog lifecycle
+    # ---------------------------------------------------------------------------
+
+    @Slot(int)
+    def _on_dialog_finished(self, result: int) -> None:
+        """Save configs when dialog is closing.
+        
+        Called automatically when the dialog is closed via any method
+        (Close button, X button, accept, or reject). Attempts to save
+        the current table state to both TOML files using 3-retry logic.
+        """
+        # Save configs on exit
+        self._save_configs()
 
     # ---------------------------------------------------------------------------
     # Open PDF helpers

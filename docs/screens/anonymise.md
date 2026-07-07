@@ -1,6 +1,6 @@
 # Anonymise PDF
 
-The **Anonymise PDF** tool lets you produce a redacted copy of a bank statement PDF suitable for sharing — for example, when attaching a failing statement to a GitHub issue. All letters are scrambled by default; you control exactly which numeric strings (sort codes, account numbers) are also scrambled, and which structural words must remain intact so that the parser can still process the anonymised file.
+The **Anonymise PDF** tool lets you produce a redacted copy of a bank statement PDF suitable for sharing — for example, when attaching a failing statement to a GitHub issue. All text is scrambled by default. You use two simple tables to control which phrases are left unchanged (so the parser can still read them) and which strings are replaced with safe alternatives (before scrambling occurs).
 
 ---
 
@@ -24,58 +24,46 @@ If the tool was opened from the Debug Info dialog, the path is pre-filled with t
 
 ---
 
-## Editing anonymise.toml
+## Configuring Anonymisation
 
-The central panel shows the contents of `config/user/anonymise.toml` inside the active project folder. This file is created automatically when the project is initialised, pre-populated with sensible defaults including common UK bank transaction type codes and month names.
+The center panel contains two tabs for managing anonymisation rules. Configurations are saved automatically when you run the anonymisation or close the dialog (with retry logic if the first save attempt fails).
 
-Edit the file directly in the text editor. Three sections control the anonymisation:
+### Always Anonymise Tab
 
-### `[numbers_to_scramble]`
+Entries in this table force exact string replacements **before** the scrambling pass. Use this for structured data like sort codes or account numbers you want to replace with safe placeholders.
 
-A list of substrings. Any PDF text fragment containing one of these strings has its digit characters replaced with random digits. Separators (hyphens, spaces) are preserved.
+- **Original Text** column: the string to find (case-sensitive)
+- **Replacement** column: the string to substitute
+- Click **Add Row** to add a new replacement pair
+- Click **Remove Selected** to delete a row
 
-Use this to scramble sort codes and account numbers that would otherwise be left as-is:
+Example:
 
-```toml
-[numbers_to_scramble]
-values = [
-    "11-22-33",   # sort code
-    "12345678",   # account number
-]
-```
+| Original Text | Replacement |
+|---|---|
+| 11-22-33 | 00-00-00 |
+| 12345678 | 00000000 |
+| ACME Bank | Bank |
 
-### `[words_to_not_scramble]`
+### Never Anonymise Tab
 
-A list of words and phrases that must appear unchanged in the output. Matching ignores case and all whitespace, so multi-word phrases are matched even when the PDF renders them across multiple text fragments.
+Phrases listed here are **excluded from scrambling**. Use this for structural text the parser needs to read (e.g., column headers, balance labels, transaction type codes).
 
-Pre-populate this with any structural text the parser needs to read — column headers, balance labels, transaction type codes:
+- **Phrase** column: text to leave unchanged (matching is case-insensitive)
+- Click **Add Row** to add a new phrase
+- Click **Remove Selected** to delete a row
 
-```toml
-[words_to_not_scramble]
-exclude = [
-    "Balance Brought Forward",
-    "Date",
-    "Money In",
-    "Money Out",
-    # ... bank-specific phrases
-]
-```
+Example:
 
-### `[filename_replacements]`
-
-Key/value pairs applied to the output filename stem before the `anonymised_` prefix is prepended. Use this to remove real names or account references from the filename:
-
-```toml
-[filename_replacements]
-"RealSurname" = "Testname"
-```
-
-### Saving the config
-
-Click **Save Config** to write your edits back to disk. The editor validates that the file is valid TOML before saving; an error dialog is shown if the syntax is invalid.
+| Phrase |
+|---|
+| Balance Brought Forward |
+| Date |
+| Money In |
+| Money Out |
 
 !!! tip "Iterating"
-    The typical workflow is: run → open both PDFs → notice what structural text is unreadable → add those phrases to `[words_to_not_scramble]` → save → run again. Repeat until the anonymised PDF is both sufficiently redacted and parseable.
+    The typical workflow is: run → open both PDFs → notice what structural text is unreadable → add those phrases to the Never Anonymise tab → run again. Repeat until the anonymised PDF is both sufficiently redacted and parseable.
 
 ---
 
@@ -101,15 +89,18 @@ Once a run completes, **Open Original PDF** and **Open Anonymised PDF** both bec
 
 ---
 
-## anonymise.toml location
+## Config File Locations
 
-The config file lives at:
+The app stores two TOML files in:
 
 ```
-<project folder>/config/user/anonymise.toml
+<project folder>/config/user/
 ```
 
-It is created automatically when a project is first initialised or connected. You can also edit it directly outside of openstan with any text editor.
+- `always_anonymise.toml` — forced replacements (original → replacement pairs)
+- `never_anonymise.toml` — phrases excluded from scrambling
 
-!!! note "Keep anonymise.toml out of source control"
-    The file may contain substrings of real sort codes or account numbers used as matching patterns. Treat it as sensitive and exclude it from any repository you share.
+Both files are created automatically when the project is first initialised or connected. You can also edit them directly outside of openstan with any text editor (TOML format). Changes made outside the app are loaded the next time you open the Anonymise tool.
+
+!!! note "Keep config files out of source control"
+    These files may contain substrings of real sort codes or account numbers used as matching patterns. Treat them as sensitive and exclude them from any repository you share.
