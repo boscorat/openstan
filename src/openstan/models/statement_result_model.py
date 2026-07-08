@@ -193,6 +193,7 @@ class ResultRow:
     error_type: str | None
     message: str | None
     debug_json_path: Path | None = field(default=None)
+    debug_excel_path: Path | None = field(default=None)
     debug_status: str | None = field(default=None)
     pdf_result: "PdfResult | None" = field(default=None)
 
@@ -364,6 +365,7 @@ class StatementResultModel(QSqlTableModel):
         record.setValue("error_type", error_type)
         record.setValue("message", message)
         record.setValue("debug_json_path", None)
+        record.setValue("debug_excel_path", None)
         record.setValue("debug_status", None)
         record.setValue("deleted", 0)
         # QSqlTableModel sets all unset columns to NULL — including 'created'
@@ -385,16 +387,20 @@ class StatementResultModel(QSqlTableModel):
         result_id: str,
         status: str,
         debug_json_path: Path | None,
+        debug_excel_path: Path | None = None,
     ) -> tuple[bool, str]:
-        """Update debug_status and debug_json_path for a single result row."""
+        """Update debug_status, debug_json_path, and debug_excel_path for a single result row."""
         query = QSqlQuery(self.database())
         query.prepare(
             "UPDATE statement_result "
-            "SET debug_status = :status, debug_json_path = :path "
+            "SET debug_status = :status, debug_json_path = :json_path, debug_excel_path = :excel_path "
             "WHERE result_id = :result_id"
         )
         query.bindValue(":status", status)
-        query.bindValue(":path", str(debug_json_path) if debug_json_path else None)
+        query.bindValue(":json_path", str(debug_json_path) if debug_json_path else None)
+        query.bindValue(
+            ":excel_path", str(debug_excel_path) if debug_excel_path else None
+        )
         query.bindValue(":result_id", result_id)
         if query.exec():
             self.select()
@@ -464,6 +470,7 @@ class StatementResultModel(QSqlTableModel):
                 pin = rec.value("payments_in")
                 pout = rec.value("payments_out")
                 djp = rec.value("debug_json_path")
+                dep = rec.value("debug_excel_path")
                 rows.append(
                     ResultRow(
                         result_id=str(rec.value("result_id")),
@@ -479,6 +486,7 @@ class StatementResultModel(QSqlTableModel):
                         error_type=rec.value("error_type") or None,
                         message=rec.value("message") or None,
                         debug_json_path=Path(str(djp)) if djp else None,
+                        debug_excel_path=Path(str(dep)) if dep else None,
                         debug_status=rec.value("debug_status") or None,
                     )
                 )

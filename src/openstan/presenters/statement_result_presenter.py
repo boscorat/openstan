@@ -163,8 +163,8 @@ class DebugWorkerSignals(QObject):
     """Cross-thread signals for DebugWorker."""
 
     # Emitted once per non-success row after debug_pdf_statement completes.
-    # Carries: (result_id, debug_json_path | None)
-    entry_done = Signal(str, object)
+    # Carries: (result_id, debug_json_path | None, debug_excel_path | None)
+    entry_done = Signal(str, object, object)
     all_done = Signal()
     error = Signal(str)
 
@@ -215,6 +215,7 @@ class DebugWorker(QRunnable):
                 result_id = self._result_ids[i] if i < len(self._result_ids) else ""
 
                 debug_json_path: Path | None = None
+                debug_excel_path: Path | None = None
                 try:
                     debug_json_path = bsp.debug_pdf_statement(
                         pdf=row.file_path,
@@ -223,15 +224,24 @@ class DebugWorker(QRunnable):
                         account_key=None,
                         project_path=self._project_path,
                     )
+                    # Detect Excel file if JSON exists
+                    if debug_json_path is not None:
+                        debug_excel_path = (
+                            debug_json_path.parent / "debug_dataframes.xlsx"
+                        )
+                        if not debug_excel_path.exists():
+                            debug_excel_path = None
                 except Exception:
                     traceback.print_exc(file=sys.stderr)
                     print(
                         f"WARNING: debug_pdf_statement failed for {row.file_path.name}; "
-                        "entry will have no debug JSON.",
+                        "entry will have no debug files.",
                         file=sys.stderr,
                     )
 
-                self.signals.entry_done.emit(result_id, debug_json_path)
+                self.signals.entry_done.emit(
+                    result_id, debug_json_path, debug_excel_path
+                )
 
         except Exception:
             traceback.print_exc(file=sys.stderr)
@@ -645,16 +655,23 @@ class StatementResultPresenter(QObject):
 
     @Slot(str, object)
     def __on_debug_entry_done(
-        self, result_id: str, debug_json_path: "Path | None"
+        self,
+        result_id: str,
+        debug_json_path: "Path | None",
+        debug_excel_path: "Path | None",
     ) -> None:
         """Persist debug result for one row and update the open dialog if any."""
         status = "done" if debug_json_path is not None else "error"
-        self.result_model.update_debug_info(result_id, status, debug_json_path)
+        self.result_model.update_debug_info(
+            result_id, status, debug_json_path, debug_excel_path
+        )
 
         self._debug_done_count += 1
 
         if self._debug_dialog is not None:
-            self._debug_dialog.update_row(result_id, status, debug_json_path)
+            self._debug_dialog.update_row(
+                result_id, status, debug_json_path, debug_excel_path
+            )
 
         self.__update_debug_button_label()
 

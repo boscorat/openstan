@@ -2,14 +2,15 @@
 
 Opened by the "View Debug Info" button in the Statement Results panel.
 Populated live as the background DebugWorker emits ``entry_done`` signals,
-and updated on session restore from persisted ``debug_status`` / ``debug_json_path``
-fields in ``statement_result``.
+and updated on session restore from persisted ``debug_status`` / ``debug_json_path`` /
+``debug_excel_path`` fields in ``statement_result``.
 
 Each row shows:
   - Statement filename
   - Result type (REVIEW / FAILURE)
   - Debug status
   - "Open JSON" button (enabled once debug_json_path is known)
+  - "Open Excel" button (enabled once debug_excel_path is known)
   - "Open PDF" button (always enabled — uses the original file_path)
   - "View Parquet" button (REVIEW rows only — opens ParquetViewDialog)
   - "Anonymise" button (enabled when project_paths is available)
@@ -42,15 +43,17 @@ _COL_FILE = 0
 _COL_TYPE = 1
 _COL_STATUS = 2
 _COL_JSON = 3
-_COL_PDF = 4
-_COL_PARQUET = 5
-_COL_ANON = 6
-_COL_MESSAGE = 7
+_COL_EXCEL = 4
+_COL_PDF = 5
+_COL_PARQUET = 6
+_COL_ANON = 7
+_COL_MESSAGE = 8
 _HEADERS = [
     "Statement",
     "Type",
     "Debug Status",
     "Debug JSON",
+    "Debug Excel",
     "PDF",
     "Parquet",
     "Anonymise",
@@ -102,6 +105,7 @@ class DebugInfoDialog(StanDialog):
         hdr.setSectionResizeMode(_COL_TYPE, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_STATUS, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_JSON, QHeaderView.ResizeMode.ResizeToContents)
+        hdr.setSectionResizeMode(_COL_EXCEL, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_PDF, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_PARQUET, QHeaderView.ResizeMode.ResizeToContents)
         hdr.setSectionResizeMode(_COL_ANON, QHeaderView.ResizeMode.ResizeToContents)
@@ -136,8 +140,9 @@ class DebugInfoDialog(StanDialog):
         result_id: str,
         status: str,
         debug_json_path: Path | None,
+        debug_excel_path: Path | None = None,
     ) -> None:
-        """Update the status and JSON link for a single row."""
+        """Update the status and debug file links for a single row."""
         idx = self._row_index.get(result_id)
         if idx is None:
             return
@@ -156,6 +161,16 @@ class DebugInfoDialog(StanDialog):
             else:
                 json_widget.setEnabled(False)
                 json_widget.setProperty("_path", None)
+
+        # Update Excel button
+        excel_widget = self._table.cellWidget(idx, _COL_EXCEL)
+        if isinstance(excel_widget, StanButton):
+            if debug_excel_path is not None and debug_excel_path.exists():
+                excel_widget.setEnabled(True)
+                excel_widget.setProperty("_path", str(debug_excel_path))
+            else:
+                excel_widget.setEnabled(False)
+                excel_widget.setProperty("_path", None)
 
         self.__update_status_label()
 
@@ -201,6 +216,19 @@ class DebugInfoDialog(StanDialog):
             lambda _checked, btn=json_btn: self.__open_file(btn.property("_path"))
         )
         self._table.setCellWidget(table_row, _COL_JSON, json_btn)
+
+        # Open Excel button
+        excel_btn = StanButton("Open Excel", min_width=0)
+        excel_btn.setEnabled(False)
+        excel_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        excel_btn.setToolTip("View extracted dataframes in multi-tab Excel file")
+        if row.debug_excel_path is not None and row.debug_excel_path.exists():
+            excel_btn.setEnabled(True)
+            excel_btn.setProperty("_path", str(row.debug_excel_path))
+        excel_btn.clicked.connect(
+            lambda _checked, btn=excel_btn: self.__open_file(btn.property("_path"))
+        )
+        self._table.setCellWidget(table_row, _COL_EXCEL, excel_btn)
 
         # Open PDF button
         pdf_btn = StanButton("Open PDF", min_width=0)
