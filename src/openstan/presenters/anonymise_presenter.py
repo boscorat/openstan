@@ -353,7 +353,7 @@ class AnonymisePresenter(QObject):
     @Slot()
     def _run_anonymisation(self) -> None:
         """Save configs and kick off background anonymisation.
-        
+
         Automatically saves the current table state to both TOML files
         (with 3-retry logic) before starting the anonymisation process.
         """
@@ -425,7 +425,7 @@ class AnonymisePresenter(QObject):
     @Slot(int)
     def _on_dialog_finished(self, result: int) -> None:
         """Save configs when dialog is closing.
-        
+
         Called automatically when the dialog is closed via any method
         (Close button, X button, accept, or reject). Attempts to save
         the current table state to both TOML files using 3-retry logic.

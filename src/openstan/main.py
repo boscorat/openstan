@@ -615,7 +615,11 @@ class Stan(QMainWindow):
 
     def closeEvent(self, a0) -> None:
         # Warn the user if an import is currently in progress
-        if self.stan_presenter.statement_result_presenter._importing:  # noqa: SLF001
+        # (guard against closeEvent before stan_presenter is initialized)
+        if (
+            hasattr(self, "stan_presenter")
+            and self.stan_presenter.statement_result_presenter._importing  # noqa: SLF001
+        ):
             warn = StanInfoMessage(self)
             warn.setText(
                 "An import is currently in progress.\n\n"
