@@ -4,7 +4,15 @@ from pathlib import Path
 from uuid import uuid4
 
 from bank_statement_parser import ProjectPaths
-from PySide6.QtCore import QObject, QRectF, QSysInfo, Qt, QThreadPool, Slot, qDebug
+from PySide6.QtCore import (
+    QRectF,
+    QSettings,
+    QSysInfo,
+    Qt,
+    QThreadPool,
+    Slot,
+    qDebug,
+)
 from PySide6.QtGui import (
     QColor,
     QFontDatabase,
@@ -130,13 +138,17 @@ def _dark_palette() -> QPalette:
         QPalette.ColorRole.WindowText,
         QColor(127, 127, 127),
     )
-    p.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(127, 127, 127))
+    p.setColor(
+        QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(127, 127, 127)
+    )
     p.setColor(
         QPalette.ColorGroup.Disabled,
         QPalette.ColorRole.ButtonText,
         QColor(127, 127, 127),
     )
-    p.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Highlight, QColor(80, 80, 80))
+    p.setColor(
+        QPalette.ColorGroup.Disabled, QPalette.ColorRole.Highlight, QColor(80, 80, 80)
+    )
     p.setColor(
         QPalette.ColorGroup.Disabled,
         QPalette.ColorRole.HighlightedText,
@@ -146,93 +158,20 @@ def _dark_palette() -> QPalette:
     return p
 
 
-def _detect_scheme_via_dbus() -> Qt.ColorScheme:
-    """Detect the system colour scheme on Linux via the FreeDesktop portal.
+def _apply_palette(app: QApplication, mode: str) -> None:
+    """Apply or remove the explicit palette based on *mode*.
 
-    Reads ``org.freedesktop.appearance`` → ``color-scheme`` from the
-    FreeDesktop Settings portal via ``gdbus``.  This is the same source
-    that the Qt platform theme plugin reads internally, but queried
-    synchronously so it is reliable at application startup — before the
-    platform theme plugin has had a chance to query the system setting and
-    make it available via ``QStyleHints.colorScheme()``.
-
-    Return values from ``org.freedesktop.appearance`` ``color-scheme``:
-        0 → no preference (treat as light)
-        1 → dark
-        2 → light
-
-    Falls back to ``Qt.ColorScheme.Light`` on any error (gdbus not found,
-    portal unavailable, timeout, unexpected output format, etc.).
+    Args:
+        app: QApplication instance.
+        mode: Theme mode — "dark" or "light".
     """
-    import subprocess
-    import sys
-
-    if sys.platform != "linux":
-        print("[openstan] _detect_scheme_via_dbus: skipped (not Linux) → Light")
-        return Qt.ColorScheme.Light
-    try:
-        result = subprocess.run(
-            [
-                "gdbus",
-                "call",
-                "--session",
-                "--dest",
-                "org.freedesktop.portal.Desktop",
-                "--object-path",
-                "/org/freedesktop/portal/desktop",
-                "--method",
-                "org.freedesktop.portal.Settings.Read",
-                "org.freedesktop.appearance",
-                "color-scheme",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=0.25,
-        )
-        print(
-            f"[openstan] _detect_scheme_via_dbus: returncode={result.returncode}"
-            f"  stdout={result.stdout.strip()!r}"
-            f"  stderr={result.stderr.strip()!r}"
-        )
-        # Successful output looks like: (<uint32 1>,)
-        # We treat any occurrence of "<uint32 1>" in the response as dark mode,
-        # since the only values are 0 (no-pref), 1 (dark), and 2 (light).
-        if result.returncode == 0 and "<uint32 1>" in result.stdout:
-            print("[openstan] _detect_scheme_via_dbus: detected → Dark")
-            return Qt.ColorScheme.Dark
-        print("[openstan] _detect_scheme_via_dbus: detected → Light")
-    except Exception as exc:
-        print(f"[openstan] _detect_scheme_via_dbus: exception {type(exc).__name__}({exc}) → Light")
-    return Qt.ColorScheme.Light
-
-
-def _apply_palette(app: QApplication, scheme: Qt.ColorScheme) -> None:
-    """Apply or remove the explicit dark palette based on *scheme*.
-
-    ``Qt.ColorScheme.Unknown`` is treated as Light (the dbus portal is now
-    queried directly at the call site before this function is called, so
-    Unknown should not reach here in practice).
-    """
-    if scheme == Qt.ColorScheme.Dark:
+    if mode == "dark":
         print("[openstan] _apply_palette: applying Dark palette")
         app.setPalette(_dark_palette())
     else:
-        print(f"[openstan] _apply_palette: scheme={scheme.name}  applying Light palette")
+        print("[openstan] _apply_palette: applying Light palette")
         # Restore Fusion's default (light) palette
         app.setPalette(app.style().standardPalette())
-
-
-class _ThemeManager(QObject):
-    """Helper to manage theme switching with named slots instead of lambdas."""
-
-    def __init__(self, app: QApplication) -> None:
-        super().__init__()
-        self.app = app
-
-    @Slot(Qt.ColorScheme)
-    def on_color_scheme_changed(self, scheme: Qt.ColorScheme) -> None:
-        """Handle color scheme change from system preferences."""
-        _apply_palette(self.app, scheme)
 
 
 def _make_splash(app: QApplication) -> QSplashScreen:
@@ -269,8 +208,12 @@ def _make_splash(app: QApplication) -> QSplashScreen:
     import os as _os
 
     logo_exists = _os.path.isfile(logo_path)
-    print(f"[openstan] _make_splash: dpr={dpr}  logical={pix_w}x{pix_h}  physical={phys_w}x{phys_h}")
-    print(f"[openstan] _make_splash: logo={logo_path!r}  exists={logo_exists}  palette_bg=#{bg.red():02x}{bg.green():02x}{bg.blue():02x}")
+    print(
+        f"[openstan] _make_splash: dpr={dpr}  logical={pix_w}x{pix_h}  physical={phys_w}x{phys_h}"
+    )
+    print(
+        f"[openstan] _make_splash: logo={logo_path!r}  exists={logo_exists}  palette_bg=#{bg.red():02x}{bg.green():02x}{bg.blue():02x}"
+    )
 
     pixmap = QPixmap(phys_w, phys_h)
     pixmap.setDevicePixelRatio(dpr)
@@ -285,7 +228,9 @@ def _make_splash(app: QApplication) -> QSplashScreen:
         renderer.render(painter, QRectF(pad, pad, logo_w, logo_h))
         print("[openstan] _make_splash: SVG rendered OK")
     else:
-        print("[openstan] _make_splash: QSvgRenderer reports invalid — splash will have blank logo")
+        print(
+            "[openstan] _make_splash: QSvgRenderer reports invalid — splash will have blank logo"
+        )
 
     # Version string — bottom-right corner, slightly muted
     try:
@@ -313,7 +258,9 @@ def _make_splash(app: QApplication) -> QSplashScreen:
 def main() -> None:
     qDebug("Starting openstan GUI application...")
 
-    print(f"[openstan] startup: sys.frozen={getattr(sys, 'frozen', False)}  platform={sys.platform}")
+    print(
+        f"[openstan] startup: sys.frozen={getattr(sys, 'frozen', False)}  platform={sys.platform}"
+    )
 
     # On Linux, frozen binaries bundle libqxdgdesktopportal.so / libqgtk3.so but
     # their system library dependencies are typically absent on users' machines.
@@ -347,29 +294,12 @@ def main() -> None:
     else:
         app.setStyle("Fusion")
         print(f"[openstan] style: Fusion  productType={QSysInfo.productType()!r}")
-        # On Linux the Fusion style has no built-in dark mode — it relies on
-        # the Qt platform theme plugin (libqxdgdesktopportal / libqgtk3) to
-        # inject the correct palette.  In frozen binaries the plugin's system
-        # library dependencies are often absent, causing Qt to silently fall
-        # back to a light palette regardless of the OS setting.
-        #
-        # Additionally, even when the platform theme plugin loads successfully,
-        # QStyleHints.colorScheme() may return an incorrect value immediately
-        # after QApplication() is constructed — before the plugin has had a
-        # chance to query the system colour setting.  We therefore always read
-        # the system colour scheme directly via the FreeDesktop portal (gdbus)
-        # for the initial palette rather than relying on colorScheme().
-        #
-        # colorSchemeChanged is kept connected for live theme switching, which
-        # works correctly once the event loop is running and the plugin has
-        # fully initialised.
-        hints = app.styleHints()
-        qt_scheme = hints.colorScheme()
-        print(f"[openstan] colorScheme() at startup={qt_scheme.name!r} (may be unreliable — using dbus for initial detection)")
-        _apply_palette(app, _detect_scheme_via_dbus())
-        theme_manager = _ThemeManager(app)
-        hints.colorSchemeChanged.connect(theme_manager.on_color_scheme_changed)
-        print("[openstan] colorSchemeChanged connected for live theme switching")
+
+    # Load theme preference from QSettings and apply palette
+    settings = QSettings("openstan", "openstan")
+    theme_mode = str(settings.value("appearance/theme_mode", defaultValue="dark"))
+    _apply_palette(app, theme_mode)
+    print(f"[openstan] theme loaded from settings: {theme_mode!r}")
 
     # ── Splash screen ─────────────────────────────────────────────────────
     # Shown immediately after the palette is applied (so the correct themed
@@ -503,15 +433,21 @@ class Stan(QMainWindow):
         self.content_stack = QStackedWidget()
         self.nav_idx_welcome: int = self.content_stack.addWidget(self.welcome_view)
         self.nav_idx_info: int = self.content_stack.addWidget(self.project_info_block)
-        self.nav_idx_import: int = self.content_stack.addWidget(self.statement_queue_block)
+        self.nav_idx_import: int = self.content_stack.addWidget(
+            self.statement_queue_block
+        )
         self.nav_idx_export: int = self.content_stack.addWidget(self.export_data_block)
         self.nav_idx_reports: int = self.content_stack.addWidget(self.run_reports_block)
-        self.nav_idx_results: int = self.content_stack.addWidget(self.statement_result_block)
+        self.nav_idx_results: int = self.content_stack.addWidget(
+            self.statement_result_block
+        )
 
         # ── Presenters ────────────────────────────────────────────────────
         self.user_presenter = UserPresenter(model=self.user_model, view=None)
         self.session_presenter = SessionPresenter(model=self.session_model, view=None)
-        self.project_presenter = ProjectPresenter(model=self.project_model, view=self.project_view)
+        self.project_presenter = ProjectPresenter(
+            model=self.project_model, view=self.project_view
+        )
         self.statement_queue_presenter = StatementQueuePresenter(
             model=self.statement_queue_model,
             view=self.statement_queue_view,
@@ -533,6 +469,7 @@ class Stan(QMainWindow):
             view=self.admin_view,
             stan=self,  # type: ignore[arg-type]
         )
+        self.admin_presenter.theme_changed.connect(self._on_theme_changed)
         self.export_data_presenter = ExportDataPresenter(
             view=self.export_data_view,
             threadpool=self.threadpool,
@@ -564,7 +501,9 @@ class Stan(QMainWindow):
         layout.setSpacing(0)
 
         layout.addWidget(self.title_view, stretch=0)
-        layout.addWidget(self.project_view, stretch=0, alignment=Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(
+            self.project_view, stretch=0, alignment=Qt.AlignmentFlag.AlignTop
+        )
         layout.addWidget(self.project_nav_view, stretch=0)
         layout.addWidget(self.content_stack, stretch=1)
         layout.addWidget(self.footer_view, stretch=0)
@@ -591,8 +530,13 @@ class Stan(QMainWindow):
             and self.stan_presenter.statement_result_presenter._importing  # noqa: SLF001
         ):
             warn = StanInfoMessage(self)
-            warn.setText("An import is currently in progress.\n\nClosing now will abandon the current batch. Are you sure?")
-            warn.setStandardButtons(StanInfoMessage.StandardButton.Yes | StanInfoMessage.StandardButton.Cancel)
+            warn.setText(
+                "An import is currently in progress.\n\nClosing now will abandon the current batch. Are you sure?"
+            )
+            warn.setStandardButtons(
+                StanInfoMessage.StandardButton.Yes
+                | StanInfoMessage.StandardButton.Cancel
+            )
             warn.setDefaultButton(StanInfoMessage.StandardButton.Cancel)
             if warn.exec() != StanInfoMessage.StandardButton.Yes:
                 if a0:
@@ -602,6 +546,18 @@ class Stan(QMainWindow):
             self.stan_presenter.cleanup_before_exit()
         if a0:
             a0.accept()
+
+    @Slot(str)
+    def _on_theme_changed(self, mode: str) -> None:
+        """Handle theme change signal from admin presenter and refresh palette.
+
+        Args:
+            mode: Theme mode — "dark" or "light".
+        """
+        app_inst = QApplication.instance()
+        if isinstance(app_inst, QApplication):
+            _apply_palette(app_inst, mode)
+            print(f"[openstan] Theme changed to: {mode!r}")
 
     @Slot()
     def _on_about_requested(self) -> None:

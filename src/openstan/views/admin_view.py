@@ -8,6 +8,7 @@ from openstan.components import (
     StanDialog,
     StanFrame,
     StanLabel,
+    StanRadioButton,
 )
 
 
@@ -154,7 +155,30 @@ class AdminView(StanDialog):
         section_anon.setLayout(layout_anon)
 
         # ------------------------------------------------------------------
-        # Section 5 — Privacy / update check
+        # Section 5 — Appearance / theme
+        # ------------------------------------------------------------------
+        section_appearance = StanFrame()
+        layout_appearance = QVBoxLayout()
+        layout_appearance.setSpacing(8)
+
+        lbl_appearance_title = StanLabel("##### Appearance")
+        lbl_appearance_info = StanLabel("Choose your preferred color scheme.")
+        lbl_appearance_info.setWordWrap(True)
+
+        self.radio_dark = StanRadioButton("🌙 Dark")
+        self.radio_dark.setToolTip("Use dark theme with light text (recommended)")
+
+        self.radio_light = StanRadioButton("☀️ Light")
+        self.radio_light.setToolTip("Use light theme with dark text")
+
+        layout_appearance.addWidget(lbl_appearance_title)
+        layout_appearance.addWidget(lbl_appearance_info)
+        layout_appearance.addWidget(self.radio_dark)
+        layout_appearance.addWidget(self.radio_light)
+        section_appearance.setLayout(layout_appearance)
+
+        # ------------------------------------------------------------------
+        # Section 6 — Privacy / update check
         # ------------------------------------------------------------------
         section_privacy = StanFrame()
         layout_privacy = QVBoxLayout()
@@ -189,6 +213,7 @@ class AdminView(StanDialog):
         outer.addWidget(section_remove)
         outer.addWidget(section_empty)
         outer.addWidget(section_anon)
+        outer.addWidget(section_appearance)
         outer.addWidget(section_privacy)
         outer.addWidget(button_box)
         self.setLayout(outer)

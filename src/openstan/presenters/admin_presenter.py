@@ -3,7 +3,7 @@ import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QObject, QSettings, Qt, Slot
+from PySide6.QtCore import QObject, QSettings, Qt, Signal, Slot
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from openstan.components import StanErrorMessage, StanInfoMessage
@@ -18,6 +18,9 @@ if TYPE_CHECKING:
 _SETTINGS_ORG = "openstan"
 _SETTINGS_APP = "openstan"
 _KEY_UPDATE_CHECK = "privacy/update_check_enabled"
+_KEY_THEME_MODE = "appearance/theme_mode"
+_THEME_DARK = "dark"
+_THEME_LIGHT = "light"
 
 
 class AdminPresenter(QObject):
@@ -26,6 +29,8 @@ class AdminPresenter(QObject):
     Owns all destructive admin actions: project deletion, UI-only project
     removal, and full database reset.  The view contains no business logic.
     """
+
+    theme_changed = Signal(str)  # Emitted when user changes theme ("dark" or "light")
 
     def __init__(
         self: "AdminPresenter",
@@ -43,6 +48,8 @@ class AdminPresenter(QObject):
         self.view.button_empty_db.clicked.connect(self.empty_gui_db)
         self.view.button_open_anonymise.clicked.connect(self.open_anonymise_tool)
         self.view.check_update_check.stateChanged.connect(self._on_update_check_changed)
+        self.view.radio_dark.toggled.connect(self._on_theme_dark_toggled)
+        self.view.radio_light.toggled.connect(self._on_theme_light_toggled)
 
     # ---------------------------------------------------------------------------
     # Public helpers
@@ -53,6 +60,26 @@ class AdminPresenter(QObject):
         """Return True (default) unless the user has explicitly disabled the check."""
         settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
         return bool(settings.value(_KEY_UPDATE_CHECK, defaultValue=True, type=bool))
+
+    @staticmethod
+    def get_theme_mode() -> str:
+        """Return the user's current theme mode preference (default: 'dark')."""
+        settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
+        return str(settings.value(_KEY_THEME_MODE, defaultValue=_THEME_DARK))
+
+    @staticmethod
+    def set_theme_mode(mode: str) -> None:
+        """Persist the theme mode preference to QSettings.
+
+        Args:
+            mode: Theme mode — "dark" or "light".
+        """
+        if mode not in (_THEME_DARK, _THEME_LIGHT):
+            print(f"[AdminPresenter] Invalid theme mode {mode!r}, ignoring")
+            return
+        settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
+        settings.setValue(_KEY_THEME_MODE, mode)
+        print(f"[AdminPresenter] Theme mode persisted: {mode!r}")
 
     def refresh_combos(self) -> None:
         """Repopulate both project combo boxes from the current model data.
@@ -74,6 +101,17 @@ class AdminPresenter(QObject):
         self.view.check_update_check.blockSignals(True)
         self.view.check_update_check.setChecked(self.is_update_check_enabled())
         self.view.check_update_check.blockSignals(False)
+
+        # Sync the theme radio buttons with the persisted setting, blocking
+        # the toggled signal to avoid a redundant write-back.
+        self.view.radio_dark.blockSignals(True)
+        self.view.radio_light.blockSignals(True)
+        if self.get_theme_mode() == _THEME_DARK:
+            self.view.radio_dark.setChecked(True)
+        else:
+            self.view.radio_light.setChecked(True)
+        self.view.radio_dark.blockSignals(False)
+        self.view.radio_light.blockSignals(False)
 
     def _confirm(
         self,
@@ -102,6 +140,20 @@ class AdminPresenter(QObject):
         enabled = state == Qt.CheckState.Checked
         settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
         settings.setValue(_KEY_UPDATE_CHECK, enabled)
+
+    @Slot(bool)
+    def _on_theme_dark_toggled(self, checked: bool) -> None:
+        """Handle dark theme radio button toggle."""
+        if checked:
+            self.set_theme_mode(_THEME_DARK)
+            self.theme_changed.emit(_THEME_DARK)
+
+    @Slot(bool)
+    def _on_theme_light_toggled(self, checked: bool) -> None:
+        """Handle light theme radio button toggle."""
+        if checked:
+            self.set_theme_mode(_THEME_LIGHT)
+            self.theme_changed.emit(_THEME_LIGHT)
 
     @Slot()
     def delete_project(self) -> None:
