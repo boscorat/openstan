@@ -204,7 +204,6 @@ class AdvancedExportView(StanWidget):
             "No export specs found.  Add .toml spec files to <project>/config/export/ to see them here."
         )
         self.label_no_specs.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.label_no_specs.setVisible(True)
 
         # ── Scrollable spec button list ────────────────────────────────────
         # spec_list_widget holds a QVBoxLayout that the presenter populates
