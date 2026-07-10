@@ -12,6 +12,8 @@ the active project changes — consistent with the pattern used by
 """
 
 from pathlib import Path
+from subprocess import Popen
+import os
 from typing import TYPE_CHECKING, Any, Callable, Literal, cast
 
 import bank_statement_parser as bsp
@@ -331,8 +333,14 @@ class ExportDataPresenter(QObject):
         self.view.label_status.setText(
             f"###### Exported {description} to `{output_folder}`"
         )
-        # Open the output folder in the system file manager.
-        QDesktopServices.openUrl(QUrl.fromLocalFile(output_folder))
+        # Open the output folder using subprocess to avoid blocking UI
+        if os.name == 'nt':  # Windows
+            Popen(['explorer', output_folder])
+        elif os.name == 'posix':  # macOS or Linux
+            if os.uname().sysname == 'Darwin':  # macOS
+                Popen(['open', output_folder])
+            else:  # Linux
+                Popen(['xdg-open', output_folder])
 
     @Slot(str)
     def _on_export_error(self, message: str) -> None:

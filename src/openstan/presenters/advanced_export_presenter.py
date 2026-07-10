@@ -21,6 +21,8 @@ import traceback
 from datetime import date
 from functools import partial
 from pathlib import Path
+from subprocess import Popen
+import os
 from typing import TYPE_CHECKING
 
 import bank_statement_parser as bsp
@@ -385,7 +387,14 @@ class AdvancedExportPresenter(QObject):
         self.view.label_status.setText(
             f"###### Exported {description} to `{output_folder}`"
         )
-        QDesktopServices.openUrl(QUrl.fromLocalFile(output_folder))
+        # Open the output folder using subprocess to avoid blocking UI
+        if os.name == 'nt':  # Windows
+            Popen(['explorer', output_folder])
+        elif os.name == 'posix':  # macOS or Linux
+            if os.uname().sysname == 'Darwin':  # macOS
+                Popen(['open', output_folder])
+            else:  # Linux
+                Popen(['xdg-open', output_folder])
 
     @Slot(str)
     def _on_export_error(self, message: str) -> None:
