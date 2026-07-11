@@ -4,6 +4,7 @@
 [![Docs](https://img.shields.io/badge/docs-openstan.org-informational)](https://openstan.org)
 
 # openstan — Free UK Bank Statement Analyser
+###### Developed By Jason Telford M Farrar
 
 **Parse, analyse, and export your UK bank statement PDFs in seconds. Free, open source, and 100% offline — your data never leaves your machine.**
 
