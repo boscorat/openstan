@@ -173,7 +173,7 @@ jobs:
       #         dist/openstan/=/usr/lib/openstan-${VERSION}/
 
       - name: Upload .deb and .rpm to release
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda  # v3.0.0
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b  # v3.0.1
         with:
           draft: true
           files: |
@@ -288,7 +288,7 @@ jobs:
           ls -lh dist/*.deb dist/*.rpm
 
       - name: Upload ARM64 .deb and .rpm to release
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda  # v3.0.0
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b  # v3.0.1
         with:
           draft: true
           files: |
@@ -436,7 +436,7 @@ jobs:
       #       -o "dist\openstan-${version}.msi"
 
       - name: Upload .msi to release
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda  # v3.0.0
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b  # v3.0.1
         with:
           draft: true
           files: dist/*.msi
@@ -783,7 +783,7 @@ jobs:
       #       "dist/openstan.app"
 
       - name: Upload .dmg to release
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda  # v3.0.0
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b  # v3.0.1
         with:
           draft: true
           files: dist/*.dmg
