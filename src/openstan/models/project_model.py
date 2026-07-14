@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Signal
-from PySide6.QtSql import QSqlTableModel, QSqlRecord
+from PySide6.QtSql import QSqlRecord, QSqlTableModel
 
 if TYPE_CHECKING:
     from PySide6.QtSql import QSqlDatabase
@@ -17,6 +17,12 @@ class ProjectModel(QSqlTableModel):
         super().__init__(db=db)
         self.setTable("project")
         self.select()
+
+    def has_projects(self) -> bool:
+        return self.rowCount() > 0
+
+    def get_all_projects(self) -> list[QSqlRecord]:
+        return [self.record(row) for row in range(self.rowCount())]
 
     def add_record(
         self,

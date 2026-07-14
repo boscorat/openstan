@@ -42,7 +42,7 @@ class AdminPresenter(QObject):
         self.view.button_remove_project.clicked.connect(self.remove_project_from_ui)
         self.view.button_empty_db.clicked.connect(self.empty_gui_db)
         self.view.button_open_anonymise.clicked.connect(self.open_anonymise_tool)
-        self.view.check_update_check.stateChanged.connect(self._on_update_check_changed)
+        self.view.check_update_check.stateChanged.connect(self.update_check_changed)
 
     # ---------------------------------------------------------------------------
     # Public helpers
@@ -86,9 +86,7 @@ class AdminPresenter(QObject):
         dlg.setWindowTitle(title)
         dlg.setIcon(icon)
         dlg.setText(text)
-        dlg.setStandardButtons(
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
-        )
+        dlg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
         dlg.setDefaultButton(QMessageBox.StandardButton.Cancel)
         return dlg.exec() == QMessageBox.StandardButton.Yes
 
@@ -97,7 +95,7 @@ class AdminPresenter(QObject):
     # ---------------------------------------------------------------------------
 
     @Slot(int)
-    def _on_update_check_changed(self, state: Qt.CheckState) -> None:
+    def update_check_changed(self, state: Qt.CheckState) -> None:
         """Persist the update-check preference whenever the checkbox changes."""
         enabled = state == Qt.CheckState.Checked
         settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
@@ -115,11 +113,7 @@ class AdminPresenter(QObject):
         project_location: str = str(record.value("project_location"))
         delete_folder: bool = self.view.check_delete_folder.isChecked()
 
-        folder_warning = (
-            f"\n\nThe project folder will also be permanently deleted from disk:\n{project_location}"
-            if delete_folder
-            else ""
-        )
+        folder_warning = f"\n\nThe project folder will also be permanently deleted from disk:\n{project_location}" if delete_folder else ""
         if not self._confirm(
             "Confirm Delete",
             f"Delete project '{project_name}'?{folder_warning}\n\nThis cannot be undone.",
@@ -128,9 +122,7 @@ class AdminPresenter(QObject):
 
         success, _, msg = self.model.delete_record_by_id(project_id)
         if not success:
-            StanErrorMessage(parent=self.view).showMessage(
-                f"Failed to delete project record: {msg}"
-            )
+            StanErrorMessage(parent=self.view).showMessage(f"Failed to delete project record: {msg}")
             return
 
         if delete_folder:
@@ -156,16 +148,13 @@ class AdminPresenter(QObject):
 
         if not self._confirm(
             "Confirm Remove",
-            f"Remove project '{project_name}' from the UI?\n\n"
-            "The project folder on disk will not be affected.",
+            f"Remove project '{project_name}' from the UI?\n\nThe project folder on disk will not be affected.",
         ):
             return
 
         success, _, msg = self.model.delete_record_by_id(project_id)
         if not success:
-            StanErrorMessage(parent=self.view).showMessage(
-                f"Failed to remove project record: {msg}"
-            )
+            StanErrorMessage(parent=self.view).showMessage(f"Failed to remove project record: {msg}")
             return
 
         self.refresh_combos()
@@ -194,9 +183,7 @@ class AdminPresenter(QObject):
             create_gui_db(gui_db_path)
         except Exception:
             traceback.print_exc()
-            StanErrorMessage(parent=self.view).showMessage(
-                "Failed to recreate gui.db. The application will now close."
-            )
+            StanErrorMessage(parent=self.view).showMessage("Failed to recreate gui.db. The application will now close.")
 
         QApplication.quit()
 
@@ -211,8 +198,7 @@ class AdminPresenter(QObject):
         project_paths: ProjectPaths | None = self.stan.current_project_paths
         if project_paths is None:
             StanErrorMessage(parent=self.view).showMessage(
-                "No project is currently active. "
-                "Open a project before using the Anonymise tool."
+                "No project is currently active. Open a project before using the Anonymise tool."
             )
             return
 

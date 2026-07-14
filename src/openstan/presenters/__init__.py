@@ -1,7 +1,7 @@
 from openstan.presenters.admin_presenter import AdminPresenter
 from openstan.presenters.advanced_export_presenter import AdvancedExportPresenter
 from openstan.presenters.export_data_presenter import ExportDataPresenter
-from openstan.presenters.project_presenter import ProjectPresenter
+from openstan.presenters.project_presenter import ProjectPresenter, ProjectWelcomePresenter
 from openstan.presenters.run_reports_presenter import RunReportsPresenter
 from openstan.presenters.session_presenter import SessionPresenter
 from openstan.presenters.stan_presenter import StanPresenter
@@ -19,6 +19,7 @@ __all__: list[str] = [
     "ProjectPresenter",
     "RunReportsPresenter",
     "UserPresenter",
+    "ProjectWelcomePresenter",
     "SessionPresenter",
     "StanPresenter",
     "StatementQueuePresenter",
