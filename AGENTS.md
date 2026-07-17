@@ -62,10 +62,9 @@ All four commands must exit cleanly (zero errors) before the PR is opened or for
 
 ## Tests
 
-```bash
-# Install pytest (one-time)
-uv add --dev pytest
+Pytest is included in the `dev` dependency group and available after `uv sync --group dev`.
 
+```bash
 # Run all tests
 uv run pytest
 
@@ -77,7 +76,15 @@ uv run pytest tests/path/to/test_file.py::test_function_name
 
 # Run a single test class method
 uv run pytest tests/path/to/test_file.py::TestClass::test_method
+
+# Run unit tests only (fastest path)
+uv run pytest tests/unit/ -v
+
+# Run with integration tests (requires anonymised PDFs from bank-statement-data repo)
+uv run pytest tests/ -v
 ```
+
+Tests that need anonymised PDF fixtures skip gracefully when unavailable. See `TESTING.md` for details.
 
 ---
 

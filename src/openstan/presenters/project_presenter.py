@@ -13,7 +13,11 @@ from PySide6.QtCore import QObject, Signal, Slot
 
 if TYPE_CHECKING:
     from openstan.models.project_model import ProjectModel
-    from openstan.views.project_view import ProjectView
+    from openstan.views.project_view import (
+        ProjectNavView,
+        ProjectView,
+        ProjectWelcomeView,
+    )
 
 
 def _fmt_date(s: str) -> str:
@@ -186,18 +190,30 @@ class ProjectPresenter(QObject):
     path_or_name_changed: Signal = Signal()
 
     def __init__(
-        self: "ProjectPresenter", model: "ProjectModel", view: "ProjectView"
+        self,
+        model: "ProjectModel",
+        view: "ProjectView",
+        nav_view: "ProjectNavView",
+        welcome_view: "ProjectWelcomeView",
     ) -> None:
         super().__init__()
         self.sessionID: str | None = None  # to be set by StanPresenter
         self.model: "ProjectModel" = model
         self.view: "ProjectView" = view
+        self.nav_view: "ProjectNavView" = nav_view
+        self.welcome_view: "ProjectWelcomeView" = welcome_view
         self.view.selection.setModel(self.model)
         self.view.selection.setModelColumn(1)  # project_name column
         self.view.selection.setEditable(False)
 
         # Remembers the last folder the user navigated to in the location picker.
         self._last_dir: Path | None = None
+
+        # Welcome view presenter — wires welcome view buttons to wizard methods
+        self.welcome_presenter = ProjectWelcomePresenter(
+            project_presenter=self,
+            view=self.welcome_view,
+        )
 
         # Connect signals — new project wizard
         self.view.button_new.clicked.connect(self.open_new_project_wizard)
@@ -219,6 +235,43 @@ class ProjectPresenter(QObject):
         self.view.wizard_existing.new_project_required.connect(
             self.handle_project_required
         )
+
+        # Connect model signals
+        self.model.db_updated.connect(self.on_db_updated)
+
+    # ---------------------------------------------------------------------------
+    # View visibility
+    # ---------------------------------------------------------------------------
+
+    def update_view_visibility(
+        self, has_projects: bool, selected_project: bool = False
+    ) -> None:
+        """Show/hide project-related views based on whether projects exist
+        and whether a project is currently selected.
+
+        On startup, ProjectView and ProjectNavView are hidden.
+        When a project is selected, they become visible.
+        ProjectWelcomeView is always visible and shows a Select Project
+        button if projects exist.
+        """
+        self.view.setVisible(selected_project)
+        self.nav_view.setVisible(selected_project)
+        self.welcome_view.set_select_button_visible(has_projects)
+
+    @Slot()
+    def on_db_updated(self) -> None:
+        """Update view visibility when project database changes."""
+        has_projects = self.model.has_projects()
+        selected_project = bool(self.view.selection.currentIndex() >= 0)
+        self.update_view_visibility(has_projects, selected_project)
+
+    @Slot()
+    def show_project_view(self) -> None:
+        """Show ProjectView and hide WelcomeView (called from Select Project button)."""
+        self.welcome_view.setVisible(False)
+        self.view.selection.setCurrentIndex(-1)  # Reset → placeholder shown
+        self.view.setVisible(True)
+        self.nav_view.setVisible(True)
 
     # ---------------------------------------------------------------------------
     # Wizard dispatch — single slot handles both modes
@@ -433,3 +486,29 @@ class ProjectPresenter(QObject):
             self.view.wizard.page_basic.location_label.show()
         else:
             self.view.wizard.page_basic.location_label.hide()
+
+
+class ProjectWelcomePresenter(QObject):
+    """Presenter for the welcome panel shown when no project is open.
+
+    This is a thin presenter that simply forwards the button clicks to the
+    ProjectPresenter, which handles the actual wizard logic.
+    """
+
+    def __init__(
+        self: "ProjectWelcomePresenter",
+        project_presenter: "ProjectPresenter",
+        view: "ProjectWelcomeView",
+    ) -> None:
+        super().__init__()
+        self.project_presenter: "ProjectPresenter" = project_presenter
+        self.view: "ProjectWelcomeView" = view
+        self.view.button_select.clicked.connect(
+            self.project_presenter.show_project_view
+        )
+        self.view.button_new.clicked.connect(
+            self.project_presenter.open_new_project_wizard
+        )
+        self.view.button_existing.clicked.connect(
+            self.project_presenter.open_existing_project_wizard
+        )

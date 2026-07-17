@@ -1,29 +1,51 @@
+"""project_view.py — Project-related view classes.
+
+Contains the project selection panel, navigation bar, welcome view,
+project information panel, and gap detail dialog.
+"""
+
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import bank_statement_parser as bsp
+import polars as pl
 from PySide6.QtCore import QStandardPaths, Signal
-from PySide6.QtGui import QKeySequence
+from PySide6.QtGui import QKeySequence, QStandardItem, QStandardItemModel
 from PySide6.QtWidgets import (
     QButtonGroup,
+    QDialogButtonBox,
     QFileDialog,
     QGridLayout,
     QHBoxLayout,
+    QPushButton,
     QSizePolicy,
+    QStackedWidget,
+    QVBoxLayout,
 )
 
 from openstan.components import (
     Qt,
     StanButton,
     StanComboBox,
+    StanDialog,
     StanErrorMessage,
     StanForm,
+    StanHeaderLabel,
     StanInfoMessage,
     StanLabel,
     StanLineEdit,
+    StanMutedLabel,
+    StanPolarsModel,
+    StanTableView,
+    StanThemedPixmapLabel,
+    StanTreeView,
     StanWidget,
     StanWizard,
     StanWizardPage,
 )
+
+if TYPE_CHECKING:
+    from openstan.presenters.project_presenter import ProjectInfo
 
 # Sentinel value used as the "Skip" source key in config selections
 _SKIP_SENTINEL: str = "__skip__"
@@ -188,6 +210,7 @@ class ProjectView(StanWidget):
         self.label.setMaximumWidth(180)
         self.selection = StanComboBox()  # model details set in ProjectPresenter
         self.selection.setMaximumWidth(250)
+        self.selection.setPlaceholderText("Select a project...")
         self.selection.setAccessibleName("Select existing project")
         self.selection.setToolTip("Select an existing project to open")
         self.label2 = StanLabel("or")
@@ -276,24 +299,21 @@ class ProjectNavView(StanWidget):
             "file_add.svg",
             "Add and import bank statement PDF files (Alt+I)",
             QKeySequence("Alt+I"),
-            "Add folders of PDF bank statements to the import queue, "
-            "then run the import to parse them into transactions.",
+            "Add folders of PDF bank statements to the import queue, then run the import to parse them into transactions.",
         )
         self.button_export = self.__make_button(
             "Export Data",
             "export.svg",
             "Export transactions to Excel, CSV or JSON (Alt+E)",
             QKeySequence("Alt+E"),
-            "Export the project's transaction data to Excel, CSV, or JSON. "
-            "Use the Advanced tab for filtered or custom-spec exports.",
+            "Export the project's transaction data to Excel, CSV, or JSON. Use the Advanced tab for filtered or custom-spec exports.",
         )
         self.button_reports = self.__make_button(
             "Run Reports",
             "run.svg",
             "Build and preview custom transaction reports (Alt+R)",
             QKeySequence("Alt+R"),
-            "Build and preview custom summary reports with grouping, "
-            "aggregation, date filters, and live preview.",
+            "Build and preview custom summary reports with grouping, aggregation, date filters, and live preview.",
         )
 
         # Mutually exclusive checked state
@@ -347,3 +367,326 @@ class ProjectNavView(StanWidget):
         if whats_this:
             btn.setWhatsThis(whats_this)
         return btn
+
+
+class ProjectWelcomeView(StanWidget):
+    """Shown in the content stack when no project is open.
+
+    Contains a ``Select Project`` button (visible only when projects exist),
+    a ``Create New Project`` button, and an ``Import Project`` button.
+    The ``clicked`` signals are wired by ``ProjectWelcomePresenter`` to the
+    project presenter's wizard slots.
+    """
+
+    header: str = "Welcome"
+
+    def __init__(self) -> None:
+        super().__init__()
+
+        icon = StanThemedPixmapLabel("project.svg", size=96)
+        icon.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
+
+        heading = StanLabel("## Welcome to openstan")
+        heading.setAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
+
+        subheading = StanLabel(
+            "Select an existing project, create a new one, or import a project folder."
+        )
+        subheading.setAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
+
+        self.button_select = StanButton("Select Project", min_width=200)
+        self.button_select.set_themed_icon("folder_open.svg")
+        self.button_select.setToolTip("Select an existing project to open")
+        self.button_select.setAccessibleName("Select project")
+        self.button_select.hide()
+
+        self.button_new = StanButton("Create New Project", min_width=200)
+        self.button_new.set_themed_icon("project.svg")
+        self.button_new.setToolTip("Open the wizard to create a new project")
+        self.button_new.setAccessibleName("Create new project")
+
+        self.button_existing = StanButton("Add Existing Project", min_width=200)
+        self.button_existing.set_themed_icon("folder_add.svg")
+        self.button_existing.setToolTip("Add an existing project folder to openstan")
+        self.button_existing.setAccessibleName("Add existing project")
+
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(16)
+        btn_row.addStretch()
+        btn_row.addWidget(self.button_select)
+        btn_row.addWidget(self.button_new)
+        btn_row.addWidget(self.button_existing)
+        btn_row.addStretch()
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(40, 40, 40, 40)
+        layout.setSpacing(16)
+        layout.addStretch()
+        layout.addWidget(icon)
+        layout.addWidget(heading)
+        layout.addWidget(subheading)
+        layout.addSpacing(24)
+        layout.addLayout(btn_row)
+        layout.addStretch()
+
+        self.setLayout(layout)
+
+    def set_select_button_visible(self, visible: bool) -> None:
+        """Show/hide the Select Project button (visible when projects exist)."""
+        self.button_select.setVisible(visible)
+
+
+# ---------------------------------------------------------------------------
+# Gap detail dialog
+# ---------------------------------------------------------------------------
+
+
+class GapDetailDialog(StanDialog):
+    """Modal dialog showing gap-report rows as a tree grouped by account.
+
+    Top-level nodes: one per unique (account_holder, account_type, account_number).
+    Child nodes: one per GAP row — "Missing statement between <prev> and <current>".
+    The tree is fully expanded on load.
+    """
+
+    def __init__(self, parent: StanWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Gap Report — Missing Statements")
+        self.setMinimumWidth(640)
+        self.setMinimumHeight(320)
+
+        self._tree = StanTreeView()
+        self._tree.setMinimumHeight(250)
+        self._tree.setHeaderHidden(True)
+        self._tree.setRootIsDecorated(True)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(self.reject)
+
+        layout = QVBoxLayout()
+        layout.addWidget(StanLabel("##### Detected gaps between imported statements"))
+        layout.addWidget(self._tree)
+        layout.addWidget(buttons)
+        self.setLayout(layout)
+
+    def load(self, gap_rows: pl.DataFrame) -> None:
+        """Populate the tree from *gap_rows*.
+
+        Expected columns: account_holder, account_type, account_number,
+        prev_statement_date, statement_date.
+        """
+        model = QStandardItemModel()
+        model.setHorizontalHeaderLabels(["Gap"])
+
+        # Group rows by (account_holder, account_type, account_number) in the
+        # order they first appear — preserves natural sort from the query.
+        seen: dict[tuple[str, str, str], QStandardItem] = {}
+        for row in gap_rows.iter_rows(named=True):
+            key = (
+                row["account_holder"],
+                row["account_type"],
+                row["account_number"],
+            )
+            if key not in seen:
+                holder, acc_type, acc_num = key
+                node_label = f"{holder} / {acc_type} — {acc_num}"
+                parent_item = QStandardItem(node_label)
+                parent_item.setEditable(False)
+                model.appendRow(parent_item)
+                seen[key] = parent_item
+
+            prev = row["prev_statement_date"] or "?"
+            curr = row["statement_date"] or "?"
+            child_label = f"Missing statement between {prev} and {curr}"
+            child_item = QStandardItem(child_label)
+            child_item.setEditable(False)
+            seen[key].appendRow(child_item)
+
+        self._tree.setModel(model)
+        self._tree.expandAll()
+
+
+# ---------------------------------------------------------------------------
+# Project information panel
+# ---------------------------------------------------------------------------
+
+
+class ProjectInfoView(StanWidget):
+    """Project Information panel.
+
+    Layout (top-to-bottom):
+    1. Headline summary strip — tx / stmt / account counts and date range
+    2. Per-account ``StanTableView``
+    3. Gap indicator button (hidden when gap_count == 0)
+
+    The header label is supplied externally by ``ContentFrameView`` in
+    ``main.py`` — consistent with all other panel views.
+
+    The single public entry point is :meth:`update`.
+    """
+
+    header: str = "##### Project Information"
+
+    # Emitted when the user clicks the gap indicator button.
+    gap_clicked: Signal = Signal()
+
+    def __init__(self) -> None:
+        super().__init__()
+
+        # ── Placeholder page (page 0) ─────────────────────────────────────────
+        placeholder_page = StanWidget()
+        ph_layout = QVBoxLayout()
+        ph_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ph_icon = StanThemedPixmapLabel("project.svg", size=64)
+        ph_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ph_text = StanMutedLabel(
+            "No data yet — import and commit some statements to see your project summary."
+        )
+        ph_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ph_text.setWordWrap(True)
+        ph_layout.addWidget(ph_icon)
+        ph_layout.addSpacing(8)
+        ph_layout.addWidget(ph_text)
+        placeholder_page.setLayout(ph_layout)
+
+        # ── Content page (page 1) ─────────────────────────────────────────────
+        content_page = StanWidget()
+
+        # ── Summary strip ─────────────────────────────────────────────────────
+        self._lbl_tx = StanLabel("")
+        self._lbl_stmt = StanLabel("")
+        self._lbl_acc = StanLabel("")
+        self._lbl_dates = StanLabel("")
+
+        summary_row = QHBoxLayout()
+        summary_row.setSpacing(24)
+        summary_row.addWidget(self._lbl_tx)
+        summary_row.addWidget(self._lbl_stmt)
+        summary_row.addWidget(self._lbl_acc)
+        summary_row.addWidget(self._lbl_dates)
+        summary_row.addStretch()
+
+        # ── Account table ─────────────────────────────────────────────────────
+        self._acc_table_header = StanHeaderLabel("Accounts")
+        self._acc_table_currency_note = StanMutedLabel(
+            "Monetary values are in the currency recorded in each statement."
+        )
+        self._acc_table = StanTableView()
+        self._acc_table.horizontalHeader().setSectionResizeMode(  # type: ignore[union-attr]
+            self._acc_table.horizontalHeader().ResizeMode.ResizeToContents  # type: ignore[union-attr]
+        )
+        self._acc_table.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
+
+        # ── Gap indicator ─────────────────────────────────────────────────────
+        self._gap_button = QPushButton()
+        self._gap_button.setFlat(True)
+        # Use the Link colour role so the warning text adapts to the active
+        # theme (including high-contrast modes) rather than a hardcoded hex.
+        self._gap_button.setStyleSheet(
+            "QPushButton { color: palette(link); font-weight: bold; text-align: left; border: none; }"
+            "QPushButton:hover { text-decoration: underline; }"
+        )
+        self._gap_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._gap_button.setToolTip(
+            "A gap means there is a missing statement between two consecutive imported statements "
+            "for the same account.  Click to see which accounts and date ranges are affected."
+        )
+        self._gap_button.setAccessibleDescription(
+            "One or more statement gaps detected. Click to review."
+        )
+        self._gap_button.clicked.connect(self.gap_clicked)
+        self._gap_button.hide()
+
+        # ── Gap detail dialog ─────────────────────────────────────────────────
+        self._gap_dialog = GapDetailDialog(self)
+        self.gap_clicked.connect(self._gap_dialog.exec)
+
+        # ── Content page layout ───────────────────────────────────────────────
+        content_layout = QVBoxLayout()
+        content_layout.setSpacing(12)
+        content_layout.addLayout(summary_row)
+        content_layout.addWidget(self._acc_table_header)
+        content_layout.addWidget(self._acc_table_currency_note)
+        content_layout.addWidget(self._acc_table)
+        content_layout.addWidget(self._gap_button)
+        content_layout.addStretch()
+        content_page.setLayout(content_layout)
+
+        # ── Stacked widget ────────────────────────────────────────────────────
+        self._stack = QStackedWidget()
+        self._stack.addWidget(placeholder_page)  # page 0
+        self._stack.addWidget(content_page)  # page 1
+        self._stack.setCurrentIndex(0)
+
+        # ── Outer layout ──────────────────────────────────────────────────────
+        outer = QVBoxLayout()
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.addWidget(self._stack)
+        self.setLayout(outer)
+
+    # ---------------------------------------------------------------------------
+    # Public API
+    # ---------------------------------------------------------------------------
+
+    def show_placeholder(self, show: bool) -> None:
+        """Switch between placeholder (page 0) and real content (page 1)."""
+        self._stack.setCurrentIndex(0 if show else 1)
+
+    def update(self, info: "ProjectInfo | None") -> None:  # type: ignore[override]
+        """Refresh the entire panel from *info*.
+
+        Passing ``None`` clears all data (placeholder is controlled separately
+        via :meth:`show_placeholder`).
+        """
+        if info is None:
+            self._clear()
+            return
+
+        # Summary strip
+        acc_word = "account" if info.acc_count == 1 else "accounts"
+        self._lbl_tx.setText(f"**{info.tx_count:,}** transactions")
+        self._lbl_stmt.setText(f"**{info.stmt_count:,}** statements")
+        self._lbl_acc.setText(f"**{info.acc_count:,}** {acc_word}")
+        if info.earliest_date and info.latest_date:
+            self._lbl_dates.setText(f"{info.earliest_date} — {info.latest_date}")
+        else:
+            self._lbl_dates.setText("")
+
+        # Account table
+        model = StanPolarsModel(info.account_rows)
+        self._acc_table.setModel(model)
+
+        # Gap indicator
+        if info.gap_count > 0:
+            gap_word = "gap" if info.gap_count == 1 else "gaps"
+            self._gap_button.setText(
+                f"Warning: {info.gap_count} statement {gap_word} detected — click to review"
+            )
+            self._gap_dialog.load(info.gap_rows)
+            self._gap_button.show()
+        else:
+            self._gap_button.hide()
+
+        self._acc_table_header.show()
+        self._acc_table_currency_note.show()
+        self._acc_table.show()
+
+    # ---------------------------------------------------------------------------
+    # Private helpers
+    # ---------------------------------------------------------------------------
+
+    def _clear(self) -> None:
+        """Reset content to empty state."""
+        self._lbl_tx.setText("")
+        self._lbl_stmt.setText("")
+        self._lbl_acc.setText("")
+        self._lbl_dates.setText("")
+        self._acc_table.setModel(None)
+        self._gap_button.hide()
+        self._acc_table_header.hide()
+        self._acc_table_currency_note.hide()
+        self._acc_table.hide()

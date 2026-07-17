@@ -53,7 +53,7 @@ Both variants use the **same filename** — the `dark/` subfolder distinguishes 
 | File | Docs page | What it shows | State to capture |
 |---|---|---|---|
 | `title.png` | — | Application title bar | App open, any project selected, showing the logo, About and Admin buttons |
-| `project_view.png` | `screens/project-management.md` | Project selector bar | At least one project registered; drop-down showing project name; Create New and Add Existing buttons visible |
+| `project_view.png` | `screens/project-management.md` | Project selector bar | At least one project registered; combo box showing "Select a project..." placeholder; Create New and Add Existing buttons visible |
 | `project_nav.png` | `screens/project-management.md` | Navigation bar | Project with committed data selected; all four nav buttons visible (Project Info, Import Statements, Export Data, Run Reports) |
 | `project_wizard.png` | `screens/project-management.md` | Create New Project wizard | Wizard open in **new** mode; Project Name field filled in; folder path chosen |
 | `statement_queue.png` | `screens/import-statements.md` | Import queue with files | Queue populated with at least one folder group containing 2–3 PDF files; Run Statement Import button enabled |

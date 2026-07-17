@@ -4,22 +4,17 @@ from pathlib import Path
 from uuid import uuid4
 
 from bank_statement_parser import ProjectPaths
-from PySide6.QtCore import QObject, QRectF, QSysInfo, Qt, QThreadPool, Slot, qDebug
+from PySide6.QtCore import QObject, QSysInfo, Qt, QThreadPool, Slot, qDebug
 from PySide6.QtGui import (
-    QColor,
     QFontDatabase,
     QIcon,
     QKeySequence,
-    QPainter,
-    QPalette,
-    QPixmap,
     QShortcut,
 )
 from PySide6.QtSql import QSqlDatabase
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
-    QSplashScreen,
     QStackedWidget,
     QVBoxLayout,
     QWhatsThis,
@@ -46,6 +41,7 @@ from openstan.models import (
     SuccessResultModel,
     UserModel,
 )
+from openstan.palettes import _dark_palette
 from openstan.paths import Paths
 from openstan.presenters import (
     AdminPresenter,
@@ -68,82 +64,12 @@ from openstan.views import (
     ProjectInfoView,
     ProjectNavView,
     ProjectView,
+    ProjectWelcomeView,
     RunReportsView,
     StatementQueueView,
     StatementResultView,
     TitleView,
-    WelcomeView,
 )
-
-
-def _dark_palette() -> QPalette:
-    """Return a standard dark palette for the Fusion style.
-
-    Builds the palette from explicit colour values so it works correctly in
-    frozen binaries where the Qt platform theme plugin may not load (causing
-    Qt to silently fall back to a light palette regardless of the OS setting).
-    Colours match the well-known dark Fusion palette used by KDE/GNOME.
-    """
-    p = QPalette()
-
-    window = QColor(53, 53, 53)
-    window_text = QColor(255, 255, 255)
-    base = QColor(35, 35, 35)
-    alt_base = QColor(53, 53, 53)
-    tooltip_base = QColor(25, 25, 25)
-    tooltip_text = QColor(255, 255, 255)
-    text = QColor(255, 255, 255)
-    button = QColor(53, 53, 53)
-    button_text = QColor(255, 255, 255)
-    bright_text = QColor(255, 0, 0)
-    link = QColor(42, 130, 218)
-    highlight = QColor(42, 130, 218)
-    highlight_text = QColor(35, 35, 35)
-    mid = QColor(40, 40, 40)
-    dark = QColor(35, 35, 35)
-    shadow = QColor(20, 20, 20)
-    light = QColor(80, 80, 80)
-    midlight = QColor(65, 65, 65)
-
-    p.setColor(QPalette.ColorRole.Window, window)
-    p.setColor(QPalette.ColorRole.WindowText, window_text)
-    p.setColor(QPalette.ColorRole.Base, base)
-    p.setColor(QPalette.ColorRole.AlternateBase, alt_base)
-    p.setColor(QPalette.ColorRole.ToolTipBase, tooltip_base)
-    p.setColor(QPalette.ColorRole.ToolTipText, tooltip_text)
-    p.setColor(QPalette.ColorRole.Text, text)
-    p.setColor(QPalette.ColorRole.Button, button)
-    p.setColor(QPalette.ColorRole.ButtonText, button_text)
-    p.setColor(QPalette.ColorRole.BrightText, bright_text)
-    p.setColor(QPalette.ColorRole.Link, link)
-    p.setColor(QPalette.ColorRole.Highlight, highlight)
-    p.setColor(QPalette.ColorRole.HighlightedText, highlight_text)
-    p.setColor(QPalette.ColorRole.Mid, mid)
-    p.setColor(QPalette.ColorRole.Dark, dark)
-    p.setColor(QPalette.ColorRole.Shadow, shadow)
-    p.setColor(QPalette.ColorRole.Light, light)
-    p.setColor(QPalette.ColorRole.Midlight, midlight)
-
-    # Disabled roles — slightly dimmed versions of the active colours
-    p.setColor(
-        QPalette.ColorGroup.Disabled,
-        QPalette.ColorRole.WindowText,
-        QColor(127, 127, 127),
-    )
-    p.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(127, 127, 127))
-    p.setColor(
-        QPalette.ColorGroup.Disabled,
-        QPalette.ColorRole.ButtonText,
-        QColor(127, 127, 127),
-    )
-    p.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Highlight, QColor(80, 80, 80))
-    p.setColor(
-        QPalette.ColorGroup.Disabled,
-        QPalette.ColorRole.HighlightedText,
-        QColor(127, 127, 127),
-    )
-
-    return p
 
 
 def _detect_scheme_via_dbus() -> Qt.ColorScheme:
@@ -235,79 +161,79 @@ class _ThemeManager(QObject):
         _apply_palette(self.app, scheme)
 
 
-def _make_splash(app: QApplication) -> QSplashScreen:
-    """Create a theme-aware splash screen with the app logo and version number.
+# def _make_splash(app: QApplication) -> QSplashScreen:
+#     """Create a theme-aware splash screen with the app logo and version number.
 
-    The splash is sized at 2× the native SVG dimensions (300×84 → 600×168)
-    with 40 px padding on all sides, giving a 680×248 logical-pixel window.
-    On HiDPI displays the backing pixmap is scaled by the primary screen's
-    device-pixel ratio so the logo renders crisp.
+#     The splash is sized at 2× the native SVG dimensions (300×84 → 600×168)
+#     with 40 px padding on all sides, giving a 680×248 logical-pixel window.
+#     On HiDPI displays the backing pixmap is scaled by the primary screen's
+#     device-pixel ratio so the logo renders crisp.
 
-    The background colour is taken from the current application palette so
-    the splash blends seamlessly with the window that follows it.
-    """
-    import importlib.metadata
+#     The background colour is taken from the current application palette so
+#     the splash blends seamlessly with the window that follows it.
+#     """
+#     import importlib.metadata
 
-    from PySide6.QtSvg import QSvgRenderer
+#     from PySide6.QtSvg import QSvgRenderer
 
-    dpr: float = app.primaryScreen().devicePixelRatio() if app.primaryScreen() else 1.0
+#     dpr: float = app.primaryScreen().devicePixelRatio() if app.primaryScreen() else 1.0
 
-    # Logical dimensions: 2× native SVG size (300×84) plus uniform padding
-    logo_w, logo_h = 600, 168
-    pad = 40
-    pix_w = logo_w + pad * 2
-    pix_h = logo_h + pad * 2
+#     # Logical dimensions: 2× native SVG size (300×84) plus uniform padding
+#     logo_w, logo_h = 600, 168
+#     pad = 40
+#     pix_w = logo_w + pad * 2
+#     pix_h = logo_h + pad * 2
 
-    # Physical backing-store size for HiDPI correctness
-    phys_w = round(pix_w * dpr)
-    phys_h = round(pix_h * dpr)
+#     # Physical backing-store size for HiDPI correctness
+#     phys_w = round(pix_w * dpr)
+#     phys_h = round(pix_h * dpr)
 
-    bg = app.palette().color(QPalette.ColorRole.Window)
-    fg = app.palette().color(QPalette.ColorRole.WindowText)
+#     bg = app.palette().color(QPalette.ColorRole.Window)
+#     fg = app.palette().color(QPalette.ColorRole.WindowText)
 
-    logo_path = Paths.logo(with_tagline=True)
-    import os as _os
+#     logo_path = Paths.logo(with_tagline=True)
+#     import os as _os
 
-    logo_exists = _os.path.isfile(logo_path)
-    print(f"[openstan] _make_splash: dpr={dpr}  logical={pix_w}x{pix_h}  physical={phys_w}x{phys_h}")
-    print(f"[openstan] _make_splash: logo={logo_path!r}  exists={logo_exists}  palette_bg=#{bg.red():02x}{bg.green():02x}{bg.blue():02x}")
+#     logo_exists = _os.path.isfile(logo_path)
+#     print(f"[openstan] _make_splash: dpr={dpr}  logical={pix_w}x{pix_h}  physical={phys_w}x{phys_h}")
+#     print(f"[openstan] _make_splash: logo={logo_path!r}  exists={logo_exists}  palette_bg=#{bg.red():02x}{bg.green():02x}{bg.blue():02x}")
 
-    pixmap = QPixmap(phys_w, phys_h)
-    pixmap.setDevicePixelRatio(dpr)
-    pixmap.fill(bg)
+#     pixmap = QPixmap(phys_w, phys_h)
+#     pixmap.setDevicePixelRatio(dpr)
+#     pixmap.fill(bg)
 
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+#     painter = QPainter(pixmap)
+#     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+#     painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
-    renderer = QSvgRenderer(logo_path)
-    if renderer.isValid():
-        renderer.render(painter, QRectF(pad, pad, logo_w, logo_h))
-        print("[openstan] _make_splash: SVG rendered OK")
-    else:
-        print("[openstan] _make_splash: QSvgRenderer reports invalid — splash will have blank logo")
+#     renderer = QSvgRenderer(logo_path)
+#     if renderer.isValid():
+#         renderer.render(painter, QRectF(pad, pad, logo_w, logo_h))
+#         print("[openstan] _make_splash: SVG rendered OK")
+#     else:
+#         print("[openstan] _make_splash: QSvgRenderer reports invalid — splash will have blank logo")
 
-    # Version string — bottom-right corner, slightly muted
-    try:
-        ver_text = f"v{importlib.metadata.version('openstan')}"
-    except importlib.metadata.PackageNotFoundError:
-        ver_text = ""
-        print("[openstan] _make_splash: version not found via importlib.metadata")
+#     # Version string — bottom-right corner, slightly muted
+#     try:
+#         ver_text = f"v{importlib.metadata.version('openstan')}"
+#     except importlib.metadata.PackageNotFoundError:
+#         ver_text = ""
+#         print("[openstan] _make_splash: version not found via importlib.metadata")
 
-    if ver_text:
-        font = painter.font()
-        font.setPointSize(9)
-        painter.setFont(font)
-        painter.setPen(fg)
-        painter.setOpacity(0.55)
-        metrics = painter.fontMetrics()
-        text_w = metrics.horizontalAdvance(ver_text)
-        painter.drawText(pix_w - text_w - 12, pix_h - 12, ver_text)
-        print(f"[openstan] _make_splash: version text={ver_text!r}")
+#     if ver_text:
+#         font = painter.font()
+#         font.setPointSize(9)
+#         painter.setFont(font)
+#         painter.setPen(fg)
+#         painter.setOpacity(0.55)
+#         metrics = painter.fontMetrics()
+#         text_w = metrics.horizontalAdvance(ver_text)
+#         painter.drawText(pix_w - text_w - 12, pix_h - 12, ver_text)
+#         print(f"[openstan] _make_splash: version text={ver_text!r}")
 
-    painter.end()
+#     painter.end()
 
-    return QSplashScreen(pixmap)
+#     return QSplashScreen(pixmap)
 
 
 def main() -> None:
@@ -371,15 +297,15 @@ def main() -> None:
         hints.colorSchemeChanged.connect(theme_manager.on_color_scheme_changed)
         print("[openstan] colorSchemeChanged connected for live theme switching")
 
-    # ── Splash screen ─────────────────────────────────────────────────────
-    # Shown immediately after the palette is applied (so the correct themed
-    # logo is used) and dismissed just before the main window appears.
-    # app.processEvents() flushes the paint event so the splash is visible
-    # during the synchronous model/view/presenter construction that follows.
-    splash = _make_splash(app)
-    splash.show()
-    app.processEvents()
-    print("[openstan] splash shown")
+    # # ── Splash screen ─────────────────────────────────────────────────────
+    # # Shown immediately after the palette is applied (so the correct themed
+    # # logo is used) and dismissed just before the main window appears.
+    # # app.processEvents() flushes the paint event so the splash is visible
+    # # during the synchronous model/view/presenter construction that follows.
+    # splash = _make_splash(app)
+    # splash.show()
+    # app.processEvents()
+    # print("[openstan] splash shown")
 
     # ── Application / window icon ─────────────────────────────────────────
     app.setWindowIcon(QIcon(Paths.icon("icon-square.svg")))
@@ -405,8 +331,8 @@ def main() -> None:
 
     window: Stan = Stan(gui_db=gui_db, sessionID=sessionID, username=username)
     print("[openstan] Stan.__init__ complete")
-    splash.close()
-    print("[openstan] splash closed — calling window.show()")
+    # splash.close()
+    # print("[openstan] splash closed — calling window.show()")
     window.show()
 
     app.exec()
@@ -458,7 +384,7 @@ class Stan(QMainWindow):
         self.export_data_view = ExportDataView()
         self.run_reports_view = RunReportsView()
         self.statement_result_view = StatementResultView()
-        self.welcome_view = WelcomeView()
+        self.welcome_view = ProjectWelcomeView()
 
         # Each panel is wrapped in a ContentFrameView (header label + content).
         # Index constants mirror the order panels are added to the stacked widget.
@@ -511,7 +437,18 @@ class Stan(QMainWindow):
         # ── Presenters ────────────────────────────────────────────────────
         self.user_presenter = UserPresenter(model=self.user_model, view=None)
         self.session_presenter = SessionPresenter(model=self.session_model, view=None)
-        self.project_presenter = ProjectPresenter(model=self.project_model, view=self.project_view)
+        self.project_presenter = ProjectPresenter(
+            model=self.project_model,
+            view=self.project_view,
+            nav_view=self.project_nav_view,
+            welcome_view=self.welcome_view,
+        )
+
+        # Set initial state: hide project/nav views, show welcome with Select Project button if projects exist
+        self.project_view.setVisible(False)
+        self.project_nav_view.setVisible(False)
+        self.welcome_view.set_select_button_visible(self.project_model.has_projects())
+
         self.statement_queue_presenter = StatementQueuePresenter(
             model=self.statement_queue_model,
             view=self.statement_queue_view,
@@ -587,8 +524,7 @@ class Stan(QMainWindow):
         # Warn the user if an import is currently in progress
         # (guard against closeEvent before stan_presenter is initialized)
         if (
-            hasattr(self, "stan_presenter")
-            and self.stan_presenter.statement_result_presenter._importing  # noqa: SLF001
+            hasattr(self, "stan_presenter") and self.stan_presenter.statement_result_presenter._importing  # noqa: SLF001
         ):
             warn = StanInfoMessage(self)
             warn.setText("An import is currently in progress.\n\nClosing now will abandon the current batch. Are you sure?")

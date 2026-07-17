@@ -39,7 +39,7 @@ class StanPresenter(QObject):
         self.project_presenter.view.selection.currentIndexChanged.connect(
             self.project_selection_changed
         )
-        self.project_presenter.model.db_updated.connect(self.__on_project_db_updated)
+        self.project_presenter.model.db_updated.connect(self.project_db_updated)
         self.session_presenter.db_lock_signal.connect(self.db_lock_handler)
         self.statement_queue_presenter.statement_imported.connect(
             self.statement_imported
@@ -52,14 +52,6 @@ class StanPresenter(QObject):
         self.statement_result_presenter.batch_committed.connect(self.on_batch_committed)
         self.export_data_presenter.review_pending_batch.connect(self.show_results)
         self.title_view.admin_requested.connect(self.open_admin_dialog)
-
-        # Welcome panel CTA buttons
-        self.stan.welcome_view.button_new.clicked.connect(
-            self.project_presenter.open_new_project_wizard
-        )
-        self.stan.welcome_view.button_existing.clicked.connect(
-            self.project_presenter.open_existing_project_wizard
-        )
 
         # Nav button clicks
         self.nav_view.button_info.clicked.connect(self.__nav_to_info)
@@ -104,9 +96,7 @@ class StanPresenter(QObject):
         self.statement_result_presenter.username = self.stan.username
 
         # Update current project info (sets nav state + panel)
-        self.update_current_project_info(
-            self.project_presenter.view.selection.currentIndex()
-        )
+        # self.update_current_project_info(self.project_presenter.view.selection.currentIndex())
 
         # ── Update check ───────────────────────────────────────────────────────
         # Silent background check; shows a user-prompted dialog only if a
@@ -136,20 +126,11 @@ class StanPresenter(QObject):
         self.update_current_project_info(index)
 
     @Slot()
-    def __on_project_db_updated(self) -> None:
-        """Re-evaluate chrome visibility when projects are added or removed."""
+    def project_db_updated(self) -> None:
+        """Re-evaluate project views visibility when projects are added or removed."""
         self.update_current_project_info(
             self.project_presenter.view.selection.currentIndex()
         )
-
-    def __update_chrome_for_selection(self, *, has_project: bool) -> None:
-        """Show or hide the nav bar and content stack based on project presence."""
-        self.stan.project_nav_view.setVisible(has_project)
-        if not has_project:
-            # Show the welcome panel and keep the content stack visible
-            self.stan.content_stack.setVisible(True)
-            self.stan.content_stack.setCurrentIndex(self.stan.nav_idx_welcome)
-        # When has_project=True, navigation helpers handle visibility/index.
 
     def cleanup_before_exit(self) -> None:
         # Cancel any in-progress debug worker so it stops at its next iteration
@@ -162,9 +143,15 @@ class StanPresenter(QObject):
         self.stan.current_project_name = current_record.value("project_name")
         self.stan.current_project_id = current_record.value("project_ID")
 
-        has_project: bool = bool(self.stan.current_project_id)
-        self.__update_chrome_for_selection(has_project=has_project)
-        if not has_project:
+        selected_project: bool = bool(self.stan.current_project_id)
+        has_projects: bool = self.project_presenter.model.has_projects()
+        self.project_presenter.update_view_visibility(has_projects, selected_project)
+
+        # Show welcome panel when no projects exist
+        if not has_projects:
+            self.stan.content_stack.setCurrentIndex(self.stan.nav_idx_welcome)
+
+        if not selected_project:
             return
 
         self.statement_queue_presenter.projectID = self.stan.current_project_id
@@ -206,8 +193,7 @@ class StanPresenter(QObject):
             )
             if not result_ids:
                 print(
-                    f"Stale lock detected for batch {batch_id} — no persisted results. "
-                    "Clearing batch_id automatically."
+                    f"Stale lock detected for batch {batch_id} — no persisted results. Clearing batch_id automatically."
                 )
                 self.stan.statement_queue_model.clear_batch_id()
                 # Also remove any orphaned batch duration record
