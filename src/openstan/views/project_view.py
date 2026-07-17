@@ -210,6 +210,7 @@ class ProjectView(StanWidget):
         self.label.setMaximumWidth(180)
         self.selection = StanComboBox()  # model details set in ProjectPresenter
         self.selection.setMaximumWidth(250)
+        self.selection.setPlaceholderText("Select a project...")
         self.selection.setAccessibleName("Select existing project")
         self.selection.setToolTip("Select an existing project to open")
         self.label2 = StanLabel("or")
@@ -371,8 +372,10 @@ class ProjectNavView(StanWidget):
 class ProjectWelcomeView(StanWidget):
     """Shown in the content stack when no project is open.
 
-    Contains two call-to-action buttons whose ``clicked`` signals are wired
-    by ``StanPresenter`` to the project presenter's wizard slots.
+    Contains a ``Select Project`` button (visible only when projects exist),
+    a ``Create New Project`` button, and an ``Import Project`` button.
+    The ``clicked`` signals are wired by ``ProjectWelcomePresenter`` to the
+    project presenter's wizard slots.
     """
 
     header: str = "Welcome"
@@ -389,11 +392,17 @@ class ProjectWelcomeView(StanWidget):
         )
 
         subheading = StanLabel(
-            "Get started by creating a new project or adding an existing one."
+            "Select an existing project, create a new one, or import a project folder."
         )
         subheading.setAlignment(
             Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
         )
+
+        self.button_select = StanButton("Select Project", min_width=200)
+        self.button_select.set_themed_icon("folder_open.svg")
+        self.button_select.setToolTip("Select an existing project to open")
+        self.button_select.setAccessibleName("Select project")
+        self.button_select.hide()
 
         self.button_new = StanButton("Create New Project", min_width=200)
         self.button_new.set_themed_icon("project.svg")
@@ -408,6 +417,7 @@ class ProjectWelcomeView(StanWidget):
         btn_row = QHBoxLayout()
         btn_row.setSpacing(16)
         btn_row.addStretch()
+        btn_row.addWidget(self.button_select)
         btn_row.addWidget(self.button_new)
         btn_row.addWidget(self.button_existing)
         btn_row.addStretch()
@@ -424,6 +434,10 @@ class ProjectWelcomeView(StanWidget):
         layout.addStretch()
 
         self.setLayout(layout)
+
+    def set_select_button_visible(self, visible: bool) -> None:
+        """Show/hide the Select Project button (visible when projects exist)."""
+        self.button_select.setVisible(visible)
 
 
 # ---------------------------------------------------------------------------

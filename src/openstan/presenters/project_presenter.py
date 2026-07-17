@@ -13,7 +13,11 @@ from PySide6.QtCore import QObject, Signal, Slot
 
 if TYPE_CHECKING:
     from openstan.models.project_model import ProjectModel
-    from openstan.views.project_view import ProjectView, ProjectWelcomeView
+    from openstan.views.project_view import (
+        ProjectNavView,
+        ProjectView,
+        ProjectWelcomeView,
+    )
 
 
 def _fmt_date(s: str) -> str:
@@ -52,9 +56,15 @@ def get_project_info(project_path: Path) -> "ProjectInfo | None":
     or any exception occurs — so the caller never receives a broken value.
     """
     try:
-        tx_count: int = bsp.db.FactTransaction(project_path).all.select(pl.len()).collect().item()
-        stmt_count: int = bsp.db.DimStatement(project_path).all.select(pl.len()).collect().item()
-        acc_count: int = bsp.db.DimAccount(project_path).all.select(pl.len()).collect().item()
+        tx_count: int = (
+            bsp.db.FactTransaction(project_path).all.select(pl.len()).collect().item()
+        )
+        stmt_count: int = (
+            bsp.db.DimStatement(project_path).all.select(pl.len()).collect().item()
+        )
+        acc_count: int = (
+            bsp.db.DimAccount(project_path).all.select(pl.len()).collect().item()
+        )
     except sqlite3.OperationalError, bsp.StatementError:
         # Mart tables not yet built, or project.db missing — return nothing.
         return None
@@ -94,7 +104,9 @@ def get_project_info(project_path: Path) -> "ProjectInfo | None":
                 ]
             )
         )
-        dim_acc = bsp.db.DimAccount(project_path).all.select(["id_account", "account_number", "account_holder", "account_type"])
+        dim_acc = bsp.db.DimAccount(project_path).all.select(
+            ["id_account", "account_number", "account_holder", "account_type"]
+        )
         latest_bal = (
             bsp.db.FactBalance(project_path)
             .all.filter(pl.col("outside_date") == 0)
@@ -132,15 +144,24 @@ def get_project_info(project_path: Path) -> "ProjectInfo | None":
         gr = bsp.db.GapReport(project_path)
         gap_rows = (
             gr.all.sort(["account_type", "account_number", "statement_date"])
-            .with_columns(pl.col("statement_date").shift(1).over(["account_type", "account_number"]).alias("prev_statement_date"))
+            .with_columns(
+                pl.col("statement_date")
+                .shift(1)
+                .over(["account_type", "account_number"])
+                .alias("prev_statement_date")
+            )
             .filter(pl.col("gap_flag") == "GAP")
             .select(
                 [
                     pl.col("account_type"),
                     pl.col("account_number"),
                     pl.col("account_holder"),
-                    pl.col("prev_statement_date").map_elements(_fmt_date, return_dtype=pl.String),
-                    pl.col("statement_date").map_elements(_fmt_date, return_dtype=pl.String),
+                    pl.col("prev_statement_date").map_elements(
+                        _fmt_date, return_dtype=pl.String
+                    ),
+                    pl.col("statement_date").map_elements(
+                        _fmt_date, return_dtype=pl.String
+                    ),
                     pl.col("opening_balance"),
                     pl.col("closing_balance"),
                 ]
@@ -168,11 +189,19 @@ def get_project_info(project_path: Path) -> "ProjectInfo | None":
 class ProjectPresenter(QObject):
     path_or_name_changed: Signal = Signal()
 
-    def __init__(self: "ProjectPresenter", model: "ProjectModel", view: "ProjectView") -> None:
+    def __init__(
+        self,
+        model: "ProjectModel",
+        view: "ProjectView",
+        nav_view: "ProjectNavView",
+        welcome_view: "ProjectWelcomeView",
+    ) -> None:
         super().__init__()
         self.sessionID: str | None = None  # to be set by StanPresenter
         self.model: "ProjectModel" = model
         self.view: "ProjectView" = view
+        self.nav_view: "ProjectNavView" = nav_view
+        self.welcome_view: "ProjectWelcomeView" = welcome_view
         self.view.selection.setModel(self.model)
         self.view.selection.setModelColumn(1)  # project_name column
         self.view.selection.setEditable(False)
@@ -180,18 +209,69 @@ class ProjectPresenter(QObject):
         # Remembers the last folder the user navigated to in the location picker.
         self._last_dir: Path | None = None
 
+        # Welcome view presenter — wires welcome view buttons to wizard methods
+        self.welcome_presenter = ProjectWelcomePresenter(
+            project_presenter=self,
+            view=self.welcome_view,
+        )
+
         # Connect signals — new project wizard
         self.view.button_new.clicked.connect(self.open_new_project_wizard)
-        self.view.wizard.page_basic.location_button.clicked.connect(self.open_folder_selection_dialog)
+        self.view.wizard.page_basic.location_button.clicked.connect(
+            self.open_folder_selection_dialog
+        )
         self.view.wizard.page_basic.name_row.textChanged.connect(self.name_changed)
         self.path_or_name_changed.connect(self.update_location_label)
         self.view.wizard.new_project_required.connect(self.handle_project_required)
 
         # Connect signals — existing project wizard
         self.view.button_existing.clicked.connect(self.open_existing_project_wizard)
-        self.view.wizard_existing.page_basic.location_button.clicked.connect(self.open_folder_selection_dialog)
-        self.view.wizard_existing.page_basic.name_row.textChanged.connect(self.path_or_name_changed.emit)
-        self.view.wizard_existing.new_project_required.connect(self.handle_project_required)
+        self.view.wizard_existing.page_basic.location_button.clicked.connect(
+            self.open_folder_selection_dialog
+        )
+        self.view.wizard_existing.page_basic.name_row.textChanged.connect(
+            self.path_or_name_changed.emit
+        )
+        self.view.wizard_existing.new_project_required.connect(
+            self.handle_project_required
+        )
+
+        # Connect model signals
+        self.model.db_updated.connect(self.on_db_updated)
+
+    # ---------------------------------------------------------------------------
+    # View visibility
+    # ---------------------------------------------------------------------------
+
+    def update_view_visibility(
+        self, has_projects: bool, selected_project: bool = False
+    ) -> None:
+        """Show/hide project-related views based on whether projects exist
+        and whether a project is currently selected.
+
+        On startup, ProjectView and ProjectNavView are hidden.
+        When a project is selected, they become visible.
+        ProjectWelcomeView is always visible and shows a Select Project
+        button if projects exist.
+        """
+        self.view.setVisible(selected_project)
+        self.nav_view.setVisible(selected_project)
+        self.welcome_view.set_select_button_visible(has_projects)
+
+    @Slot()
+    def on_db_updated(self) -> None:
+        """Update view visibility when project database changes."""
+        has_projects = self.model.has_projects()
+        selected_project = bool(self.view.selection.currentIndex() >= 0)
+        self.update_view_visibility(has_projects, selected_project)
+
+    @Slot()
+    def show_project_view(self) -> None:
+        """Show ProjectView and hide WelcomeView (called from Select Project button)."""
+        self.welcome_view.setVisible(False)
+        self.view.selection.setCurrentIndex(-1)  # Reset → placeholder shown
+        self.view.setVisible(True)
+        self.nav_view.setVisible(True)
 
     # ---------------------------------------------------------------------------
     # Wizard dispatch — single slot handles both modes
@@ -225,7 +305,11 @@ class ProjectPresenter(QObject):
         """
         if new_pro[0]:
             verb_past = "created" if action == "create" else "added"
-            title = "Project Created Successfully" if action == "create" else "Project Added Successfully"
+            title = (
+                "Project Created Successfully"
+                if action == "create"
+                else "Project Added Successfully"
+            )
             info = f"Project '{project_name}' {verb_past} successfully!\nLocation: {full_path}"
             wizard.success_dialog.setText(title)
             wizard.success_dialog.setDetailedText(info)
@@ -253,7 +337,9 @@ class ProjectPresenter(QObject):
     def open_new_project_wizard(self) -> None:
         self.view.wizard.page_basic.location_button.setDisabled(True)
         self.view.wizard.page_basic.newProjectID = uuid4().hex
-        self.view.wizard.page_basic.id_row.setText(self.view.wizard.page_basic.newProjectID)
+        self.view.wizard.page_basic.id_row.setText(
+            self.view.wizard.page_basic.newProjectID
+        )
         self.view.wizard.exec()
 
     @Slot()
@@ -300,7 +386,9 @@ class ProjectPresenter(QObject):
             str(full_path),
             self.sessionID,
         )
-        return self._finalise_project_add(new_pro, project_name, full_path, wizard, "create")
+        return self._finalise_project_add(
+            new_pro, project_name, full_path, wizard, "create"
+        )
 
     # ---------------------------------------------------------------------------
     # Existing project
@@ -309,7 +397,9 @@ class ProjectPresenter(QObject):
     @Slot()
     def open_existing_project_wizard(self) -> None:
         self.view.wizard_existing.page_basic.newProjectID = uuid4().hex
-        self.view.wizard_existing.page_basic.id_row.setText(self.view.wizard_existing.page_basic.newProjectID)
+        self.view.wizard_existing.page_basic.id_row.setText(
+            self.view.wizard_existing.page_basic.newProjectID
+        )
         self.view.wizard_existing.exec()
 
     @Slot()
@@ -337,7 +427,9 @@ class ProjectPresenter(QObject):
             str(full_path),
             self.sessionID,
         )
-        return self._finalise_project_add(new_pro, project_name, full_path, wizard, "add")
+        return self._finalise_project_add(
+            new_pro, project_name, full_path, wizard, "add"
+        )
 
     # ---------------------------------------------------------------------------
     # Shared folder selection and label update
@@ -388,7 +480,9 @@ class ProjectPresenter(QObject):
         name: str = self.view.wizard.page_basic.name_row.text()
         if folder and len(name) > 0:
             self.view.wizard.full_project_path = folder.joinpath(name)
-            self.view.wizard.page_basic.location_label.setText(str(self.view.wizard.full_project_path.absolute()))
+            self.view.wizard.page_basic.location_label.setText(
+                str(self.view.wizard.full_project_path.absolute())
+            )
             self.view.wizard.page_basic.location_label.show()
         else:
             self.view.wizard.page_basic.location_label.hide()
@@ -401,9 +495,20 @@ class ProjectWelcomePresenter(QObject):
     ProjectPresenter, which handles the actual wizard logic.
     """
 
-    def __init__(self: "ProjectWelcomePresenter", project_presenter: "ProjectPresenter", view: "ProjectWelcomeView") -> None:
+    def __init__(
+        self: "ProjectWelcomePresenter",
+        project_presenter: "ProjectPresenter",
+        view: "ProjectWelcomeView",
+    ) -> None:
         super().__init__()
         self.project_presenter: "ProjectPresenter" = project_presenter
         self.view: "ProjectWelcomeView" = view
-        self.view.button_new.clicked.connect(self.project_presenter.open_new_project_wizard)
-        self.view.button_existing.clicked.connect(self.project_presenter.open_existing_project_wizard)
+        self.view.button_select.clicked.connect(
+            self.project_presenter.show_project_view
+        )
+        self.view.button_new.clicked.connect(
+            self.project_presenter.open_new_project_wizard
+        )
+        self.view.button_existing.clicked.connect(
+            self.project_presenter.open_existing_project_wizard
+        )

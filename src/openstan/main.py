@@ -48,7 +48,6 @@ from openstan.presenters import (
     AdvancedExportPresenter,
     ExportDataPresenter,
     ProjectPresenter,
-    ProjectWelcomePresenter,
     RunReportsPresenter,
     SessionPresenter,
     StanPresenter,
@@ -438,8 +437,18 @@ class Stan(QMainWindow):
         # ── Presenters ────────────────────────────────────────────────────
         self.user_presenter = UserPresenter(model=self.user_model, view=None)
         self.session_presenter = SessionPresenter(model=self.session_model, view=None)
-        self.project_presenter = ProjectPresenter(model=self.project_model, view=self.project_view)
-        self.project_welcome_presenter = ProjectWelcomePresenter(project_presenter=self.project_presenter, view=self.welcome_view)
+        self.project_presenter = ProjectPresenter(
+            model=self.project_model,
+            view=self.project_view,
+            nav_view=self.project_nav_view,
+            welcome_view=self.welcome_view,
+        )
+
+        # Set initial state: hide project/nav views, show welcome with Select Project button if projects exist
+        self.project_view.setVisible(False)
+        self.project_nav_view.setVisible(False)
+        self.welcome_view.set_select_button_visible(self.project_model.has_projects())
+
         self.statement_queue_presenter = StatementQueuePresenter(
             model=self.statement_queue_model,
             view=self.statement_queue_view,
@@ -496,8 +505,6 @@ class Stan(QMainWindow):
         layout.addWidget(self.project_nav_view, stretch=0)
         layout.addWidget(self.content_stack, stretch=1)
         layout.addWidget(self.footer_view, stretch=0)
-        self.project_view.setVisible(False)  # Hide until project is selected
-        self.project_nav_view.setVisible(False)  # Hide until project is selected
 
         self.stan.setLayout(layout)
         self.setCentralWidget(self.stan)

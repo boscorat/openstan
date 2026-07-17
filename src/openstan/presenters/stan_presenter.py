@@ -36,12 +36,14 @@ class StanPresenter(QObject):
         self.title_view = self.stan.title_view
 
         # ── Signal wiring ──────────────────────────────────────────────────────
-        # self.project_presenter.view.selection.currentIndexChanged.connect(
-        #     self.project_selection_changed
-        # )
+        self.project_presenter.view.selection.currentIndexChanged.connect(
+            self.project_selection_changed
+        )
         self.project_presenter.model.db_updated.connect(self.project_db_updated)
         self.session_presenter.db_lock_signal.connect(self.db_lock_handler)
-        self.statement_queue_presenter.statement_imported.connect(self.statement_imported)
+        self.statement_queue_presenter.statement_imported.connect(
+            self.statement_imported
+        )
         self.statement_queue_presenter.import_started.connect(self.on_import_started)
         self.statement_queue_presenter.import_finished.connect(self.on_import_finished)
         self.statement_queue_presenter.view_results_requested.connect(self.show_results)
@@ -51,10 +53,6 @@ class StanPresenter(QObject):
         self.export_data_presenter.review_pending_batch.connect(self.show_results)
         self.title_view.admin_requested.connect(self.open_admin_dialog)
 
-        # # Welcome panel CTA buttons
-        # self.stan.welcome_view.button_new.clicked.connect(self.project_presenter.open_new_project_wizard)
-        # self.stan.welcome_view.button_existing.clicked.connect(self.project_presenter.open_existing_project_wizard)
-
         # Nav button clicks
         self.nav_view.button_info.clicked.connect(self.__nav_to_info)
         self.nav_view.button_import.clicked.connect(self.__nav_to_import)
@@ -63,20 +61,30 @@ class StanPresenter(QObject):
 
         # ── Bootstrap ──────────────────────────────────────────────────────────
         # Add a new user to the database if not exists
-        self.stan.userID = self.stan.user_model.user_id_from_username(self.stan.username)
+        self.stan.userID = self.stan.user_model.user_id_from_username(
+            self.stan.username
+        )
         if not self.stan.userID:
             success: bool = False
             msg: str = ""
-            success, self.stan.userID, msg = self.stan.user_presenter.create_new_user(self.stan.username, self.stan.sessionID)
+            success, self.stan.userID, msg = self.stan.user_presenter.create_new_user(
+                self.stan.username, self.stan.sessionID
+            )
             if not success:
-                self.stan.error_db_lock.showMessage(f"{msg}\nThe application will close shortly.")
+                self.stan.error_db_lock.showMessage(
+                    f"{msg}\nThe application will close shortly."
+                )
         # Start a new session
         if self.stan.userID:
             success = False
             msg = ""
-            success, self.stan.sessionID, msg = self.stan.session_presenter.new_session(self.stan.userID)
+            success, self.stan.sessionID, msg = self.stan.session_presenter.new_session(
+                self.stan.userID
+            )
             if not success:
-                self.stan.error_db_lock.showMessage(f"{msg}\nThe application will close shortly.")
+                self.stan.error_db_lock.showMessage(
+                    f"{msg}\nThe application will close shortly."
+                )
 
         # Update footer label with username
         self.footer_view.labelUser.setText(f"##### User: {self.stan.username}")
@@ -105,29 +113,24 @@ class StanPresenter(QObject):
 
     @Slot()
     def db_lock_handler(self) -> None:
-        self.stan.error_db_lock.showMessage("Database is locked! Another active session may exist.\nThe application will close shortly.")
+        self.stan.error_db_lock.showMessage(
+            "Database is locked! Another active session may exist.\nThe application will close shortly."
+        )
 
     # ---------------------------------------------------------------------------
     # Project selection
     # ---------------------------------------------------------------------------
 
-    # @Slot(int)
-    # def project_selection_changed(self, index: int) -> None:
-    #     self.update_current_project_info(index)
+    @Slot(int)
+    def project_selection_changed(self, index: int) -> None:
+        self.update_current_project_info(index)
 
     @Slot()
     def project_db_updated(self) -> None:
         """Re-evaluate project views visibility when projects are added or removed."""
-        self.update_current_project_info(self.project_presenter.view.selection.currentIndex())
-
-    def update_stack_for_project_selection(self) -> None:
-        """Show or hide the nav bar and content stack based on whether any projects exist."""
-        self.stan.project_nav_view.setVisible(self.project_presenter.model.has_projects())
-        if not self.project_presenter.model.has_projects():
-            # Show the welcome panel and keep the content stack visible
-            self.stan.content_stack.setVisible(True)
-            self.stan.content_stack.setCurrentIndex(self.stan.nav_idx_welcome)
-        # When has_project=True, navigation helpers handle visibility/index.
+        self.update_current_project_info(
+            self.project_presenter.view.selection.currentIndex()
+        )
 
     def cleanup_before_exit(self) -> None:
         # Cancel any in-progress debug worker so it stops at its next iteration
@@ -141,20 +144,36 @@ class StanPresenter(QObject):
         self.stan.current_project_id = current_record.value("project_ID")
 
         selected_project: bool = bool(self.stan.current_project_id)
-        self.update_stack_for_project_selection()
+        has_projects: bool = self.project_presenter.model.has_projects()
+        self.project_presenter.update_view_visibility(has_projects, selected_project)
+
+        # Show welcome panel when no projects exist
+        if not has_projects:
+            self.stan.content_stack.setCurrentIndex(self.stan.nav_idx_welcome)
+
         if not selected_project:
             return
 
         self.statement_queue_presenter.projectID = self.stan.current_project_id
         self.statement_queue_presenter.update_view()
-        self.footer_view.labelProject.setText(f"##### Project: {self.stan.current_project_name} (ID: {self.stan.current_project_id})")
-        self.stan.current_project_paths = ProjectPaths.resolve(Path(current_record.value("project_location")).absolute())
-        self.statement_queue_presenter.projectPath = self.stan.current_project_paths.root
-        self.statement_result_presenter.project_path = self.stan.current_project_paths.root
+        self.footer_view.labelProject.setText(
+            f"##### Project: {self.stan.current_project_name} (ID: {self.stan.current_project_id})"
+        )
+        self.stan.current_project_paths = ProjectPaths.resolve(
+            Path(current_record.value("project_location")).absolute()
+        )
+        self.statement_queue_presenter.projectPath = (
+            self.stan.current_project_paths.root
+        )
+        self.statement_result_presenter.project_path = (
+            self.stan.current_project_paths.root
+        )
         self.export_data_presenter.project_path = self.stan.current_project_paths.root
         self.export_data_presenter.project_id = self.stan.current_project_id
         self.export_data_presenter.update_folder_display()
-        self.advanced_export_presenter.load_project(self.stan.current_project_paths.root)
+        self.advanced_export_presenter.load_project(
+            self.stan.current_project_paths.root
+        )
         self.run_reports_presenter.load_project(self.stan.current_project_paths.root)
 
         # Refresh project info panel and update nav button visibility.
@@ -169,9 +188,13 @@ class StanPresenter(QObject):
             # Stale-lock detection: if the queue is locked but no results were
             # persisted (e.g. app closed mid-batch), treat it as abandoned and
             # unlock automatically so the user is not stuck.
-            result_ids = self.stan.statement_result_model.get_result_ids_for_batch(batch_id)
+            result_ids = self.stan.statement_result_model.get_result_ids_for_batch(
+                batch_id
+            )
             if not result_ids:
-                print(f"Stale lock detected for batch {batch_id} — no persisted results. Clearing batch_id automatically.")
+                print(
+                    f"Stale lock detected for batch {batch_id} — no persisted results. Clearing batch_id automatically."
+                )
                 self.stan.statement_queue_model.clear_batch_id()
                 # Also remove any orphaned batch duration record
                 self.stan.batch_model.delete_batch(batch_id)
@@ -180,7 +203,9 @@ class StanPresenter(QObject):
                 # Genuine restore: repopulate in-memory models from DB.
                 # Do NOT auto-navigate to the results view — the user should
                 # start from the queue and press "View Results" themselves.
-                self.statement_result_presenter.load_results_from_db(batch_id, self.stan.current_project_id)
+                self.statement_result_presenter.load_results_from_db(
+                    batch_id, self.stan.current_project_id
+                )
 
     # ---------------------------------------------------------------------------
     # Navigation helpers
@@ -282,7 +307,9 @@ class StanPresenter(QObject):
         progress_bar_value: int,
         queue_id: str,
     ) -> None:
-        self.stan.statement_result_presenter.view.progressBar.setValue(progress_bar_value)
+        self.stan.statement_result_presenter.view.progressBar.setValue(
+            progress_bar_value
+        )
 
         # Show the results block while import is in progress
         self.show_results()
@@ -387,8 +414,12 @@ class StanPresenter(QObject):
         # Reload advanced export and run-reports combos — the datamart has just
         # been rebuilt so account/statement data is now available.
         if self.stan.current_project_paths is not None:
-            self.advanced_export_presenter.load_project(self.stan.current_project_paths.root)
-            self.run_reports_presenter.load_project(self.stan.current_project_paths.root)
+            self.advanced_export_presenter.load_project(
+                self.stan.current_project_paths.root
+            )
+            self.run_reports_presenter.load_project(
+                self.stan.current_project_paths.root
+            )
 
     # ---------------------------------------------------------------------------
     # Admin

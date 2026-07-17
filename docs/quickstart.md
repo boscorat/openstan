@@ -6,7 +6,7 @@ This guide walks you through the full workflow from a fresh installation to your
 
 ## Step 1 — Launch openstan
 
-Open openstan from your application menu or desktop shortcut. On first run you will see an empty project selector and the application header.
+Open openstan from your application menu or desktop shortcut. On first run you will see a welcome screen with options to create a new project or add an existing one.
 
 ![openstan on first launch](assets/screenshots/title.png#only-light)
 ![openstan on first launch](assets/screenshots/dark/title.png#only-dark)
@@ -25,7 +25,7 @@ A **project** is a folder on disk that holds your statement PDFs, configuration 
 ![Project creation wizard](assets/screenshots/project_wizard.png#only-light)
 ![Project creation wizard](assets/screenshots/dark/project_wizard.png#only-dark)
 
-The new project appears in the **Select an existing project** drop-down and becomes the active project.
+The new project is selected automatically and the project selector bar appears.
 
 !!! tip "Adding an existing project"
     If you have already created a project on another machine or moved a project folder, use **Add Existing Project** instead. Navigate to the existing project folder and openstan will register it in the UI without changing any files.
