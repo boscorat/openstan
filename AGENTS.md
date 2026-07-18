@@ -327,8 +327,28 @@ Callers must check `result[0]` and handle the `False` case.
 
 ## Error Handling
 
-- Use `StanErrorMessage` (subclass of `QErrorMessage`) for database errors and
-  unrecoverable failures — always modal, shown via `.showMessage(str)`.
+- Use `StanErrorMessage` for database errors and unrecoverable failures — always modal,
+  shown via `.showMessage(str, context_object=None)`.
+  - Users can copy error messages to clipboard via the "Copy" button
+  - Users can open a GitHub issue with pre-filled error details via "Open GitHub Issue" button
+  - Optional `context_object` parameter: pass a string describing the object/context that
+    triggered the error (e.g., `"ProjectModel.delete_record(project_id=123)"`). This will be
+    included in the GitHub issue if the user chooses to open one. **Do not include sensitive
+    personal data in context_object.**
+  
+  **Example without context:**
+  ```python
+  StanErrorMessage(parent=self.view).showMessage("Database connection failed")
+  ```
+
+  **Example with context (optional):**
+  ```python
+  StanErrorMessage(parent=self.view).showMessage(
+      "Failed to delete project",
+      context_object="AdminPresenter.delete_project(project_id=42)"
+  )
+  ```
+
 - Use `StanInfoMessage` (subclass of `QMessageBox`) for confirmations before
   destructive actions, using `Yes | Cancel` with `Cancel` as default.
 - Catch-all in presenters: `except Exception as e:` — use for Qt slot callbacks.

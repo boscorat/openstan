@@ -1,6 +1,9 @@
-from PySide6.QtCore import QAbstractTableModel, QEvent, QSize, Qt
-from PySide6.QtGui import QIcon, QPalette, QPixmap
+from urllib.parse import urlencode
+
+from PySide6.QtCore import QAbstractTableModel, QEvent, QSize, Qt, QUrl
+from PySide6.QtGui import QDesktopServices, QIcon, QPalette, QPixmap
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QComboBox,
     QDateEdit,
@@ -20,6 +23,7 @@ from PySide6.QtWidgets import (
     QTableView,
     QTableWidget,
     QTabWidget,
+    QTextEdit,
     QToolButton,
     QToolTip,
     QTreeView,
@@ -151,10 +155,11 @@ class StanRadioButton(QRadioButton):
 
 
 class StanErrorMessage(QDialog):
-    """A modal error dialog that shows a message without a 'don't show again' checkbox.
+    """A modal error dialog with copy and GitHub issue reporting features.
 
-    Provides the same ``.showMessage(text)`` API as ``QErrorMessage`` so all
-    existing callers need no changes.
+    Provides a `.showMessage(text, context_object=None)` API so existing callers
+    need no changes. New optional `context_object` parameter allows including
+    context information when opening a GitHub issue.
     """
 
     def __init__(self, parent=None) -> None:
@@ -164,22 +169,172 @@ class StanErrorMessage(QDialog):
         self.setWindowModality(Qt.WindowModality.WindowModal)
         self.setMinimumWidth(360)
 
-        self._label = StanScrollAreaLabel()
+        # Create icon and message header
+        icon_label = QLabel()
+        icon_label.setPixmap(
+            self.style()
+            .standardIcon(self.style().StandardPixmap.SP_MessageBoxCritical)
+            .pixmap(48, 48)
+        )
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        self._label = StanScrollAreaLabel()
+        self._error_message = ""
+        self._context_object: str | None = None
+
+        # Create button box with Copy, Open GitHub Issue, and Ok buttons
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
+        copy_btn = buttons.addButton("Copy", QDialogButtonBox.ButtonRole.ActionRole)
+        github_btn = buttons.addButton(
+            "Open GitHub Issue", QDialogButtonBox.ButtonRole.ActionRole
+        )
+
+        copy_btn.clicked.connect(self._copy_to_clipboard)
+        github_btn.clicked.connect(self._open_github_issue)
         buttons.accepted.connect(self.accept)
 
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(16)
+        layout.addWidget(icon_label)
         layout.addWidget(self._label)
         layout.addWidget(buttons)
         self.setLayout(layout)
 
-    def showMessage(self, message: str) -> None:  # noqa: N802
-        """Display *message* in the dialog and exec it modally."""
+    def showMessage(self, message: str, context_object: str | None = None) -> None:  # noqa: N802
+        """Display message in the dialog and exec it modally.
+
+        Parameters
+        ----------
+        message : str
+            The error message to display.
+        context_object : str, optional
+            A string describing the object/context that triggered the error.
+            Example: "ProjectModel.delete_record(project_id=123)"
+            This will be included in the GitHub issue if the user chooses to
+            open one.
+        """
+        self._error_message = message
+        self._context_object = context_object
         self._label.setText(message)
         self.exec()
+
+    def _copy_to_clipboard(self) -> None:
+        """Copy error message to clipboard and show brief notification."""
+        clipboard = QApplication.clipboard()
+        if clipboard:
+            clipboard.setText(self._error_message)
+            self._show_status_message("Copied to clipboard!", timeout_ms=2000)
+
+    def _show_status_message(self, message: str, timeout_ms: int = 2000) -> None:
+        """Display a brief message in the main window's status bar."""
+        # Walk up the parent hierarchy to find the top-level main window
+        widget = self.parent()
+        while widget is not None:
+            if hasattr(widget, "statusBar"):
+                widget.statusBar().showMessage(message, timeout_ms)
+                return
+            widget = widget.parent() if hasattr(widget, "parent") else None
+
+    def _open_github_issue(self) -> None:
+        """Open GitHub new issue form with pre-filled error message."""
+        url = self._build_github_issue_url(self._error_message, self._context_object)
+        QDesktopServices.openUrl(QUrl(url))
+
+    def _build_github_issue_url(
+        self, error_message: str, context_object: str | None = None
+    ) -> str:
+        """Build GitHub new issue URL with pre-filled error details.
+
+        Parameters
+        ----------
+        error_message : str
+            The error message text
+        context_object : str, optional
+            Additional context information
+
+        Returns
+        -------
+        str
+            Full GitHub issues URL with encoded body parameter
+        """
+        import platform
+        import sys
+
+        # Get app version
+        app_version = self._get_app_version()
+
+        # System info
+        python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+        platform_info = platform.system()
+
+        # Get PySide6 version
+        try:
+            from importlib.metadata import version as get_version
+
+            pyside_version = get_version("PySide6")
+        except Exception:
+            pyside_version = "unknown"
+
+        # Build issue body
+        body_lines = [
+            "## Error Message",
+            error_message,
+            "",
+            "## System Information",
+            f"- **App Version:** {app_version}",
+            f"- **Python:** {python_version}",
+            f"- **Platform:** {platform_info}",
+            f"- **PySide6:** {pyside_version}",
+        ]
+
+        if context_object:
+            body_lines.extend(
+                [
+                    "",
+                    "## Context",
+                    context_object,
+                ]
+            )
+
+        body_lines.extend(
+            [
+                "",
+                "## Steps to Reproduce",
+                "(Please describe what you were doing when this error occurred)",
+            ]
+        )
+
+        body = "\n".join(body_lines)
+
+        # Extract first line of error for title (max ~50 chars)
+        error_title = error_message.split("\n")[0][:50]
+
+        # Build URL with proper encoding
+        params = {
+            "title": f"Error: {error_title}",
+            "body": body,
+            "labels": "UI Error Message",
+        }
+
+        base_url = "https://github.com/boscorat/openstan/issues/new"
+        query_string = urlencode(params)
+        return f"{base_url}?{query_string}"
+
+    def _get_app_version(self) -> str:
+        """Get app version from package metadata.
+
+        Returns
+        -------
+        str
+            The installed package version, or "unknown" if unavailable
+        """
+        try:
+            from importlib.metadata import version
+
+            return version("openstan")
+        except Exception:
+            return "unknown"
 
 
 class StanInfoMessage(QMessageBox):
@@ -512,22 +667,30 @@ class StanScrollArea(QScrollArea):
 
 
 class StanScrollAreaLabel(StanScrollArea):
-    """A word-wrapped StanLabel inside a scroll area.
+    """A word-wrapped, selectable text area inside a scroll area.
 
     Scrollbars appear only when the text exceeds the visible area.
-    Delegates all label methods to the underlying StanLabel for transparent usage.
+    Text is read-only but selectable (allows copy to clipboard via Ctrl+C).
+    Delegates all text editing methods to the underlying QTextEdit for transparent usage.
     """
 
     def __init__(self, text: str = "", parent=None) -> None:
         super().__init__(parent)
-        self._label = StanLabel(text)
-        self._label.setWordWrap(True)
-        self._label.setTextFormat(Qt.TextFormat.PlainText)
+        self._label = QTextEdit(text)
+        self._label.setReadOnly(True)
         self.setWidgetResizable(True)
         self.setWidget(self._label)
 
+    def setText(self, text: str) -> None:
+        """Set the text content."""
+        self._label.setPlainText(text)
+
+    def text(self) -> str:
+        """Get the text content as plain text."""
+        return self._label.toPlainText()
+
     def __getattr__(self, name: str):
-        """Delegate all unknown attributes to the underlying label."""
+        """Delegate all unknown attributes to the underlying QTextEdit."""
         return getattr(self._label, name)
 
 
