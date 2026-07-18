@@ -34,17 +34,20 @@ from openstan.components import (
 
 
 class AnonymiseDialog(StanDialog):
-    """Modal dialog for anonymising a PDF statement.
+    """Modeless dialog for anonymising a PDF statement.
 
     All state and signal wiring is managed by ``AnonymisePresenter``.
     This class is pure layout.
+
+    The dialog is non-modal (modeless), scrollable on low-resolution screens,
+    and stays on top of the main window.
     """
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Anonymise PDF")
-        self.setMinimumWidth(800)
-        self.setMinimumHeight(700)
+
+        self.make_scrollable()
 
         outer = QVBoxLayout()
         outer.setSpacing(16)

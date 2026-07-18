@@ -99,8 +99,41 @@ class StanTreeView(QTreeView):
 class StanDialog(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setModal(True)
+        self.setModal(False)
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.WindowStaysOnTopHint)
         self.setAutoFillBackground(True)
+        self._scrollable: bool = False
+
+    def setLayout(self, layout) -> None:  # noqa: N802
+        """Set the dialog's layout, optionally wrapped in a scroll area.
+
+        If _scrollable is True, wraps the layout in a StanScrollArea so
+        scrollbars appear when content exceeds the visible area.
+        """
+        if not self._scrollable:
+            super().setLayout(layout)
+            return
+
+        # Wrap the layout in a scroll area
+        container = QWidget()
+        container.setLayout(layout)
+
+        scroll = StanScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(container)
+
+        dialog_layout = QVBoxLayout(self)
+        dialog_layout.setContentsMargins(0, 0, 0, 0)
+        dialog_layout.addWidget(scroll)
+
+    def make_scrollable(self) -> None:
+        """Enable scrollable content for this dialog.
+
+        Call this method before setLayout(). Subsequent calls to setLayout()
+        will automatically wrap the content in a scroll area, so scrollbars
+        appear only when content exceeds the visible area.
+        """
+        self._scrollable = True
 
 
 class StanCheckBox(QCheckBox):
@@ -131,9 +164,7 @@ class StanErrorMessage(QDialog):
         self.setWindowModality(Qt.WindowModality.WindowModal)
         self.setMinimumWidth(360)
 
-        self._label = QLabel()
-        self._label.setWordWrap(True)
-        self._label.setTextFormat(Qt.TextFormat.PlainText)
+        self._label = StanScrollAreaLabel()
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
         buttons.accepted.connect(self.accept)
@@ -478,6 +509,26 @@ class StanScrollArea(QScrollArea):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setAutoFillBackground(True)
+
+
+class StanScrollAreaLabel(StanScrollArea):
+    """A word-wrapped StanLabel inside a scroll area.
+
+    Scrollbars appear only when the text exceeds the visible area.
+    Delegates all label methods to the underlying StanLabel for transparent usage.
+    """
+
+    def __init__(self, text: str = "", parent=None) -> None:
+        super().__init__(parent)
+        self._label = StanLabel(text)
+        self._label.setWordWrap(True)
+        self._label.setTextFormat(Qt.TextFormat.PlainText)
+        self.setWidgetResizable(True)
+        self.setWidget(self._label)
+
+    def __getattr__(self, name: str):
+        """Delegate all unknown attributes to the underlying label."""
+        return getattr(self._label, name)
 
 
 class StanTableWidget(QTableWidget):
