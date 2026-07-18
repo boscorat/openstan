@@ -86,7 +86,9 @@ class AdminPresenter(QObject):
         dlg.setWindowTitle(title)
         dlg.setIcon(icon)
         dlg.setText(text)
-        dlg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+        dlg.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
+        )
         dlg.setDefaultButton(QMessageBox.StandardButton.Cancel)
         return dlg.exec() == QMessageBox.StandardButton.Yes
 
@@ -113,7 +115,11 @@ class AdminPresenter(QObject):
         project_location: str = str(record.value("project_location"))
         delete_folder: bool = self.view.check_delete_folder.isChecked()
 
-        folder_warning = f"\n\nThe project folder will also be permanently deleted from disk:\n{project_location}" if delete_folder else ""
+        folder_warning = (
+            f"\n\nThe project folder will also be permanently deleted from disk:\n{project_location}"
+            if delete_folder
+            else ""
+        )
         if not self._confirm(
             "Confirm Delete",
             f"Delete project '{project_name}'?{folder_warning}\n\nThis cannot be undone.",
@@ -122,7 +128,9 @@ class AdminPresenter(QObject):
 
         success, _, msg = self.model.delete_record_by_id(project_id)
         if not success:
-            StanErrorMessage(parent=self.view).showMessage(f"Failed to delete project record: {msg}")
+            StanErrorMessage(parent=self.view).showMessage(
+                f"Failed to delete project record: {msg}"
+            )
             return
 
         if delete_folder:
@@ -154,7 +162,9 @@ class AdminPresenter(QObject):
 
         success, _, msg = self.model.delete_record_by_id(project_id)
         if not success:
-            StanErrorMessage(parent=self.view).showMessage(f"Failed to remove project record: {msg}")
+            StanErrorMessage(parent=self.view).showMessage(
+                f"Failed to remove project record: {msg}"
+            )
             return
 
         self.refresh_combos()
@@ -183,7 +193,9 @@ class AdminPresenter(QObject):
             create_gui_db(gui_db_path)
         except Exception:
             traceback.print_exc()
-            StanErrorMessage(parent=self.view).showMessage("Failed to recreate gui.db. The application will now close.")
+            StanErrorMessage(parent=self.view).showMessage(
+                "Failed to recreate gui.db. The application will now close."
+            )
 
         QApplication.quit()
 

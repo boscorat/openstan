@@ -28,8 +28,7 @@ from typing import TYPE_CHECKING
 import bank_statement_parser as bsp
 import polars as pl
 from bank_statement_parser.modules.export_spec import export_spec as bsp_export_spec
-from PySide6.QtCore import QObject, QRunnable, QUrl, Signal, Slot
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import QObject, QRunnable, Signal, Slot
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from openstan.components import StanErrorMessage
@@ -388,13 +387,13 @@ class AdvancedExportPresenter(QObject):
             f"###### Exported {description} to `{output_folder}`"
         )
         # Open the output folder using subprocess to avoid blocking UI
-        if os.name == 'nt':  # Windows
-            Popen(['explorer', output_folder])
-        elif os.name == 'posix':  # macOS or Linux
-            if os.uname().sysname == 'Darwin':  # macOS
-                Popen(['open', output_folder])
+        if os.name == "nt":  # Windows
+            Popen(["explorer", output_folder])
+        elif os.name == "posix":  # macOS or Linux
+            if os.uname().sysname == "Darwin":  # macOS
+                Popen(["open", output_folder])
             else:  # Linux
-                Popen(['xdg-open', output_folder])
+                Popen(["xdg-open", output_folder])
 
     @Slot(str)
     def _on_export_error(self, message: str) -> None:
