@@ -177,15 +177,23 @@ class AdvancedExportPresenter(QObject):
         # ── Account combo ──────────────────────────────────────────────────
         self.view.combo_account.blockSignals(True)
         self.view.combo_account.clear()
-        self.view.combo_account.addItem("<all accounts>", userData=None)
 
+        # Handle empty accounts case
+        if accounts_df.is_empty():
+            self.view.combo_account.addItem("(no accounts)")
+            self.view.combo_statement.clear()
+            self.view.combo_statement.addItem("(no data)")
+            self.view.combo_account.blockSignals(False)
+            return
+
+        # Add accounts (no "<all accounts>" option — enforce single account selection)
         for row in accounts_df.iter_rows(named=True):
             label = f"{row['account_holder']} \u2014 {row['account_type']} ({row['account_number']})"
             self.view.combo_account.addItem(label, userData=row["id_account"])
 
         self.view.combo_account.blockSignals(False)
 
-        # Trigger statement filtering for the initial selection
+        # Trigger statement filtering for the initial selection (auto-selects index 0)
         self._on_account_changed(self.view.combo_account.currentIndex())
 
     @Slot(str)
@@ -212,11 +220,12 @@ class AdvancedExportPresenter(QObject):
             return
 
         account_key: str | None = self.view.combo_account.itemData(index)
+        # account_key is always valid (no "<all accounts>" option) but type checker
+        # doesn't know that, so we check anyway
         if account_key is None:
-            # "<all accounts>" selected — show all statements
-            filtered = self._all_statements
-        else:
-            filtered = self._all_statements.filter(pl.col("id_account") == account_key)
+            return
+
+        filtered = self._all_statements.filter(pl.col("id_account") == account_key)
 
         for row in filtered.sort("statement_date", descending=True).iter_rows(
             named=True
