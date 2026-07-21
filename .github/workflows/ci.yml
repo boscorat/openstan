@@ -110,11 +110,14 @@ jobs:
           QT_QPA_PLATFORM: offscreen
 
       - name: Clean up anonymised PDFs after tests (security)
-        if: steps.fetch_anonymised.outputs.success == 'true' && always()
+        if: steps.fetch_anonymised.outputs.success == 'true'
+        continue-on-error: true
         run: |
           # Remove anonymised PDFs to prevent accidental commits
-          rm -rf tests/fixtures/pdfs/good tests/fixtures/pdfs/bad tests/fixtures/pdfs/anonymised || true
-          find tests/fixtures/pdfs -name "*.pdf" -not -path "*/synthetic/*" -delete || true
+          rm -rf "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/good" \
+                 "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/bad" || true
+          find "${GITHUB_WORKSPACE}/tests/fixtures/pdfs" -name "*.pdf" \
+            -not -path "*/synthetic/*" -delete || true
 
   doc-reminder:
     # Only runs on pull requests; non-blocking reminder only
