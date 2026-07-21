@@ -628,7 +628,7 @@ class StanHelpIcon(QPushButton):
         from openstan.paths import Paths
 
         icon_path = Paths.themed_icon("info.svg")
-        pixmap = QPixmap(icon_path)
+        pixmap = _load_themed_icon_pixmap(icon_path, size=16, palette=self.palette())
         if not pixmap.isNull():
             self.setIcon(QIcon(pixmap))
             self.setIconSize(QSize(16, 16))
@@ -637,9 +637,14 @@ class StanHelpIcon(QPushButton):
             # Fallback: render a text "?" if icon not found.
             self.setText("?")
 
-    def changeEvent(self, e: QEvent) -> None:  # noqa: N802
-        """Icons automatically adapt to palette changes via currentColor."""
-        super().changeEvent(e)
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """Refresh icon when palette changes (theme switch)."""
+        if event is not None and event.type() in (
+            QEvent.Type.ApplicationPaletteChange,
+            QEvent.Type.PaletteChange,
+        ):
+            self._load_icon()
+        super().changeEvent(event)
 
     def _show_tooltip(self) -> None:
         """Show the tooltip at the centre of the button (click or keyboard)."""
