@@ -465,6 +465,12 @@ jobs:
         with:
           python-version: "3.14"
 
+      - name: Remove untrusted Homebrew taps (pre-installed on runner)
+        run: |
+          brew uninstall --ignore-dependencies bicep || true
+          brew untap azure/bicep || true
+          brew untap aws/tap || true
+
       - name: Install Inkscape
         run: brew install inkscape
 
