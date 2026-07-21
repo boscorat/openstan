@@ -886,11 +886,10 @@ jobs:
             # Step 1: Upload to VirusTotal
             echo "  Uploading to VirusTotal..."
             
-            UPLOAD_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            UPLOAD_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -w "\n%{http_code}" -X POST \
               -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
               -F "file=@${binary}" \
-              https://www.virustotal.com/api/v3/files 2>&1)
-            
+              https://www.virustotal.com/api/v3/files || printf "\n000")
             HTTP_CODE=$(echo "$UPLOAD_RESPONSE" | tail -n1)
             BODY=$(echo "$UPLOAD_RESPONSE" | head -n-1)
             
