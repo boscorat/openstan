@@ -63,7 +63,7 @@ This repository includes protective measures:
 
 ### Automated Malware Scanning
 
-All platform binaries (Linux .deb/.rpm, Windows .msi, macOS .dmg) are automatically scanned with **VirusTotal** before draft releases are created. VirusTotal aggregates results from 75+ antivirus engines to detect malware signatures and suspicious patterns.
+All platform binaries (Linux .deb/.rpm, Windows .msi, macOS .dmg) are automatically scanned with **VirusTotal** before draft releases are promoted to published releases. VirusTotal aggregates results from 75+ antivirus engines to detect malware signatures and suspicious patterns.
 
 #### How It Works
 
