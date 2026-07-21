@@ -3,7 +3,6 @@ name: CI
 on:
   push:
     branches: [master]
-    tags-ignore: ["**"]  # release tags trigger release.yml only, not CI
   pull_request:
     branches: [master]
 
