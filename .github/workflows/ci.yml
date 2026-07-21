@@ -65,6 +65,16 @@ jobs:
           chmod 600 ~/.ssh/bank_statement_deploy_key
           ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null || true
           
+          # Configure SSH to use the deploy key for github.com
+          cat > ~/.ssh/config << 'SSH_CONFIG'
+          Host github.com
+            HostName github.com
+            User git
+            IdentityFile ~/.ssh/bank_statement_deploy_key
+            IdentitiesOnly yes
+          SSH_CONFIG
+          chmod 600 ~/.ssh/config
+          
           # Clone only the pdfs directory
           git clone --depth 1 --filter=blob:none --sparse \
             git@github.com:boscorat/bank-statement-data.git /tmp/test_pdfs
