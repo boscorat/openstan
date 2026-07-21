@@ -92,6 +92,10 @@ jobs:
           cp -r /tmp/test_pdfs/pdfs/good ~/.cache/bank_statement_data/pdfs/
           cp -r /tmp/test_pdfs/pdfs/bad ~/.cache/bank_statement_data/pdfs/
           
+          # Create empty .git dir so _clone_test_data() takes the "pull" path
+          # instead of the "clone" path, and falls back to returning the cache
+          mkdir -p ~/.cache/bank_statement_data/repo/.git
+          
           # Create symlinks for conftest's "anonymised" mode detection
           mkdir -p "${GITHUB_WORKSPACE}/tests/fixtures/pdfs"
           ln -s /tmp/test_pdfs/pdfs/good "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_good"
