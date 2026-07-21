@@ -1,0 +1,12 @@
+DEPRECATED - Dark theme icons (no longer used)
+================================================
+
+These icons are no longer used as of the Tabler Icons migration.
+All UI icons are now sourced from the 'tabler/' folder, which contains
+color-agnostic Tabler Icons that work with both light and dark themes
+via SVG's currentColor attribute.
+
+See src/openstan/paths.py for icon name mapping (old names → Tabler names).
+See src/openstan/icons/tabler/ for the new universal icons.
+
+This folder is kept for historical reference and safety/rollback purposes.

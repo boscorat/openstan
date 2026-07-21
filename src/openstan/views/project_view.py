@@ -133,7 +133,7 @@ class ProjectPageBasic(StanWizardPage):
             self.location_button.setToolTip(
                 "Select the parent folder where the new project folder will be created"
             )
-        self.location_button.set_themed_icon("folder_add.svg")
+        self.location_button.set_themed_icon("folder-plus.svg")
         self.location_label = StanLineEdit()
         self.location_label.setReadOnly(True)
         self.location_label.setFixedWidth(300)
@@ -217,13 +217,13 @@ class ProjectView(StanWidget):
         self.label2.setMaximumWidth(60)
         self.label2.setAlignment(Qt.AlignmentFlag.AlignRight)
         self.button_new = StanButton("Create New Project")
-        self.button_new.set_themed_icon("project.svg")
+        self.button_new.set_themed_icon("briefcase.svg")
         self.button_new.setMinimumWidth(180)
         self.button_new.setToolTip("Open the wizard to create a new project")
         self.button_new.setAccessibleName("Create new project")
         self.label3 = StanLabel("or")
         self.button_existing = StanButton("Add Existing Project")
-        self.button_existing.set_themed_icon("folder_add.svg")
+        self.button_existing.set_themed_icon("folder-plus.svg")
         self.button_existing.setMinimumWidth(180)
         self.button_existing.setToolTip("Add an existing project folder to openstan")
         self.button_existing.setAccessibleName("Add existing project")
@@ -288,7 +288,7 @@ class ProjectNavView(StanWidget):
 
         self.button_info = self.__make_button(
             "Project Info",
-            "project.svg",
+            "briefcase.svg",
             "View project summary, account list and gap report (Alt+P)",
             QKeySequence("Alt+P"),
             "Shows transaction counts, statement counts, account details, "
@@ -296,7 +296,7 @@ class ProjectNavView(StanWidget):
         )
         self.button_import = self.__make_button(
             "Import Statements",
-            "file_add.svg",
+            "file-plus.svg",
             "Add and import bank statement PDF files (Alt+I)",
             QKeySequence("Alt+I"),
             "Add folders of PDF bank statements to the import queue, then run the import to parse them into transactions.",
@@ -310,7 +310,7 @@ class ProjectNavView(StanWidget):
         )
         self.button_reports = self.__make_button(
             "Run Reports",
-            "run.svg",
+            "player-play.svg",
             "Build and preview custom transaction reports (Alt+R)",
             QKeySequence("Alt+R"),
             "Build and preview custom summary reports with grouping, aggregation, date filters, and live preview.",
@@ -383,7 +383,7 @@ class ProjectWelcomeView(StanWidget):
     def __init__(self) -> None:
         super().__init__()
 
-        icon = StanThemedPixmapLabel("project.svg", size=96)
+        icon = StanThemedPixmapLabel("briefcase.svg", size=96)
         icon.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
 
         heading = StanLabel("## Welcome to openstan")
@@ -399,18 +399,18 @@ class ProjectWelcomeView(StanWidget):
         )
 
         self.button_select = StanButton("Select Project", min_width=200)
-        self.button_select.set_themed_icon("folder_open.svg")
+        self.button_select.set_themed_icon("folder-open.svg")
         self.button_select.setToolTip("Select an existing project to open")
         self.button_select.setAccessibleName("Select project")
         self.button_select.hide()
 
         self.button_new = StanButton("Create New Project", min_width=200)
-        self.button_new.set_themed_icon("project.svg")
+        self.button_new.set_themed_icon("briefcase.svg")
         self.button_new.setToolTip("Open the wizard to create a new project")
         self.button_new.setAccessibleName("Create new project")
 
         self.button_existing = StanButton("Add Existing Project", min_width=200)
-        self.button_existing.set_themed_icon("folder_add.svg")
+        self.button_existing.set_themed_icon("folder-plus.svg")
         self.button_existing.setToolTip("Add an existing project folder to openstan")
         self.button_existing.setAccessibleName("Add existing project")
 
@@ -541,7 +541,7 @@ class ProjectInfoView(StanWidget):
         placeholder_page = StanWidget()
         ph_layout = QVBoxLayout()
         ph_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        ph_icon = StanThemedPixmapLabel("project.svg", size=64)
+        ph_icon = StanThemedPixmapLabel("briefcase.svg", size=64)
         ph_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         ph_text = StanMutedLabel(
             "No data yet — import and commit some statements to see your project summary."

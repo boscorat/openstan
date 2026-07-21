@@ -80,13 +80,13 @@ class StatementResultView(StanWidget):
         action_buttons = QGridLayout()
 
         self.buttonCloseResults = StanButton("Close Results")
-        self.buttonCloseResults.set_themed_icon("exit.svg")
+        self.buttonCloseResults.set_themed_icon("x.svg")
         self.buttonCloseResults.setToolTip(
             "Return to the statement queue (the batch remains open)"
         )
 
         self.buttonAbandonBatch = StanButton("Abandon Batch")
-        self.buttonAbandonBatch.set_themed_icon("bin.svg")
+        self.buttonAbandonBatch.set_themed_icon("trash.svg")
         self.buttonAbandonBatch.setToolTip(
             "Discard all results from this import run and unlock the queue"
         )
@@ -101,7 +101,7 @@ class StatementResultView(StanWidget):
         )  # enabled by presenter when non-success rows exist
 
         self.buttonCommitBatch = StanButton("Commit Batch")
-        self.buttonCommitBatch.set_themed_icon("tick.svg")
+        self.buttonCommitBatch.set_themed_icon("check.svg")
         self.buttonCommitBatch.setToolTip(
             "Save successfully parsed transactions to the project database"
         )

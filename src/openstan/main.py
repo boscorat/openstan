@@ -153,7 +153,11 @@ def _apply_palette(app: QApplication, scheme: Qt.ColorScheme) -> None:
 
 
 class _ThemeManager(QObject):
-    """Helper to manage theme switching with named slots instead of lambdas."""
+    """Helper to manage theme switching via application palette changes.
+
+    Updates the palette when the system color scheme changes. Icons automatically
+    adapt to theme changes via `currentColor` in SVGs without requiring file swaps.
+    """
 
     def __init__(self, app: QApplication) -> None:
         super().__init__()
@@ -161,7 +165,11 @@ class _ThemeManager(QObject):
 
     @Slot(Qt.ColorScheme)
     def on_color_scheme_changed(self, scheme: Qt.ColorScheme) -> None:
-        """Handle color scheme change from system preferences."""
+        """Handle color scheme change from system preferences.
+
+        Updates the application palette which affects text, background, and
+        icon colors (icons use currentColor to respect palette colors).
+        """
         _apply_palette(self.app, scheme)
 
 

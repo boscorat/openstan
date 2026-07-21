@@ -2,6 +2,30 @@ import os
 import sys
 from pathlib import Path
 
+# ── Icon name mapping ──────────────────────────────────────────────────
+# Maps old icon filenames (from light/dark folders) to new universal
+# Tabler icon names (from tabler/ folder). Icons use `currentColor` to
+# automatically adapt to light/dark themes.
+_ICON_ALIASES = {
+    "bin.svg": "trash.svg",
+    "bug.svg": "bug.svg",
+    "csv.svg": "csv.svg",
+    "download.svg": "download.svg",
+    "excel.svg": "file-spreadsheet.svg",
+    "exit.svg": "x.svg",
+    "export.svg": "file-export.svg",
+    "file_add.svg": "file-plus.svg",
+    "file_remove.svg": "file-minus.svg",
+    "folder_add.svg": "folder-plus.svg",
+    "folder_remove.svg": "folder-minus.svg",
+    "info.svg": "info-circle.svg",
+    "json.svg": "json.svg",
+    "project.svg": "briefcase.svg",
+    "run.svg": "player-play.svg",
+    "tick.svg": "check.svg",
+    "folder_open.svg": "folder-open.svg",
+}
+
 
 def _user_data_dir() -> Path:
     """Return the platform-appropriate user data directory for openstan.
@@ -92,10 +116,17 @@ class Paths:
 
     @classmethod
     def themed_icon(cls, filename: str) -> str:
-        """Resolve filename from the light/ or dark/ subdir based on the
-        current application palette.  Falls back to 'light' if no
-        QApplication exists yet."""
-        return os.path.join(cls.icons, cls._theme_subdir(), filename)
+        """Resolve a universal Tabler icon that works with both light and dark themes.
+
+        Icons use `currentColor` in their SVG so they automatically adapt to
+        the application palette without needing separate light/dark versions.
+
+        Supports both old icon names (for backward compatibility) and new
+        Tabler icon names.
+        """
+        # Support old names for backward compatibility
+        icon_name = _ICON_ALIASES.get(filename, filename)
+        return os.path.join(cls.icons, "tabler", icon_name)
 
     @classmethod
     def logo(cls, with_tagline: bool = False) -> str:
