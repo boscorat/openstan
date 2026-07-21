@@ -82,9 +82,10 @@ jobs:
           cd /tmp/test_pdfs
           git sparse-checkout set pdfs/good pdfs/bad
           
-          # Copy to tests/fixtures/pdfs
-          mkdir -p ../openstan/tests/fixtures
-          cp -r pdfs ../openstan/tests/fixtures/ || true
+          # Copy to tests/fixtures/pdfs (relative to workflow root)
+          mkdir -p "${GITHUB_WORKSPACE}/tests/fixtures/pdfs"
+          cp -r pdfs/good "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/" || true
+          cp -r pdfs/bad "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/" || true
           
           # Cleanup temporary clone
           cd ..
