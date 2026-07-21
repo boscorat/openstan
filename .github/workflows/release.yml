@@ -986,7 +986,7 @@ jobs:
           echo ""
           
           if [ "$FAILED" -gt 0 ]; then
-            echo "❌ SCANNING FAILED: $FAILED binary(ies) flagged with malicious detections"
+            echo "❌ SCANNING FAILED: $FAILED binary(ies) had malicious detections or could not be scanned"
             echo ""
             echo "For details, see:"
             echo "  • GitHub Actions logs above"
