@@ -915,11 +915,9 @@ jobs:
             MAX_ATTEMPTS=120  # ~2 minutes with 1s sleep
             STATUS="unknown"
             
-            while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
-              ANALYSIS_RESPONSE=$(curl -s -X GET \
+              ANALYSIS_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -X GET \
                 -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
-                "https://www.virustotal.com/api/v3/analyses/${ANALYSIS_ID}" 2>&1)
-              
+                "https://www.virustotal.com/api/v3/analyses/${ANALYSIS_ID}" || echo "")
               STATUS=$(echo "$ANALYSIS_RESPONSE" | jq -r '.data.attributes.status' 2>/dev/null || echo "unknown")
               
               if [ "$STATUS" = "completed" ]; then
