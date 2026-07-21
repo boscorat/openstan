@@ -797,8 +797,7 @@ jobs:
   # Runs after all four platform builds complete successfully.
   # Scans each binary against 75+ antivirus engines via VirusTotal API.
   #
-  # Behavior:
-  #   • Malicious detections (known malware) → workflow FAILS (no release created)
+  #   • Malicious detections (known malware) → workflow FAILS (draft release must not be promoted)
   #   • Suspicious detections (heuristics) → logged but PASSES (release proceeds)
   #   • Clean binaries → PASS immediately
   #
