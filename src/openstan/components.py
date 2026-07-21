@@ -69,8 +69,11 @@ def _load_themed_icon_pixmap(
     )
 
     # Read SVG and replace currentColor
-    with open(svg_path, "r") as f:
-        svg_content = f.read()
+    try:
+        with open(svg_path, "r", encoding="utf-8") as f:
+            svg_content = f.read()
+    except OSError:
+        return QPixmap()
 
     # Replace all currentColor with actual color (both stroke and fill)
     modified_svg = re.sub(
@@ -80,14 +83,14 @@ def _load_themed_icon_pixmap(
 
     # Render SVG to pixmap
     renderer = QSvgRenderer()
-    renderer.load(modified_svg.encode("utf-8"))
+    if not renderer.load(modified_svg.encode("utf-8")):
+        return QPixmap()
 
     pixmap = QPixmap(size, size)
     pixmap.fill(QColor(0, 0, 0, 0))  # Transparent background
     painter = QPainter(pixmap)
     renderer.render(painter)
     painter.end()
-
     return pixmap
 
 
