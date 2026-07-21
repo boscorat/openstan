@@ -628,25 +628,50 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           APP=$(find build -maxdepth 3 -name "*.app" | head -1)
-          # zip the .app for submission (notarytool requires a zip, dmg, or pkg)
           ditto -c -k --keepParent "$APP" /tmp/openstan_notarise.zip
           echo "Submitting to Apple notarisation service..."
-          SUBMIT_OUT=$(xcrun notarytool submit /tmp/openstan_notarise.zip \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_APP_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --no-progress \
-            --output-format json 2>&1)
-          echo "$SUBMIT_OUT"
-          rm /tmp/openstan_notarise.zip
-          SUBMISSION_ID=$(echo "$SUBMIT_OUT" | jq -r '.id // empty' 2>/dev/null)
+
+          submit_once() {
+            xcrun notarytool submit /tmp/openstan_notarise.zip \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_APP_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" \
+              --wait false \
+              --output-format json
+          }
+
+          SUBMIT_OUT=""
+          for attempt in 1 2 3; do
+            echo "Submit attempt $attempt/3..."
+            if SUBMIT_OUT=$(submit_once 2>&1); then
+              # Ensure parseable JSON
+              if echo "$SUBMIT_OUT" | jq -e . >/dev/null 2>&1; then
+                break
+              fi
+              echo "ERROR: notarytool returned non-JSON output:"
+              echo "$SUBMIT_OUT"
+            else
+              echo "ERROR: notarytool submit failed:"
+              echo "$SUBMIT_OUT"
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              rm -f /tmp/openstan_notarise.zip
+              exit 1
+            fi
+            sleep 15
+          done
+
+          echo "$SUBMIT_OUT" | jq .
+
+          rm -f /tmp/openstan_notarise.zip
+
+          SUBMISSION_ID=$(echo "$SUBMIT_OUT" | jq -r '.id // empty')
           if [ -z "$SUBMISSION_ID" ]; then
-            SUBMISSION_ID=$(echo "$SUBMIT_OUT" | awk -F': *' '/^[[:space:]]*id:/ {print $2; exit}')
-          fi
-          if [ -z "$SUBMISSION_ID" ]; then
-            echo "ERROR: failed to obtain submission ID from notarytool output" >&2
+            echo "ERROR: failed to obtain submission ID from notarytool JSON output" >&2
             exit 1
           fi
+
           echo "Submission ID: $SUBMISSION_ID"
           echo "NOTARY_SUBMISSION_ID=$SUBMISSION_ID" >> "$GITHUB_ENV"
 
@@ -677,16 +702,18 @@ jobs:
             INFO=$(gtimeout 30 xcrun notarytool info "$SUBMISSION_ID" \
               --apple-id "$APPLE_ID" \
               --password "$APPLE_APP_PASSWORD" \
-              --team-id "$APPLE_TEAM_ID" 2>&1) || {
+              --team-id "$APPLE_TEAM_ID" \
+              --output-format json 2>&1) || {
               echo "ERROR: notarytool info timed out or failed on attempt $i" >&2
               exit 1
             }
-            echo "$INFO"
-            if echo "$INFO" | grep -q "status: Accepted"; then
+            echo "$INFO" | jq .
+            STATUS=$(echo "$INFO" | jq -r '.status // empty' 2>/dev/null)
+            if [ "$STATUS" = "Accepted" ]; then
               echo "Notarisation accepted."
               exit 0
             fi
-            if echo "$INFO" | grep -q "status: Invalid"; then
+            if [ "$STATUS" = "Invalid" ]; then
               echo "ERROR: notarisation rejected by Apple" >&2
               fetch_log
               exit 1
