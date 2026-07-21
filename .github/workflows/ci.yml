@@ -82,14 +82,14 @@ jobs:
           cd /tmp/test_pdfs
           git sparse-checkout set pdfs/good pdfs/bad
           
-          # Copy to tests/fixtures/pdfs (relative to workflow root)
+          # Create symlinks to match conftest's "anonymised" mode detection
           mkdir -p "${GITHUB_WORKSPACE}/tests/fixtures/pdfs"
-          cp -r pdfs/good "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/" || true
-          cp -r pdfs/bad "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/" || true
+          ln -s /tmp/test_pdfs/pdfs/good "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_good"
+          ln -s /tmp/test_pdfs/pdfs/bad "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_bad"
           
-          # Cleanup temporary clone
-          cd ..
-          rm -rf test_pdfs
+          # Keep /tmp/test_pdfs around for the symlinks to reference during tests
+          # (it will be cleaned up in the post-cleanup job)
+          # Only remove SSH key immediately after clone
           rm -f ~/.ssh/bank_statement_deploy_key
           
           # Mark success
@@ -109,15 +109,31 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
 
-      - name: Clean up anonymised PDFs after tests (security)
-        if: steps.fetch_anonymised.outputs.success == 'true'
-        continue-on-error: true
+  cleanup:
+    name: Post-run cleanup (PDFs and temporary files)
+    if: always()  # Always runs regardless of test job outcome
+    needs: test   # Runs after test job completes
+    runs-on: ubuntu-latest
+    permissions: {}
+
+    steps:
+      - name: Remove anonymised PDF symlinks and temporary directories
         run: |
-          # Remove anonymised PDFs to prevent accidental commits
-          rm -rf "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/good" \
-                 "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/bad" || true
+          # Remove symlinks to cloned PDFs
+          rm -f "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_good" \
+                "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_bad"
+          
+          # Clean up temporary PDF clone directory
+          rm -rf /tmp/test_pdfs || true
+          
+          # Clean up any stray PDF files that may have been copied
           find "${GITHUB_WORKSPACE}/tests/fixtures/pdfs" -name "*.pdf" \
-            -not -path "*/synthetic/*" -delete || true
+            -not -path "*/synthetic/*" -delete 2>/dev/null || true
+          
+          # Clean up SSH artifacts from home directory
+          rm -f ~/.ssh/bank_statement_deploy_key \
+                ~/.ssh/config \
+                ~/.ssh/known_hosts 2>/dev/null || true
 
   doc-reminder:
     # Only runs on pull requests; non-blocking reminder only
