@@ -66,7 +66,7 @@ jobs:
           fi
           
           mkdir -p ~/.ssh
-          echo "${{ env.SSH_PRIVATE_KEY_TEST_DATA }}" > ~/.ssh/bank_statement_deploy_key
+          printf '%s\n' "$SSH_PRIVATE_KEY_TEST_DATA" > ~/.ssh/bank_statement_deploy_key
           chmod 600 ~/.ssh/bank_statement_deploy_key
           ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null || true
           
