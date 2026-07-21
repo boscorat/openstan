@@ -184,7 +184,7 @@ Example workflow step:
     
     # Configure SSH with temporary deploy key
     mkdir -p ~/.ssh
-    echo "$SSH_PRIVATE_KEY_TEST_DATA" > ~/.ssh/bank_statement_deploy_key
+    printf '%s\n' "$SSH_PRIVATE_KEY_TEST_DATA" > ~/.ssh/bank_statement_deploy_key
     chmod 600 ~/.ssh/bank_statement_deploy_key
     # ... SSH config setup ...
     
