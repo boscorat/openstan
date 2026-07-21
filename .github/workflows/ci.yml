@@ -102,7 +102,7 @@ jobs:
           ln -s /tmp/test_pdfs/pdfs/bad "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_bad"
           
           # Keep /tmp/test_pdfs around for the symlinks to reference during tests
-          # (it will be cleaned up in the post-cleanup job)
+          # (it will be cleaned up in the final cleanup step below)
           # Only remove SSH key immediately after clone
           rm -f ~/.ssh/bank_statement_deploy_key
           
@@ -123,15 +123,8 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
 
-  cleanup:
-    name: Post-run cleanup (PDFs and temporary files)
-    if: always()  # Always runs regardless of test job outcome
-    needs: test   # Runs after test job completes
-    runs-on: ubuntu-latest
-    permissions: {}
-
-    steps:
-      - name: Remove anonymised PDF symlinks and temporary directories
+      - name: Clean up anonymised PDFs and temporary files (security)
+        if: always()
         run: |
           # Remove symlinks to cloned PDFs
           rm -f "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_good" \
