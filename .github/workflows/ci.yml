@@ -87,25 +87,15 @@ jobs:
           cd /tmp/test_pdfs
           git sparse-checkout set pdfs/good pdfs/bad
           
-          # Debug: show what we have
-          echo "=== Directory structure after sparse checkout ==="
-          ls -la /tmp/test_pdfs/
-          echo "=== Contents of pdfs directory ==="
-          ls -la /tmp/test_pdfs/pdfs/
-          echo "=== Checking for PDF files ==="
-          find /tmp/test_pdfs/pdfs -name "*.pdf" | head -5
+          # Populate bsp's cache so TestHarness finds PDFs without cloning
+          mkdir -p ~/.cache/bank_statement_data/pdfs
+          cp -r /tmp/test_pdfs/pdfs/good ~/.cache/bank_statement_data/pdfs/
+          cp -r /tmp/test_pdfs/pdfs/bad ~/.cache/bank_statement_data/pdfs/
           
-          # Create symlinks to match conftest's "anonymised" mode detection
+          # Create symlinks for conftest's "anonymised" mode detection
           mkdir -p "${GITHUB_WORKSPACE}/tests/fixtures/pdfs"
           ln -s /tmp/test_pdfs/pdfs/good "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_good"
           ln -s /tmp/test_pdfs/pdfs/bad "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_bad"
-          
-          # Debug: verify symlinks were created
-          echo "=== Symlinks created ==="
-          ls -la "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/"
-          echo "=== Verifying symlink targets ==="
-          ls -la "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_good" || echo "ERROR: anonymised_good symlink target not readable"
-          ls -la "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_bad" || echo "ERROR: anonymised_bad symlink target not readable"
           
           # Keep /tmp/test_pdfs around for the symlinks to reference during tests
           # (it will be cleaned up in the post-cleanup job)
@@ -145,6 +135,9 @@ jobs:
           
           # Clean up temporary PDF clone directory
           rm -rf /tmp/test_pdfs || true
+          
+          # Clean up bsp's cache directory
+          rm -rf ~/.cache/bank_statement_data || true
           
           # Clean up any stray PDF files that may have been copied
           find "${GITHUB_WORKSPACE}/tests/fixtures/pdfs" -name "*.pdf" \
