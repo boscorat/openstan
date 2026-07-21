@@ -930,11 +930,9 @@ jobs:
                 break
               fi
               
-              ATTEMPTS=$((ATTEMPTS + 1))
-              if [ $((ATTEMPTS % 10)) -eq 0 ]; then
-                echo "    Still polling... (${ATTEMPTS}s elapsed, status: $STATUS)"
-              fi
-              sleep 1
+              ATTEMPTS=$((ATTEMPTS + 30))
+              echo "    Still polling... (${ATTEMPTS}s elapsed, status: $STATUS)"
+              sleep 30
             done
             
             if [ "$STATUS" != "completed" ]; then
