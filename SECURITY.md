@@ -171,60 +171,24 @@ During CI testing, the workflow optionally fetches anonymised PDFs from the priv
 Example workflow step:
 ```yaml
 - name: Fetch anonymised PDFs for testing (graceful fallback)
-  id: fetch_anonymised
   continue-on-error: true
-  env:
-    SSH_PRIVATE_KEY_TEST_DATA: ${{ secrets.SSH_PRIVATE_KEY_TEST_DATA }}
+  if: secrets.SSH_PRIVATE_KEY_TEST_DATA != ''
   run: |
-    # Check if secret is available (cannot use secrets directly in if: conditions)
-    if [ -z "$SSH_PRIVATE_KEY_TEST_DATA" ]; then
-      echo "secret not set - skipping PDF fetch"
-      exit 0
-    fi
-    
-    # Configure SSH with temporary deploy key
-    mkdir -p ~/.ssh
-    echo "$SSH_PRIVATE_KEY_TEST_DATA" > ~/.ssh/bank_statement_deploy_key
-    chmod 600 ~/.ssh/bank_statement_deploy_key
-    # ... SSH config setup ...
-    
-    # Clone PDFs via sparse checkout
+    # Clone with temporary SSH key
     git clone --depth 1 --filter=blob:none --sparse \
       git@github.com:boscorat/bank-statement-data.git /tmp/test_pdfs
     
-    # Populate bsp's cache directory for TestHarness
-    mkdir -p ~/.cache/bank_statement_data/pdfs
-    cp -r /tmp/test_pdfs/pdfs/good ~/.cache/bank_statement_data/pdfs/
-    cp -r /tmp/test_pdfs/pdfs/bad ~/.cache/bank_statement_data/pdfs/
-    mkdir -p ~/.cache/bank_statement_data/repo/.git
+    # Copy to tests/fixtures/pdfs
+    cp -r /tmp/test_pdfs/pdfs/* tests/fixtures/pdfs/
     
-    # Create symlinks for conftest's "anonymised" mode detection
-    mkdir -p tests/fixtures/pdfs
-    ln -s /tmp/test_pdfs/pdfs/good tests/fixtures/pdfs/anonymised_good
-    ln -s /tmp/test_pdfs/pdfs/bad tests/fixtures/pdfs/anonymised_bad
-    
-    echo "success=true" >> "$GITHUB_OUTPUT"
-```
+    # Cleanup
+    rm -rf /tmp/test_pdfs /root/.ssh/bank_statement_deploy_key
 
-A dedicated cleanup job runs after tests (even on failure):
-```yaml
-cleanup:
-  name: Post-run cleanup (PDFs and temporary files)
+- name: Clean up anonymised PDFs after tests (security)
   if: always()
-  needs: test
-  runs-on: ubuntu-latest
-  steps:
-    - name: Remove anonymised PDF symlinks and temporary directories
-      run: |
-        # Remove symlinks
-        rm -f tests/fixtures/pdfs/anonymised_good tests/fixtures/pdfs/anonymised_bad
-        
-        # Clean up temporary directories
-        rm -rf /tmp/test_pdfs
-        rm -rf ~/.cache/bank_statement_data
-        
-        # Clean up SSH artifacts
-        rm -f ~/.ssh/bank_statement_deploy_key ~/.ssh/config
+  run: |
+    # Remove anonymised PDFs to prevent accidental commits
+    rm -rf tests/fixtures/pdfs/good tests/fixtures/pdfs/bad
 ```
 
 ### Log Review

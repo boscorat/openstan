@@ -91,8 +91,7 @@ When you open a pull request, GitHub Actions runs the full test suite:
 1. If the `SSH_PRIVATE_KEY_TEST_DATA` secret is available, CI fetches anonymised
    PDFs from the private repository
 2. All 129 tests run (integration tests included)
-3. A dedicated cleanup job removes all fetched PDFs, symlinks, SSH keys, and
-   cache directories — even if tests fail (security measure)
+3. After tests complete, fetched PDFs are cleaned up (security measure)
 
 You don't need to do anything special — just open the PR and CI handles the rest.
 
