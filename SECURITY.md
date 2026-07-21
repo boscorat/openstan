@@ -96,7 +96,7 @@ VirusTotal results are interpreted using a graduated policy:
 | Scenario | Action |
 |---|---|
 | **Malicious detection found** | Fix the binary, rebase, and re-tag. Contact maintainers if you believe it's a false positive. |
-| **Network timeout** | Workflow retries 3× automatically. If all fail, re-run from GitHub Actions UI. |
+| **Network timeout** | Curl retries transient failures automatically. If all retries fail, re-run from the GitHub Actions UI. |
 | **API key missing** | Add `VIRUSTOTAL_API_KEY` to repository secrets (admin only). |
 | **VirusTotal service down** | Rare (~99.9% uptime). Wait and re-run, or temporarily disable scanning. |
 
