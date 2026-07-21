@@ -204,28 +204,6 @@ Example workflow step:
     ln -s /tmp/test_pdfs/pdfs/bad tests/fixtures/pdfs/anonymised_bad
     
     echo "success=true" >> "$GITHUB_OUTPUT"
-```
-
-A dedicated cleanup job runs after tests (even on failure):
-```yaml
-cleanup:
-  name: Post-run cleanup (PDFs and temporary files)
-  if: always()
-  needs: test
-  runs-on: ubuntu-latest
-  steps:
-    - name: Remove anonymised PDF symlinks and temporary directories
-      run: |
-        # Remove symlinks
-        rm -f tests/fixtures/pdfs/anonymised_good tests/fixtures/pdfs/anonymised_bad
-        
-        # Clean up temporary directories
-        rm -rf /tmp/test_pdfs
-        rm -rf ~/.cache/bank_statement_data
-        
-        # Clean up SSH artifacts
-        rm -f ~/.ssh/bank_statement_deploy_key ~/.ssh/config
-```
 
 ### Log Review
 
