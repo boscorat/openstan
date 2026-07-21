@@ -636,7 +636,6 @@ jobs:
               --apple-id "$APPLE_ID" \
               --password "$APPLE_APP_PASSWORD" \
               --team-id "$APPLE_TEAM_ID" \
-              --wait false \
               --output-format json
           }
 
