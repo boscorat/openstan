@@ -635,12 +635,16 @@ jobs:
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --no-progress 2>&1)
+            --no-progress \
+            --output-format json 2>&1)
           echo "$SUBMIT_OUT"
           rm /tmp/openstan_notarise.zip
-          SUBMISSION_ID=$(echo "$SUBMIT_OUT" | grep "  id:" | head -1 | awk '{print $2}')
+          SUBMISSION_ID=$(echo "$SUBMIT_OUT" | jq -r '.id // empty' 2>/dev/null)
           if [ -z "$SUBMISSION_ID" ]; then
-            echo "ERROR: failed to obtain submission ID from notarytool" >&2
+            SUBMISSION_ID=$(echo "$SUBMIT_OUT" | awk -F': *' '/^[[:space:]]*id:/ {print $2; exit}')
+          fi
+          if [ -z "$SUBMISSION_ID" ]; then
+            echo "ERROR: failed to obtain submission ID from notarytool output" >&2
             exit 1
           fi
           echo "Submission ID: $SUBMISSION_ID"
