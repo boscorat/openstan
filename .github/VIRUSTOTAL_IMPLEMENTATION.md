@@ -163,11 +163,11 @@ check_allow_list() {
 VirusTotal free tier: 4 requests per minute
 
 Current implementation:
-- Uploads 6 files (6 requests)
-- Polls ~10 times per file (60 requests worst-case)
-- Fetches 6 final reports (6 requests)
-- Total: ~72 requests spread over ~2–3 minutes
-- **Safe** (within free tier limits)
+- Uploads each file once
+- Polls until completion using a conservative poll interval
+- Fetches the final report for detailed per-engine results
+
+Exact request counts depend on VirusTotal queue time; adjust polling if rate limits are hit.
 
 Implementation includes 2-second sleep between files to stay conservative.
 
