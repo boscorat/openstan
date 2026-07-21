@@ -68,10 +68,10 @@ class StatementQueueView(StanWidget):
         self.buttonRemove = StanButton("Remove Selected")
         self.buttonClear = StanButton("Clear All Statements")
 
-        self.buttonAddFolders.set_themed_icon("folder_add.svg")
-        self.buttonAddFiles.set_themed_icon("file_add.svg")
-        self.buttonRemove.set_themed_icon("file_remove.svg")
-        self.buttonClear.set_themed_icon("folder_remove.svg")
+        self.buttonAddFolders.set_themed_icon("folder-plus.svg")
+        self.buttonAddFiles.set_themed_icon("file-plus.svg")
+        self.buttonRemove.set_themed_icon("file-minus.svg")
+        self.buttonClear.set_themed_icon("folder-minus.svg")
 
         self.buttonAddFolders.setToolTip(
             "Browse for a folder and add all PDF statement files inside it to the queue"
@@ -122,7 +122,7 @@ class StatementQueueView(StanWidget):
 
         # ── Run Import / View Results buttons ──────────────────────────────
         self.buttonRunImport = StanButton("Run Statement Import")
-        self.buttonRunImport.set_themed_icon("run.svg")
+        self.buttonRunImport.set_themed_icon("player-play.svg")
         self.buttonRunImport.setDisabled(True)
         self.buttonRunImport.setToolTip(
             "Parse and import all queued statement files into the project"
