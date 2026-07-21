@@ -13,7 +13,18 @@ This approach prevents premature publication while allowing time to:
 
 ## Quick Start: Create a Release
 
-### 1. Push a version tag
+### 1. Ensure VirusTotal API Key is Configured
+
+Before pushing a release tag, verify that the `VIRUSTOTAL_API_KEY` GitHub Secret is set:
+
+1. Go to **GitHub** → **Settings** → **Secrets and variables** → **Actions**
+2. Check that `VIRUSTOTAL_API_KEY` is present (value hidden)
+3. If missing:
+   - Create free account at https://www.virustotal.com/gui/home/upload
+   - Copy API key from https://www.virustotal.com/gui/settings/api
+   - Add to repository secrets
+
+### 2. Push a version tag
 
 ```bash
 git tag v1.2.3
@@ -30,9 +41,28 @@ All four platform jobs must complete successfully:
 - Windows (.msi)
 - macOS (.dmg)
 
+**New:** After all builds complete, the **VirusTotal scanning job** runs automatically. This scans all 6 binaries against 75+ antivirus engines.
+
+**Scanning can fail if:**
+- Any binary is flagged with **malicious detections** (known malware names)
+- Network errors occur during upload (auto-retries 3×)
+- The VirusTotal API is unreachable (rare)
+
+**Scanning succeeds if:**
+- All binaries are clean (0 malicious detections)
+- Binaries have only heuristic/suspicious flags (logged, but allowed)
+
+If scanning fails:
+- Check the GitHub Actions log for details
+- Review the VirusTotal report at https://www.virustotal.com/gui/home/upload
+- Fix the binary or wait for the issue to resolve, then re-push the tag
+- See [SECURITY.md](SECURITY.md) for complete false positive policy
+
 Monitor progress at: `https://github.com/boscorat/openstan/actions`
 
-Build time typically: **30–45 minutes** (varies by platform)
+Build + scan time typically: **30–75 minutes** (varies by platform and VirusTotal queue)
+
+---
 
 ---
 
