@@ -63,7 +63,7 @@ This repository includes protective measures:
 
 ### Automated Malware Scanning
 
-All platform binaries (Linux .deb/.rpm, Windows .msi, macOS .dmg) are automatically scanned with **VirusTotal** before draft releases are created. VirusTotal aggregates results from 75+ antivirus engines to detect malware signatures and suspicious patterns.
+All platform binaries (Linux .deb/.rpm, Windows .msi, macOS .dmg) are automatically scanned with **VirusTotal** before draft releases are promoted to published releases. VirusTotal aggregates results from 75+ antivirus engines to detect malware signatures and suspicious patterns.
 
 #### How It Works
 
@@ -96,7 +96,7 @@ VirusTotal results are interpreted using a graduated policy:
 | Scenario | Action |
 |---|---|
 | **Malicious detection found** | Fix the binary, rebase, and re-tag. Contact maintainers if you believe it's a false positive. |
-| **Network timeout** | Workflow retries 3× automatically. If all fail, re-run from GitHub Actions UI. |
+| **Network timeout** | Curl retries transient failures automatically. If all retries fail, re-run from the GitHub Actions UI. |
 | **API key missing** | Add `VIRUSTOTAL_API_KEY` to repository secrets (admin only). |
 | **VirusTotal service down** | Rare (~99.9% uptime). Wait and re-run, or temporarily disable scanning. |
 
@@ -171,25 +171,39 @@ During CI testing, the workflow optionally fetches anonymised PDFs from the priv
 Example workflow step:
 ```yaml
 - name: Fetch anonymised PDFs for testing (graceful fallback)
+  id: fetch_anonymised
   continue-on-error: true
-  if: secrets.SSH_PRIVATE_KEY_TEST_DATA != ''
+  env:
+    SSH_PRIVATE_KEY_TEST_DATA: ${{ secrets.SSH_PRIVATE_KEY_TEST_DATA }}
   run: |
-    # Clone with temporary SSH key
+    # Check if secret is available (cannot use secrets directly in if: conditions)
+    if [ -z "$SSH_PRIVATE_KEY_TEST_DATA" ]; then
+      echo "secret not set - skipping PDF fetch"
+      exit 0
+    fi
+    
+    # Configure SSH with temporary deploy key
+    mkdir -p ~/.ssh
+    printf '%s\n' "$SSH_PRIVATE_KEY_TEST_DATA" > ~/.ssh/bank_statement_deploy_key
+    chmod 600 ~/.ssh/bank_statement_deploy_key
+    # ... SSH config setup ...
+    
+    # Clone PDFs via sparse checkout
     git clone --depth 1 --filter=blob:none --sparse \
       git@github.com:boscorat/bank-statement-data.git /tmp/test_pdfs
     
-    # Copy to tests/fixtures/pdfs
-    cp -r /tmp/test_pdfs/pdfs/* tests/fixtures/pdfs/
+    # Populate bsp's cache directory for TestHarness
+    mkdir -p ~/.cache/bank_statement_data/pdfs
+    cp -r /tmp/test_pdfs/pdfs/good ~/.cache/bank_statement_data/pdfs/
+    cp -r /tmp/test_pdfs/pdfs/bad ~/.cache/bank_statement_data/pdfs/
+    mkdir -p ~/.cache/bank_statement_data/repo/.git
     
-    # Cleanup
-    rm -rf /tmp/test_pdfs /root/.ssh/bank_statement_deploy_key
-
-- name: Clean up anonymised PDFs after tests (security)
-  if: always()
-  run: |
-    # Remove anonymised PDFs to prevent accidental commits
-    rm -rf tests/fixtures/pdfs/good tests/fixtures/pdfs/bad
-```
+    # Create symlinks for conftest's "anonymised" mode detection
+    mkdir -p tests/fixtures/pdfs
+    ln -s /tmp/test_pdfs/pdfs/good tests/fixtures/pdfs/anonymised_good
+    ln -s /tmp/test_pdfs/pdfs/bad tests/fixtures/pdfs/anonymised_bad
+    
+    echo "success=true" >> "$GITHUB_OUTPUT"
 
 ### Log Review
 

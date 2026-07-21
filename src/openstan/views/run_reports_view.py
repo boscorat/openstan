@@ -836,7 +836,7 @@ class ReportPreviewPane(StanWidget):
         self._export_separator.hide()
 
         self.button_export_excel = StanButton("Export Excel")
-        self.button_export_excel.set_themed_icon("excel.svg")
+        self.button_export_excel.set_themed_icon("file-spreadsheet.svg")
         self.button_export_excel.setToolTip(
             "Export the current report to an Excel (.xlsx) file"
         )
@@ -1029,7 +1029,7 @@ class RunReportsView(StanWidget):
         placeholder_page = StanWidget()
         ph_layout = QVBoxLayout()
         ph_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        ph_icon = StanThemedPixmapLabel("run.svg", size=64)
+        ph_icon = StanThemedPixmapLabel("player-play.svg", size=64)
         ph_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         ph_text = StanMutedLabel(
             "No data yet — import and commit some statements before running reports."

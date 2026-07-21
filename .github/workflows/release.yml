@@ -797,8 +797,7 @@ jobs:
   # Runs after all four platform builds complete successfully.
   # Scans each binary against 75+ antivirus engines via VirusTotal API.
   #
-  # Behavior:
-  #   • Malicious detections (known malware) → workflow FAILS (no release created)
+  #   • Malicious detections (known malware) → workflow FAILS (draft release must not be promoted)
   #   • Suspicious detections (heuristics) → logged but PASSES (release proceeds)
   #   • Clean binaries → PASS immediately
   #
@@ -886,11 +885,10 @@ jobs:
             # Step 1: Upload to VirusTotal
             echo "  Uploading to VirusTotal..."
             
-            UPLOAD_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            UPLOAD_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -w "\n%{http_code}" -X POST \
               -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
               -F "file=@${binary}" \
-              https://www.virustotal.com/api/v3/files 2>&1)
-            
+              https://www.virustotal.com/api/v3/files || printf "\n000")
             HTTP_CODE=$(echo "$UPLOAD_RESPONSE" | tail -n1)
             BODY=$(echo "$UPLOAD_RESPONSE" | head -n-1)
             
@@ -916,11 +914,9 @@ jobs:
             MAX_ATTEMPTS=120  # ~2 minutes with 1s sleep
             STATUS="unknown"
             
-            while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
-              ANALYSIS_RESPONSE=$(curl -s -X GET \
+              ANALYSIS_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -X GET \
                 -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
-                "https://www.virustotal.com/api/v3/analyses/${ANALYSIS_ID}" 2>&1)
-              
+                "https://www.virustotal.com/api/v3/analyses/${ANALYSIS_ID}" || echo "")
               STATUS=$(echo "$ANALYSIS_RESPONSE" | jq -r '.data.attributes.status' 2>/dev/null || echo "unknown")
               
               if [ "$STATUS" = "completed" ]; then
@@ -934,11 +930,9 @@ jobs:
                 break
               fi
               
-              ATTEMPTS=$((ATTEMPTS + 1))
-              if [ $((ATTEMPTS % 10)) -eq 0 ]; then
-                echo "    Still polling... (${ATTEMPTS}s elapsed, status: $STATUS)"
-              fi
-              sleep 1
+              ATTEMPTS=$((ATTEMPTS + 30))
+              echo "    Still polling... (${ATTEMPTS}s elapsed, status: $STATUS)"
+              sleep 30
             done
             
             if [ "$STATUS" != "completed" ]; then
@@ -950,10 +944,9 @@ jobs:
             # Step 3: Fetch and parse results
             echo "  Analysis complete, fetching results..."
             
-            FILE_RESPONSE=$(curl -s -X GET \
+            FILE_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -X GET \
               -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
-              "https://www.virustotal.com/api/v3/files/${SHA256}" 2>&1)
-            
+              "https://www.virustotal.com/api/v3/files/${SHA256}" || echo "")
             MALICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.malicious // 0' 2>/dev/null || echo "0")
             SUSPICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.suspicious // 0' 2>/dev/null || echo "0")
             UNDETECTED=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.undetected // 0' 2>/dev/null || echo "0")
@@ -993,7 +986,7 @@ jobs:
           echo ""
           
           if [ "$FAILED" -gt 0 ]; then
-            echo "❌ SCANNING FAILED: $FAILED binary(ies) flagged with malicious detections"
+            echo "❌ SCANNING FAILED: $FAILED binary(ies) had malicious detections or could not be scanned"
             echo ""
             echo "For details, see:"
             echo "  • GitHub Actions logs above"

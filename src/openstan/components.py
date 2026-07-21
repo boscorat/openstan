@@ -1,7 +1,9 @@
+import re
 from urllib.parse import urlencode
 
 from PySide6.QtCore import QAbstractTableModel, QEvent, QSize, Qt, QUrl
-from PySide6.QtGui import QDesktopServices, QIcon, QPalette, QPixmap
+from PySide6.QtGui import QColor, QDesktopServices, QIcon, QPainter, QPalette, QPixmap
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -32,6 +34,64 @@ from PySide6.QtWidgets import (
     QWizard,
     QWizardPage,
 )
+
+
+def _load_themed_icon_pixmap(
+    svg_path: str, size: int = 24, palette: QPalette | None = None
+) -> QPixmap:
+    """Load SVG icon with palette colors replacing currentColor.
+
+    This function reads an SVG file that uses `stroke="currentColor"`,
+    replaces currentColor with the actual palette text color, renders it,
+    and returns a QPixmap. This ensures icons adapt to light/dark themes.
+
+    Parameters
+    ----------
+    svg_path:
+        Path to the SVG file.
+    size:
+        Icon size in pixels (default 24).
+    palette:
+        QPalette to use for color. If None, uses QApplication.palette().
+
+    Returns
+    -------
+    QPixmap
+        Rendered icon pixmap with palette colors applied.
+    """
+    if palette is None:
+        palette = QApplication.palette()
+
+    # Get text color from palette
+    text_color = palette.color(QPalette.ColorRole.WindowText)
+    color_hex = (
+        f"#{text_color.red():02x}{text_color.green():02x}{text_color.blue():02x}"
+    )
+
+    # Read SVG and replace currentColor
+    try:
+        with open(svg_path, "r", encoding="utf-8") as f:
+            svg_content = f.read()
+    except OSError:
+        return QPixmap()
+
+    # Replace all currentColor with actual color (both stroke and fill)
+    modified_svg = re.sub(
+        r'stroke="currentColor"', f'stroke="{color_hex}"', svg_content
+    )
+    modified_svg = re.sub(r'fill="currentColor"', f'fill="{color_hex}"', modified_svg)
+
+    # Render SVG to pixmap
+    renderer = QSvgRenderer()
+    if not renderer.load(modified_svg.encode("utf-8")):
+        return QPixmap()
+
+    pixmap = QPixmap(size, size)
+    pixmap.fill(QColor(0, 0, 0, 0))  # Transparent background
+    painter = QPainter(pixmap)
+    renderer.render(painter)
+    painter.end()
+    return pixmap
 
 
 class StanProgressBar(QProgressBar):
@@ -437,9 +497,8 @@ class StanMutedLabel(StanLabel):
 class StanThemedPixmapLabel(StanLabel):
     """A StanLabel that renders a theme-sensitive icon as a pixmap.
 
-    The icon path is re-resolved via :func:`Paths.themed_icon` whenever the
-    application palette changes, so the correct light- or dark-variant SVG is
-    always displayed regardless of when the user switches themes.
+    Icons use Tabler Icons with `currentColor` so they automatically adapt to
+    the application palette. No theme-specific file swapping is needed.
 
     Parameters
     ----------
@@ -454,32 +513,26 @@ class StanThemedPixmapLabel(StanLabel):
         super().__init__()
         self._filename = filename
         self._size = size
-        self._refreshing_pixmap = False
         self._refresh_pixmap()
 
     def _refresh_pixmap(self) -> None:
-        """Re-resolve the themed icon path and update the displayed pixmap."""
+        """Load the icon and render it at the specified size."""
         from openstan.paths import Paths
 
-        self._refreshing_pixmap = True
-        self.setPixmap(
-            QIcon(Paths.themed_icon(self._filename)).pixmap(self._size, self._size)
+        icon_path = Paths.themed_icon(self._filename)
+        pixmap = _load_themed_icon_pixmap(
+            icon_path, size=self._size, palette=self.palette()
         )
-        self._refreshing_pixmap = False
+        self.setPixmap(pixmap)
 
-    def changeEvent(self, a0: QEvent) -> None:  # noqa: N802
-        """Reload the pixmap whenever the application palette changes."""
-        if (
-            not getattr(self, "_refreshing_pixmap", False)
-            and a0 is not None
-            and a0.type()
-            in (
-                QEvent.Type.ApplicationPaletteChange,
-                QEvent.Type.PaletteChange,
-            )
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """Refresh pixmap when palette changes (theme switch)."""
+        if event is not None and event.type() in (
+            QEvent.Type.ApplicationPaletteChange,
+            QEvent.Type.PaletteChange,
         ):
             self._refresh_pixmap()
-        super().changeEvent(a0)
+        super().changeEvent(event)
 
 
 class StanButton(QPushButton):
@@ -490,10 +543,12 @@ class StanButton(QPushButton):
         self.setIconSize(QSize(16, 16))
         self.setMinimumWidth(min_width)
         self._themed_icon_filename: str | None = None
-        self._refreshing_icon = False
 
     def set_themed_icon(self, filename: str) -> None:
-        """Set the button icon from a themed SVG and re-resolve it on theme changes.
+        """Set the button icon from a themed SVG.
+
+        Icons use Tabler Icons with `currentColor` so they automatically adapt
+        to the application palette without requiring theme change hooks.
 
         Parameters
         ----------
@@ -505,26 +560,23 @@ class StanButton(QPushButton):
         self._refresh_icon()
 
     def _refresh_icon(self) -> None:
-        """Re-resolve and apply the themed icon."""
+        """Resolve and apply the themed icon."""
         if self._themed_icon_filename is None:
             return
         from openstan.paths import Paths
 
-        self._refreshing_icon = True
-        self.setIcon(QIcon(Paths.themed_icon(self._themed_icon_filename)))
-        self._refreshing_icon = False
+        icon_path = Paths.themed_icon(self._themed_icon_filename)
+        pixmap = _load_themed_icon_pixmap(icon_path, size=16, palette=self.palette())
+        self.setIcon(QIcon(pixmap))
 
-    def changeEvent(self, e: QEvent) -> None:  # noqa: N802
-        """Reload the themed icon whenever the application palette changes."""
-        if (
-            not getattr(self, "_refreshing_icon", False)
-            and e is not None
-            and e.type()
-            in (QEvent.Type.ApplicationPaletteChange, QEvent.Type.PaletteChange)
-            and self._themed_icon_filename is not None
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """Refresh icon when palette changes (theme switch)."""
+        if event is not None and event.type() in (
+            QEvent.Type.ApplicationPaletteChange,
+            QEvent.Type.PaletteChange,
         ):
             self._refresh_icon()
-        super().changeEvent(e)
+        super().changeEvent(event)
 
 
 class StanWizardPage(QWizardPage):
@@ -563,7 +615,6 @@ class StanHelpIcon(QPushButton):
     def __init__(self, help_text: str) -> None:
         super().__init__()
         self._help_text = help_text
-        self._refreshing_icon = False
         self.setAutoFillBackground(True)
         self.setFixedSize(20, 20)
         self.setFlat(True)
@@ -576,12 +627,11 @@ class StanHelpIcon(QPushButton):
         self._load_icon()
 
     def _load_icon(self) -> None:
-        """Load the themed info.svg and set it as the button icon."""
+        """Load the themed info icon and set it as the button icon."""
         from openstan.paths import Paths
 
         icon_path = Paths.themed_icon("info.svg")
-        pixmap = QPixmap(icon_path)
-        self._refreshing_icon = True
+        pixmap = _load_themed_icon_pixmap(icon_path, size=16, palette=self.palette())
         if not pixmap.isNull():
             self.setIcon(QIcon(pixmap))
             self.setIconSize(QSize(16, 16))
@@ -589,21 +639,15 @@ class StanHelpIcon(QPushButton):
         else:
             # Fallback: render a text "?" if icon not found.
             self.setText("?")
-        self._refreshing_icon = False
 
-    def changeEvent(self, e: QEvent) -> None:  # noqa: N802
-        """Reload the themed icon whenever the application palette changes."""
-        if (
-            not getattr(self, "_refreshing_icon", False)
-            and e is not None
-            and e.type()
-            in (
-                QEvent.Type.ApplicationPaletteChange,
-                QEvent.Type.PaletteChange,
-            )
+    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+        """Refresh icon when palette changes (theme switch)."""
+        if event is not None and event.type() in (
+            QEvent.Type.ApplicationPaletteChange,
+            QEvent.Type.PaletteChange,
         ):
             self._load_icon()
-        super().changeEvent(e)
+        super().changeEvent(event)
 
     def _show_tooltip(self) -> None:
         """Show the tooltip at the centre of the button (click or keyboard)."""

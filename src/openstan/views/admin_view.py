@@ -40,23 +40,31 @@ class AdminView(StanDialog):
         layout_delete.setSpacing(8)
 
         lbl_delete_title = StanLabel("##### Delete Project")
-        lbl_delete_info = StanLabel("Removes the project record from the database. Optionally also deletes the project folder from disk.")
+        lbl_delete_info = StanLabel(
+            "Removes the project record from the database. Optionally also deletes the project folder from disk."
+        )
         lbl_delete_info.setWordWrap(True)
 
         self.combo_delete = StanComboBox()
         self.combo_delete.setToolTip("Select the project to delete")
-        self.check_delete_folder = StanCheckBox("Also delete the project folder from disk")
+        self.check_delete_folder = StanCheckBox(
+            "Also delete the project folder from disk"
+        )
         self.check_delete_folder.setToolTip(
             "If checked, the project folder and all its contents will be permanently deleted from disk in addition to the database record"
         )
         self.button_delete_project = StanButton("Delete Project")
-        self.button_delete_project.setToolTip("Permanently delete the selected project — requires confirmation")
+        self.button_delete_project.setToolTip(
+            "Permanently delete the selected project — requires confirmation"
+        )
 
         layout_delete.addWidget(lbl_delete_title)
         layout_delete.addWidget(lbl_delete_info)
         layout_delete.addWidget(self.combo_delete)
         layout_delete.addWidget(self.check_delete_folder)
-        layout_delete.addWidget(self.button_delete_project, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout_delete.addWidget(
+            self.button_delete_project, alignment=Qt.AlignmentFlag.AlignLeft
+        )
         section_delete.setLayout(layout_delete)
 
         # ------------------------------------------------------------------
@@ -67,18 +75,24 @@ class AdminView(StanDialog):
         layout_remove.setSpacing(8)
 
         lbl_remove_title = StanLabel("##### Remove Project from UI Only")
-        lbl_remove_info = StanLabel("Removes the project record from the database without touching any files on disk.")
+        lbl_remove_info = StanLabel(
+            "Removes the project record from the database without touching any files on disk."
+        )
         lbl_remove_info.setWordWrap(True)
 
         self.combo_remove = StanComboBox()
         self.combo_remove.setToolTip("Select the project to remove from the UI")
         self.button_remove_project = StanButton("Remove from UI")
-        self.button_remove_project.setToolTip("Remove the project record from the database without touching files on disk")
+        self.button_remove_project.setToolTip(
+            "Remove the project record from the database without touching files on disk"
+        )
 
         layout_remove.addWidget(lbl_remove_title)
         layout_remove.addWidget(lbl_remove_info)
         layout_remove.addWidget(self.combo_remove)
-        layout_remove.addWidget(self.button_remove_project, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout_remove.addWidget(
+            self.button_remove_project, alignment=Qt.AlignmentFlag.AlignLeft
+        )
         section_remove.setLayout(layout_remove)
 
         # ------------------------------------------------------------------
@@ -100,11 +114,15 @@ class AdminView(StanDialog):
         self.button_empty_db.setToolTip(
             "Delete and recreate gui.db, then restart the application — all projects, sessions, and users will be permanently lost"
         )
-        self.button_empty_db.setStyleSheet("StanButton { color: palette(highlight); font-weight: bold; }")
+        self.button_empty_db.setStyleSheet(
+            "StanButton { color: palette(highlight); font-weight: bold; }"
+        )
 
         layout_empty.addWidget(lbl_empty_title)
         layout_empty.addWidget(lbl_empty_info)
-        layout_empty.addWidget(self.button_empty_db, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout_empty.addWidget(
+            self.button_empty_db, alignment=Qt.AlignmentFlag.AlignLeft
+        )
         section_empty.setLayout(layout_empty)
 
         # ------------------------------------------------------------------
@@ -127,7 +145,9 @@ class AdminView(StanDialog):
 
         layout_anon.addWidget(lbl_anon_title)
         layout_anon.addWidget(lbl_anon_info)
-        layout_anon.addWidget(self.button_open_anonymise, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout_anon.addWidget(
+            self.button_open_anonymise, alignment=Qt.AlignmentFlag.AlignLeft
+        )
         section_anon.setLayout(layout_anon)
 
         # ------------------------------------------------------------------

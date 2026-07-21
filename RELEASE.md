@@ -45,8 +45,7 @@ All four platform jobs must complete successfully:
 
 **Scanning can fail if:**
 - Any binary is flagged with **malicious detections** (known malware names)
-- Network errors occur during upload (auto-retries 3×)
-- The VirusTotal API is unreachable (rare)
+- Network errors occur during upload (curl retries transient failures automatically; otherwise re-run the workflow)
 
 **Scanning succeeds if:**
 - All binaries are clean (0 malicious detections)
