@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [master]
+    tags-ignore: ["**"]  # release tags trigger release.yml only, not CI
   pull_request:
     branches: [master]
 
@@ -56,29 +57,12 @@ jobs:
       - name: Fetch anonymised PDFs for testing (graceful fallback)
         id: fetch_anonymised
         continue-on-error: true
-        env:
-          SSH_PRIVATE_KEY_TEST_DATA: ${{ secrets.SSH_PRIVATE_KEY_TEST_DATA }}
+        if: secrets.SSH_PRIVATE_KEY_TEST_DATA != ''
         run: |
-          # Check if SSH key secret is available
-          if [ -z "$SSH_PRIVATE_KEY_TEST_DATA" ]; then
-            echo "SSH_PRIVATE_KEY_TEST_DATA secret is not set - skipping PDF fetch"
-            exit 0
-          fi
-          
           mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_PRIVATE_KEY_TEST_DATA" > ~/.ssh/bank_statement_deploy_key
+          echo "${{ secrets.SSH_PRIVATE_KEY_TEST_DATA }}" > ~/.ssh/bank_statement_deploy_key
           chmod 600 ~/.ssh/bank_statement_deploy_key
           ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null || true
-          
-          # Configure SSH to use the deploy key for github.com
-          cat > ~/.ssh/config << 'SSH_CONFIG'
-          Host github.com
-            HostName github.com
-            User git
-            IdentityFile ~/.ssh/bank_statement_deploy_key
-            IdentitiesOnly yes
-          SSH_CONFIG
-          chmod 600 ~/.ssh/config
           
           # Clone only the pdfs directory
           git clone --depth 1 --filter=blob:none --sparse \
@@ -87,23 +71,13 @@ jobs:
           cd /tmp/test_pdfs
           git sparse-checkout set pdfs/good pdfs/bad
           
-          # Populate bsp's cache so TestHarness finds PDFs without cloning
-          mkdir -p ~/.cache/bank_statement_data/pdfs
-          cp -r /tmp/test_pdfs/pdfs/good ~/.cache/bank_statement_data/pdfs/
-          cp -r /tmp/test_pdfs/pdfs/bad ~/.cache/bank_statement_data/pdfs/
+          # Copy to tests/fixtures/pdfs
+          mkdir -p ../openstan/tests/fixtures
+          cp -r pdfs ../openstan/tests/fixtures/ || true
           
-          # Create empty .git dir so _clone_test_data() takes the "pull" path
-          # instead of the "clone" path, and falls back to returning the cache
-          mkdir -p ~/.cache/bank_statement_data/repo/.git
-          
-          # Create symlinks for conftest's "anonymised" mode detection
-          mkdir -p "${GITHUB_WORKSPACE}/tests/fixtures/pdfs"
-          ln -s /tmp/test_pdfs/pdfs/good "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_good"
-          ln -s /tmp/test_pdfs/pdfs/bad "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_bad"
-          
-          # Keep /tmp/test_pdfs around for the symlinks to reference during tests
-          # (it will be cleaned up in the final cleanup step below)
-          # Only remove SSH key immediately after clone
+          # Cleanup temporary clone
+          cd ..
+          rm -rf test_pdfs
           rm -f ~/.ssh/bank_statement_deploy_key
           
           # Mark success
@@ -123,27 +97,12 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
 
-      - name: Clean up anonymised PDFs and temporary files (security)
-        if: always()
+      - name: Clean up anonymised PDFs after tests (security)
+        if: steps.fetch_anonymised.outputs.success == 'true' && always()
         run: |
-          # Remove symlinks to cloned PDFs
-          rm -f "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_good" \
-                "${GITHUB_WORKSPACE}/tests/fixtures/pdfs/anonymised_bad"
-          
-          # Clean up temporary PDF clone directory
-          rm -rf /tmp/test_pdfs || true
-          
-          # Clean up bsp's cache directory
-          rm -rf ~/.cache/bank_statement_data || true
-          
-          # Clean up any stray PDF files that may have been copied
-          find "${GITHUB_WORKSPACE}/tests/fixtures/pdfs" -name "*.pdf" \
-            -not -path "*/synthetic/*" -delete 2>/dev/null || true
-          
-          # Clean up SSH artifacts from home directory
-          rm -f ~/.ssh/bank_statement_deploy_key \
-                ~/.ssh/config \
-                ~/.ssh/known_hosts 2>/dev/null || true
+          # Remove anonymised PDFs to prevent accidental commits
+          rm -rf tests/fixtures/pdfs/good tests/fixtures/pdfs/bad tests/fixtures/pdfs/anonymised || true
+          find tests/fixtures/pdfs -name "*.pdf" -not -path "*/synthetic/*" -delete || true
 
   doc-reminder:
     # Only runs on pull requests; non-blocking reminder only
