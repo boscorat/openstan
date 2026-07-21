@@ -56,10 +56,15 @@ jobs:
       - name: Fetch anonymised PDFs for testing (graceful fallback)
         id: fetch_anonymised
         continue-on-error: true
-        if: env.SSH_PRIVATE_KEY_TEST_DATA != ''
         env:
           SSH_PRIVATE_KEY_TEST_DATA: ${{ secrets.SSH_PRIVATE_KEY_TEST_DATA }}
         run: |
+          # Check if SSH key secret is available
+          if [ -z "$SSH_PRIVATE_KEY_TEST_DATA" ]; then
+            echo "SSH_PRIVATE_KEY_TEST_DATA secret is not set - skipping PDF fetch"
+            exit 0
+          fi
+          
           mkdir -p ~/.ssh
           echo "${{ env.SSH_PRIVATE_KEY_TEST_DATA }}" > ~/.ssh/bank_statement_deploy_key
           chmod 600 ~/.ssh/bank_statement_deploy_key
