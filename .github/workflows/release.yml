@@ -1030,15 +1030,24 @@ jobs:
              # Step 3: Fetch and parse results
              echo "  Analysis complete, fetching results..."
              
-             FILE_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -X GET \
-               -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
-               "https://www.virustotal.com/api/v3/files/${SHA256}" || echo "")
-             MALICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.malicious // 0' 2>/dev/null || echo "0")
-             SUSPICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.suspicious // 0' 2>/dev/null || echo "0")
-             UNDETECTED=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.undetected // 0' 2>/dev/null || echo "0")
-             TIMEOUT=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.timeout // 0' 2>/dev/null || echo "0")
-             
-             echo "  Results: malicious=$MALICIOUS, suspicious=$SUSPICIOUS, undetected=$UNDETECTED, timeout=$TIMEOUT"
+              FILE_REPORT_RAW=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -w "\n%{http_code}" -X GET \
+                -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
+                "https://www.virustotal.com/api/v3/files/${SHA256}" || printf "\n000")
+              FILE_HTTP_CODE=$(echo "$FILE_REPORT_RAW" | tail -n1)
+              FILE_BODY=$(echo "$FILE_REPORT_RAW" | sed '$d')
+              if [ "$FILE_HTTP_CODE" != "200" ]; then
+                echo "  ERROR: Failed to fetch VirusTotal file report (HTTP $FILE_HTTP_CODE)"
+                echo "  Response: $FILE_BODY"
+                FAILED=$((FAILED + 1))
+                continue
+              fi
+              FILE_RESPONSE="$FILE_BODY"
+              MALICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.malicious // 0' 2>/dev/null || echo "0")
+              SUSPICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.suspicious // 0' 2>/dev/null || echo "0")
+              UNDETECTED=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.undetected // 0' 2>/dev/null || echo "0")
+              TIMEOUT=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.timeout // 0' 2>/dev/null || echo "0")
+
+              echo "  Results: malicious=$MALICIOUS, suspicious=$SUSPICIOUS, undetected=$UNDETECTED, timeout=$TIMEOUT"
              
              # Step 4: Determine pass/fail
              if [ "$MALICIOUS" -gt 0 ]; then
