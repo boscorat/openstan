@@ -69,9 +69,9 @@ All platform binaries (Linux .deb/.rpm, Windows .msi, macOS .dmg) are automatica
 
 1. **Trigger**: When a version tag is pushed (e.g., `git tag v1.0.0`)
 2. **Process**:
-   - All four platform builds complete (Linux x86_64/ARM64, Windows, macOS)
-   - **Each build job uploads binaries directly to a draft release** (draft is created immediately after builds complete)
-   - The `scan-with-virustotal` job then downloads binaries from the existing draft release
+   - All four platform builds run in parallel (Linux x86_64/ARM64, Windows, macOS)
+   - Each build job uploads its binaries directly to the tag’s draft release as it completes (the draft is created/updated by these uploads)
+   - After all builds succeed, the `scan-with-virustotal` job downloads binaries from the draft release
    - Each binary is uploaded to VirusTotal's API
    - Results are polled for analysis completion (~30–60 seconds per file)
    - Per-engine detection results are logged
