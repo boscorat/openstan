@@ -642,7 +642,7 @@ jobs:
           SUBMIT_OUT=""
           for attempt in 1 2 3; do
             echo "Submit attempt $attempt/3..."
-            if SUBMIT_OUT=$(submit_once 2>&1); then
+            if SUBMIT_OUT=$(submit_once 2> >(tee /dev/stderr >/dev/null)); then
               # Ensure parseable JSON
               if echo "$SUBMIT_OUT" | jq -e . >/dev/null 2>&1; then
                 break
