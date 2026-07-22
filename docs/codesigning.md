@@ -1,15 +1,18 @@
 # Code Signing Policy
 
-Free code signing provided by [SignPath.io](https://signpath.io),
-certificate by [SignPath Foundation](https://signpath.org).
+Windows code signing via [Certum](https://www.certum.eu/) Open Source Code
+Signing certificate, signed with [jsign](https://github.com/ebourg/jsign).
 
 ---
 
 ## Scope
 
 Windows installers (`.msi`) for openstan are code-signed using a certificate
-issued to **SignPath Foundation** and provided to this project free of charge
-under the [SignPath Foundation OSS programme](https://signpath.org).
+issued to **Open Source Developer Jason Telford Farrar** by
+[Certum Code Signing 2021 CA](https://www.certum.eu/) (Asseco Data Systems S.A.).
+
+The certificate is an OV (Organisation Validation) Open Source Code Signing
+certificate stored in Certum's SimplySign cloud-based virtual smartcard.
 
 The signature covers the MSI installer package. It confirms that the installer
 was produced by an automated, verifiable build from the source code in this
@@ -47,8 +50,12 @@ Full details: [Privacy Policy](privacy.md)
    - Dependencies are installed via `uv sync`
    - The application is frozen with cx_Freeze
    - The MSI installer is compiled with WiX v4
-3. The resulting MSI is submitted to SignPath.io for signing.
-4. The signed MSI is attached to the GitHub Release.
+   - The unsigned MSI is attached to the GitHub Release as a draft
+3. The maintainer manually signs the MSI using jsign + SimplySign Desktop:
+   - Authenticate SimplySign Desktop (requires OTP from Android app)
+   - Run `jsign --storetype PKCS11 --keystore ~/provider_simplysign.cfg ...`
+   - Re-upload the signed MSI to the draft release
+4. The signed MSI is verified, then the draft release is promoted to published.
 
 All build configuration is in the public repository. The release workflow and
 WiX installer source (`packaging/windows/openstan.wxs`) are open to inspection.
@@ -57,7 +64,7 @@ WiX installer source (`packaging/windows/openstan.wxs`) are open to inspection.
 
 ## Reporting concerns
 
-If you believe a signed openstan installer contains malware or violates the
-SignPath Foundation code of conduct, please report it to
-[support@signpath.io](mailto:support@signpath.io) and open an issue on the
+If you believe a signed openstan installer contains malware or has been
+signed with a compromised certificate, please report it to
+[Certum support](https://www.certum.eu/) and open an issue on the
 [openstan issue tracker](https://github.com/boscorat/openstan/issues).
