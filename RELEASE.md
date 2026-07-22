@@ -61,7 +61,37 @@ Monitor progress at: `https://github.com/boscorat/openstan/actions`
 
 Build + scan time typically: **30–75 minutes** (varies by platform and VirusTotal queue)
 
----
+### 3. Sign the Windows MSI
+
+After VirusTotal scanning passes, sign the Windows `.msi` using jsign + SimplySign Desktop:
+
+**Prerequisites:**
+- SimplySign Desktop installed and running (`/opt/SimplySignDesktop/`)
+- jsign JAR installed (`~/jsign/jsign.jar`)
+- SunPKCS11 config at `~/provider_simplysign.cfg`
+- SimplySign Desktop authenticated (Connect to SimplySign → OTP from Android app)
+
+**Signing command:**
+```bash
+# Download the unsigned MSI from the draft release
+gh release download v1.2.3 --pattern "*.msi" --dir ~/Downloads/
+
+# Sign with jsign
+~/jsign/jsign \
+  --storetype PKCS11 \
+  --keystore ~/provider_simplysign.cfg \
+  --storepass "" \
+  --alias 408B20EC00DECB005259B33D4EC0098A \
+  --tsaurl http://time.certum.pl \
+  --tsmode RFC3161 \
+  ~/Downloads/openstan-1.2.3-Windows.msi
+
+# Verify the signature
+osslsigncode verify ~/Downloads/openstan-1.2.3-Windows.msi
+
+# Re-upload the signed MSI to the draft release (replaces unsigned)
+gh release upload v1.2.3 ~/Downloads/openstan-1.2.3-Windows.msi --clobber
+```
 
 ---
 
@@ -91,6 +121,12 @@ Follow this checklist before promoting from draft to published:
   - The workflow automatically handles code signing and Apple notarisation
   - No manual action needed — if the macOS build succeeded, it's notarised
   - Verify: Try opening the .dmg on a Mac; no Gatekeeper warnings should appear
+
+- [ ] **Windows .msi is code-signed**
+  - The MSI was signed with jsign + SimplySign Desktop (Certum OV certificate)
+  - Verify: `osslsigncode verify <file>.msi` should show "Signature verification: ok"
+  - Certificate: `CN=Open Source Developer Jason Telford Farrar` (Certum Code Signing 2021 CA)
+  - Timestamp: Certum TSA (`http://time.certum.pl/`)
 
 - [ ] **Windows .msi submission (WDSI portal)**
   - [ ] Go to https://www.microsoft.com/en-us/wdsi/filesubmission
@@ -191,6 +227,14 @@ gh release edit v1.2.3 --draft
 
 This will immediately hide the release from the **Releases** page, but the tag and binaries remain.
 
+### SimplySign Desktop not connecting
+
+If SimplySign Desktop fails to connect:
+1. Check the tray icon — it should show "Connected to SimplySign"
+2. If disconnected, right-click tray → "Connect to SimplySign" → enter OTP from Android app
+3. If the PKCS#11 module is not found, verify the library path: `/opt/SimplySignDesktop/SimplySignPKCS_64-MS-1.0.20.so`
+4. Test certificate visibility: `keytool -list -keystore NONE -storetype PKCS11 -providerclass sun.security.pkcs11.SunPKCS11 -providerArg ~/provider_simplysign.cfg`
+
 ---
 
 ## Reference: Version Tags
@@ -214,5 +258,5 @@ This will immediately hide the release from the **Releases** page, but the tag a
 
 - **Issue #81**: Release workflow should create draft releases
 - **Issue #76**: Review CI Release Pipeline (original checklist)
-- **AGENTS.md**: Code signing setup (Windows SignPath, macOS Developer ID)
+- **AGENTS.md**: Code signing setup (Certum + jsign, macOS Developer ID)
 - **README.md**: Installation and user guide
