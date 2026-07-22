@@ -23,10 +23,10 @@ Push version tag (e.g., v1.0.0)
   │ • macOS build/upload                 │
   │ • Each uploads to draft release      │
   └──────────────────────────────────────┘
-        ↓ (all builds complete)
+        ↓ (builds complete; draft has accumulated all assets)
   ┌──────────────────────────────────────┐
-  │ Draft release created with all       │
-  │ binaries attached (at this point)    │
+  │ Draft release created/updated by each │
+  │ build job upload; it now has all 6    │
   └──────────────────────────────────────┘
         ↓
   ┌──────────────────────────────────────┐
