@@ -33,7 +33,7 @@ git push origin v1.2.3
 
 The tag must match the pattern `v*` (e.g. `v0.1.5`, `v1.0.0-rc1`). The workflow is triggered automatically.
 
-### 2. Wait for builds to complete
+### 3. Wait for builds to complete
 
 All four platform jobs must complete successfully:
 - Linux (.deb + .rpm)
@@ -61,7 +61,7 @@ Monitor progress at: `https://github.com/boscorat/openstan/actions`
 
 Build + scan time typically: **30–75 minutes** (varies by platform and VirusTotal queue)
 
-### 3. Sign the Windows MSI
+### 4. Sign the Windows MSI
 
 After VirusTotal scanning passes, sign the Windows `.msi` using jsign + SimplySign Desktop:
 
