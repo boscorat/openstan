@@ -77,7 +77,7 @@ After VirusTotal scanning passes, sign the Windows `.msi` using jsign + SimplySi
 gh release download v1.2.3 --pattern "*.msi" --dir ~/Downloads/
 
 # Sign with jsign
-~/jsign/jsign \
+java -jar ~/jsign/jsign.jar \
   --storetype PKCS11 \
   --keystore ~/provider_simplysign.cfg \
   --storepass "" \
