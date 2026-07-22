@@ -465,6 +465,12 @@ jobs:
         with:
           python-version: "3.14"
 
+      - name: Remove untrusted Homebrew taps (pre-installed on runner)
+        run: |
+          brew uninstall --ignore-dependencies bicep || true
+          brew untap azure/bicep || true
+          brew untap aws/tap || true
+
       - name: Install Inkscape
         run: brew install inkscape
 
@@ -622,21 +628,49 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           APP=$(find build -maxdepth 3 -name "*.app" | head -1)
-          # zip the .app for submission (notarytool requires a zip, dmg, or pkg)
           ditto -c -k --keepParent "$APP" /tmp/openstan_notarise.zip
           echo "Submitting to Apple notarisation service..."
-          SUBMIT_OUT=$(xcrun notarytool submit /tmp/openstan_notarise.zip \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_APP_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --no-progress 2>&1)
-          echo "$SUBMIT_OUT"
-          rm /tmp/openstan_notarise.zip
-          SUBMISSION_ID=$(echo "$SUBMIT_OUT" | grep "  id:" | head -1 | awk '{print $2}')
+
+          submit_once() {
+            xcrun notarytool submit /tmp/openstan_notarise.zip \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_APP_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" \
+              --output-format json
+          }
+
+          SUBMIT_OUT=""
+          for attempt in 1 2 3; do
+            echo "Submit attempt $attempt/3..."
+            if SUBMIT_OUT=$(submit_once 2> >(tee /dev/stderr >/dev/null)); then
+              # Ensure parseable JSON
+              if echo "$SUBMIT_OUT" | jq -e . >/dev/null 2>&1; then
+                break
+              fi
+              echo "ERROR: notarytool returned non-JSON output:"
+              echo "$SUBMIT_OUT"
+            else
+              echo "ERROR: notarytool submit failed:"
+              echo "$SUBMIT_OUT"
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              rm -f /tmp/openstan_notarise.zip
+              exit 1
+            fi
+            sleep 15
+          done
+
+          echo "$SUBMIT_OUT" | jq .
+
+          rm -f /tmp/openstan_notarise.zip
+
+          SUBMISSION_ID=$(echo "$SUBMIT_OUT" | jq -r '.id // empty')
           if [ -z "$SUBMISSION_ID" ]; then
-            echo "ERROR: failed to obtain submission ID from notarytool" >&2
+            echo "ERROR: failed to obtain submission ID from notarytool JSON output" >&2
             exit 1
           fi
+
           echo "Submission ID: $SUBMISSION_ID"
           echo "NOTARY_SUBMISSION_ID=$SUBMISSION_ID" >> "$GITHUB_ENV"
 
@@ -667,16 +701,18 @@ jobs:
             INFO=$(gtimeout 30 xcrun notarytool info "$SUBMISSION_ID" \
               --apple-id "$APPLE_ID" \
               --password "$APPLE_APP_PASSWORD" \
-              --team-id "$APPLE_TEAM_ID" 2>&1) || {
+              --team-id "$APPLE_TEAM_ID" \
+              --output-format json 2>&1) || {
               echo "ERROR: notarytool info timed out or failed on attempt $i" >&2
               exit 1
             }
-            echo "$INFO"
-            if echo "$INFO" | grep -q "status: Accepted"; then
+            echo "$INFO" | jq .
+            STATUS=$(echo "$INFO" | jq -r '.status // empty' 2>/dev/null)
+            if [ "$STATUS" = "Accepted" ]; then
               echo "Notarisation accepted."
               exit 0
             fi
-            if echo "$INFO" | grep -q "status: Invalid"; then
+            if [ "$STATUS" = "Invalid" ]; then
               echo "ERROR: notarisation rejected by Apple" >&2
               fetch_log
               exit 1
@@ -719,25 +755,56 @@ jobs:
         env:
           REF_NAME: ${{ github.ref_name }}
         run: |
+          set -euo pipefail
+
           APP=$(find build -maxdepth 3 -name "*.app" | head -1)
           APP_NAME=$(basename "$APP" .app)
-          VERSION="${REF_NAME}"
-          VERSION="${VERSION#v}"   # strip leading 'v' from tag
-
-          STAGING=$(mktemp -d)
-          cp -R "$APP" "$STAGING/"
-          ln -s /Applications "$STAGING/Applications"
+          VERSION="${REF_NAME#v}"   # strip leading 'v' from tag
 
           mkdir -p dist
           DMG="dist/openstan-${VERSION}-macOS.dmg"
-          hdiutil create \
-            -volname "openstan" \
-            -srcfolder "$STAGING" \
-            -ov \
-            -format UDZO \
-            "$DMG"
-          echo "Created: $DMG"
-          ls -lh dist/
+
+          # deterministic staging path avoids mktemp edge cases
+          STAGING="$RUNNER_TEMP/openstan-dmg-staging"
+          rm -rf "$STAGING"
+          mkdir -p "$STAGING"
+          trap 'rm -rf "$STAGING"' EXIT
+
+          cp -R "$APP" "$STAGING/"
+          ln -s /Applications "$STAGING/Applications"
+
+          # remove stale output if present
+          rm -f "$DMG"
+
+          # best-effort cleanup of stale hdiutil state from prior attempts
+          hdiutil detach /Volumes/openstan -force >/dev/null 2>&1 || true
+          hdiutil detach "$(hdiutil info | awk "/openstan/ {print \$1; exit}")" -force >/dev/null 2>&1 || true
+
+          # ensure filesystem consistency before hdiutil
+          sync
+          sleep 2
+
+          for attempt in 1 2 3; do
+            echo "DMG create attempt $attempt/3..."
+            if hdiutil create \
+                -volname "openstan" \
+                -srcfolder "$STAGING" \
+                -ov \
+                -format UDZO \
+                "$DMG"; then
+              echo "Created: $DMG"
+              ls -lh dist/
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              echo "ERROR: hdiutil create failed after 3 attempts" >&2
+              exit 1
+            fi
+
+            echo "hdiutil busy; retrying in 10s..."
+            sleep 10
+          done
 
       # Step 7: sign the DMG itself for integrity.  The .app inside is already
       # notarised and stapled; Gatekeeper will verify the .app ticket on install.
@@ -810,7 +877,7 @@ jobs:
     needs: [build-linux, build-linux-arm64, build-windows, build-macos]
     if: success()  # Only run if all builds succeeded
     permissions:
-      contents: read
+      contents: write  # needed to download assets from draft releases
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
@@ -870,114 +937,150 @@ jobs:
           FAILED=0
           PASSED=0
           
-          for binary in *; do
-            [ -f "$binary" ] || continue
-            
-            FILE_SIZE=$(stat -f%z "$binary" 2>/dev/null || stat -c%s "$binary" 2>/dev/null || echo "unknown")
-            echo "────────────────────────────────────────────────────────────"
-            echo "[$(($PASSED + $FAILED + 1))/$BINARY_COUNT] Scanning: $binary"
-            echo "  Size: $FILE_SIZE bytes"
-            
-            # Calculate SHA256 for reference
-            SHA256=$(sha256sum "$binary" | cut -d' ' -f1)
-            echo "  SHA256: $SHA256"
-            
-            # Step 1: Upload to VirusTotal
-            echo "  Uploading to VirusTotal..."
-            
-            UPLOAD_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -w "\n%{http_code}" -X POST \
-              -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
-              -F "file=@${binary}" \
-              https://www.virustotal.com/api/v3/files || printf "\n000")
-            HTTP_CODE=$(echo "$UPLOAD_RESPONSE" | tail -n1)
-            BODY=$(echo "$UPLOAD_RESPONSE" | head -n-1)
-            
-            if [ "$HTTP_CODE" != "200" ]; then
-              echo "  ERROR: Upload failed with HTTP $HTTP_CODE"
-              echo "  Response: $BODY"
-              FAILED=$((FAILED + 1))
-              continue
-            fi
-            
-            ANALYSIS_ID=$(echo "$BODY" | jq -r '.data.id' 2>/dev/null || echo "")
-            if [ -z "$ANALYSIS_ID" ]; then
-              echo "  ERROR: Failed to extract analysis ID from response"
-              FAILED=$((FAILED + 1))
-              continue
-            fi
-            
-            echo "  Upload successful (Analysis ID: ${ANALYSIS_ID:0:16}...)"
-            
-            # Step 2: Poll for completion
-            echo "  Polling for analysis completion..."
-            ATTEMPTS=0
-            MAX_ATTEMPTS=120  # ~2 minutes with 1s sleep
-            STATUS="unknown"
-            
-              ANALYSIS_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -X GET \
+           for binary in *; do
+             [ -f "$binary" ] || continue
+             
+             FILE_SIZE=$(stat -f%z "$binary" 2>/dev/null || stat -c%s "$binary" 2>/dev/null || echo "unknown")
+             echo "────────────────────────────────────────────────────────────"
+             echo "[$(($PASSED + $FAILED + 1))/$BINARY_COUNT] Scanning: $binary"
+             echo "  Size: $FILE_SIZE bytes"
+             
+             # Calculate SHA256 for reference
+             SHA256=$(sha256sum "$binary" | cut -d' ' -f1)
+             echo "  SHA256: $SHA256"
+             
+             # Step 1: Choose upload endpoint based on file size
+             echo "  Uploading to VirusTotal..."
+             
+             UPLOAD_ENDPOINT="https://www.virustotal.com/api/v3/files"
+             FILE_SIZE_BYTES=$(stat -c%s "$binary" 2>/dev/null || stat -f%z "$binary")
+             
+             # VT public endpoint has a 32MB limit; large files need special upload URL
+             if [ "$FILE_SIZE_BYTES" -gt 33554432 ]; then
+               echo "  File exceeds 32MB; requesting large-file upload URL..."
+               LARGE_URL_RESP=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors \
+                 -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
+                 "https://www.virustotal.com/api/v3/files/upload_url")
+               UPLOAD_ENDPOINT=$(echo "$LARGE_URL_RESP" | jq -r '.data // empty')
+               if [ -z "$UPLOAD_ENDPOINT" ]; then
+                 echo "  ERROR: Failed to obtain large-file upload URL"
+                 FAILED=$((FAILED + 1))
+                 continue
+               fi
+             fi
+             
+             UPLOAD_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -w "\n%{http_code}" -X POST \
+               -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
+               -F "file=@${binary}" \
+               "$UPLOAD_ENDPOINT" || printf "\n000")
+             HTTP_CODE=$(echo "$UPLOAD_RESPONSE" | tail -n1)
+             BODY=$(echo "$UPLOAD_RESPONSE" | sed '$d')
+             
+             if [ "$HTTP_CODE" != "200" ]; then
+               echo "  ERROR: Upload failed with HTTP $HTTP_CODE"
+               echo "  Response: $BODY"
+               FAILED=$((FAILED + 1))
+               continue
+             fi
+             
+             ANALYSIS_ID=$(echo "$BODY" | jq -r '.data.id // empty')
+             if [ -z "$ANALYSIS_ID" ]; then
+               echo "  ERROR: Failed to extract analysis ID from response"
+               FAILED=$((FAILED + 1))
+               continue
+             fi
+             
+             echo "  Upload successful (Analysis ID: ${ANALYSIS_ID:0:16}...)"
+             
+             # Step 2: Poll for analysis completion
+             echo "  Polling for analysis completion..."
+             ATTEMPTS=0
+             MAX_ATTEMPTS=120  # 120 iterations × 30s = 60 min timeout
+             STATUS="queued"
+             
+             while [ "$ATTEMPTS" -lt "$MAX_ATTEMPTS" ]; do
+                ANALYSIS_RAW=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -w "\n%{http_code}" -X GET \
+                  -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
+                  "https://www.virustotal.com/api/v3/analyses/${ANALYSIS_ID}" || printf "\n000")
+                ANALYSIS_HTTP_CODE=$(echo "$ANALYSIS_RAW" | tail -n1)
+                ANALYSIS_RESPONSE=$(echo "$ANALYSIS_RAW" | sed '$d')
+                if [ "$ANALYSIS_HTTP_CODE" != "200" ]; then
+                  echo "    ERROR: Failed to fetch analysis status (HTTP $ANALYSIS_HTTP_CODE)"
+                  FAILED=$((FAILED + 1))
+                  STATUS="failed"
+                  break
+                fi
+                STATUS=$(echo "$ANALYSIS_RESPONSE" | jq -r '.data.attributes.status // "unknown"')
+               
+               if [ "$STATUS" = "completed" ]; then
+                 break
+               fi
+               
+               if [ "$STATUS" = "failed" ]; then
+                 echo "  ERROR: Analysis failed"
+                 FAILED=$((FAILED + 1))
+                 STATUS="failed"
+                 break
+               fi
+               
+               ATTEMPTS=$((ATTEMPTS + 1))
+               ELAPSED=$((ATTEMPTS * 30))
+               echo "    Still polling... (${ELAPSED}s elapsed, status: $STATUS)"
+               sleep 30
+             done
+             
+             if [ "$STATUS" != "completed" ]; then
+               echo "  ERROR: Analysis did not complete after $((MAX_ATTEMPTS * 30))s"
+               FAILED=$((FAILED + 1))
+               continue
+             fi
+             
+             # Step 3: Fetch and parse results
+             echo "  Analysis complete, fetching results..."
+             
+              FILE_REPORT_RAW=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -w "\n%{http_code}" -X GET \
                 -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
-                "https://www.virustotal.com/api/v3/analyses/${ANALYSIS_ID}" || echo "")
-              STATUS=$(echo "$ANALYSIS_RESPONSE" | jq -r '.data.attributes.status' 2>/dev/null || echo "unknown")
-              
-              if [ "$STATUS" = "completed" ]; then
-                break
-              fi
-              
-              if [ "$STATUS" = "failed" ]; then
-                echo "  ERROR: Analysis failed"
+                "https://www.virustotal.com/api/v3/files/${SHA256}" || printf "\n000")
+              FILE_HTTP_CODE=$(echo "$FILE_REPORT_RAW" | tail -n1)
+              FILE_BODY=$(echo "$FILE_REPORT_RAW" | sed '$d')
+              if [ "$FILE_HTTP_CODE" != "200" ]; then
+                echo "  ERROR: Failed to fetch VirusTotal file report (HTTP $FILE_HTTP_CODE)"
+                echo "  Response: $FILE_BODY"
                 FAILED=$((FAILED + 1))
-                STATUS="failed"
-                break
+                continue
               fi
-              
-              ATTEMPTS=$((ATTEMPTS + 30))
-              echo "    Still polling... (${ATTEMPTS}s elapsed, status: $STATUS)"
-              sleep 30
-            done
-            
-            if [ "$STATUS" != "completed" ]; then
-              echo "  ERROR: Analysis did not complete after ${MAX_ATTEMPTS}s"
-              FAILED=$((FAILED + 1))
-              continue
-            fi
-            
-            # Step 3: Fetch and parse results
-            echo "  Analysis complete, fetching results..."
-            
-            FILE_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -X GET \
-              -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
-              "https://www.virustotal.com/api/v3/files/${SHA256}" || echo "")
-            MALICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.malicious // 0' 2>/dev/null || echo "0")
-            SUSPICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.suspicious // 0' 2>/dev/null || echo "0")
-            UNDETECTED=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.undetected // 0' 2>/dev/null || echo "0")
-            TIMEOUT=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.timeout // 0' 2>/dev/null || echo "0")
-            
-            echo "  Results: malicious=$MALICIOUS, suspicious=$SUSPICIOUS, undetected=$UNDETECTED, timeout=$TIMEOUT"
-            
-            # Step 4: Determine pass/fail
-            if [ "$MALICIOUS" -gt 0 ]; then
-              echo "  ❌ FAIL: Binary flagged with $MALICIOUS malicious detection(s)"
-              echo ""
-              echo "  Detections:"
-              echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_results | to_entries[] | select(.value.category == "malicious") | "    \(.key): \(.value.engine_name) (\(.value.category))"' 2>/dev/null || echo "    (see VT dashboard for details)"
-              echo ""
-              FAILED=$((FAILED + 1))
-            else
-              if [ "$SUSPICIOUS" -gt 0 ]; then
-                echo "  ⚠️  WARN: Binary flagged with $SUSPICIOUS suspicious detection(s) (allowed)"
-                echo "  Suspicious detections:"
-                echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_results | to_entries[] | select(.value.category == "suspicious") | "    \(.key): \(.value.engine_name) (\(.value.category))"' 2>/dev/null || echo "    (see VT dashboard for details)"
-              else
-                echo "  ✅ PASS: Binary is clean"
-              fi
-              PASSED=$((PASSED + 1))
-            fi
-            
-            echo ""
-            
-            # Rate limit: VT free tier allows 4 req/min, be conservative
-            sleep 2
-          done
+              FILE_RESPONSE="$FILE_BODY"
+              MALICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.malicious // 0' 2>/dev/null || echo "0")
+              SUSPICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.suspicious // 0' 2>/dev/null || echo "0")
+              UNDETECTED=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.undetected // 0' 2>/dev/null || echo "0")
+              TIMEOUT=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.timeout // 0' 2>/dev/null || echo "0")
+
+              echo "  Results: malicious=$MALICIOUS, suspicious=$SUSPICIOUS, undetected=$UNDETECTED, timeout=$TIMEOUT"
+             
+             # Step 4: Determine pass/fail
+             if [ "$MALICIOUS" -gt 0 ]; then
+               echo "  ❌ FAIL: Binary flagged with $MALICIOUS malicious detection(s)"
+               echo ""
+               echo "  Detections:"
+               echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_results | to_entries[] | select(.value.category == "malicious") | "    \(.key): \(.value.engine_name) (\(.value.category))"' 2>/dev/null || echo "    (see VT dashboard for details)"
+               echo ""
+               FAILED=$((FAILED + 1))
+             else
+               if [ "$SUSPICIOUS" -gt 0 ]; then
+                 echo "  ⚠️  WARN: Binary flagged with $SUSPICIOUS suspicious detection(s) (allowed)"
+                 echo "  Suspicious detections:"
+                 echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_results | to_entries[] | select(.value.category == "suspicious") | "    \(.key): \(.value.engine_name) (\(.value.category))"' 2>/dev/null || echo "    (see VT dashboard for details)"
+               else
+                 echo "  ✅ PASS: Binary is clean"
+               fi
+               PASSED=$((PASSED + 1))
+             fi
+             
+             echo ""
+             
+             # Rate limit: VT free tier allows 4 req/min, be conservative
+             sleep 2
+           done
           
           echo "────────────────────────────────────────────────────────────"
           echo "Scan Summary:"
