@@ -64,7 +64,7 @@ WiX installer source (`packaging/windows/openstan.wxs`) are open to inspection.
 
 ## Reporting concerns
 
-If you believe a signed openstan installer contains malware or violates the
-Certum code of conduct, please report it to [Certum](https://www.certum.eu/)
-and open an issue on the
+If you believe a signed openstan installer contains malware or has been
+signed with a compromised certificate, please report it to
+[Certum support](https://www.certum.eu/) and open an issue on the
 [openstan issue tracker](https://github.com/boscorat/openstan/issues).
