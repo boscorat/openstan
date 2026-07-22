@@ -937,114 +937,132 @@ jobs:
           FAILED=0
           PASSED=0
           
-          for binary in *; do
-            [ -f "$binary" ] || continue
-            
-            FILE_SIZE=$(stat -f%z "$binary" 2>/dev/null || stat -c%s "$binary" 2>/dev/null || echo "unknown")
-            echo "────────────────────────────────────────────────────────────"
-            echo "[$(($PASSED + $FAILED + 1))/$BINARY_COUNT] Scanning: $binary"
-            echo "  Size: $FILE_SIZE bytes"
-            
-            # Calculate SHA256 for reference
-            SHA256=$(sha256sum "$binary" | cut -d' ' -f1)
-            echo "  SHA256: $SHA256"
-            
-            # Step 1: Upload to VirusTotal
-            echo "  Uploading to VirusTotal..."
-            
-            UPLOAD_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -w "\n%{http_code}" -X POST \
-              -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
-              -F "file=@${binary}" \
-              https://www.virustotal.com/api/v3/files || printf "\n000")
-            HTTP_CODE=$(echo "$UPLOAD_RESPONSE" | tail -n1)
-            BODY=$(echo "$UPLOAD_RESPONSE" | head -n-1)
-            
-            if [ "$HTTP_CODE" != "200" ]; then
-              echo "  ERROR: Upload failed with HTTP $HTTP_CODE"
-              echo "  Response: $BODY"
-              FAILED=$((FAILED + 1))
-              continue
-            fi
-            
-            ANALYSIS_ID=$(echo "$BODY" | jq -r '.data.id' 2>/dev/null || echo "")
-            if [ -z "$ANALYSIS_ID" ]; then
-              echo "  ERROR: Failed to extract analysis ID from response"
-              FAILED=$((FAILED + 1))
-              continue
-            fi
-            
-            echo "  Upload successful (Analysis ID: ${ANALYSIS_ID:0:16}...)"
-            
-            # Step 2: Poll for completion
-            echo "  Polling for analysis completion..."
-            ATTEMPTS=0
-            MAX_ATTEMPTS=120  # ~2 minutes with 1s sleep
-            STATUS="unknown"
-            
-              ANALYSIS_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -X GET \
-                -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
-                "https://www.virustotal.com/api/v3/analyses/${ANALYSIS_ID}" || echo "")
-              STATUS=$(echo "$ANALYSIS_RESPONSE" | jq -r '.data.attributes.status' 2>/dev/null || echo "unknown")
-              
-              if [ "$STATUS" = "completed" ]; then
-                break
-              fi
-              
-              if [ "$STATUS" = "failed" ]; then
-                echo "  ERROR: Analysis failed"
-                FAILED=$((FAILED + 1))
-                STATUS="failed"
-                break
-              fi
-              
-              ATTEMPTS=$((ATTEMPTS + 30))
-              echo "    Still polling... (${ATTEMPTS}s elapsed, status: $STATUS)"
-              sleep 30
-            done
-            
-            if [ "$STATUS" != "completed" ]; then
-              echo "  ERROR: Analysis did not complete after ${MAX_ATTEMPTS}s"
-              FAILED=$((FAILED + 1))
-              continue
-            fi
-            
-            # Step 3: Fetch and parse results
-            echo "  Analysis complete, fetching results..."
-            
-            FILE_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -X GET \
-              -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
-              "https://www.virustotal.com/api/v3/files/${SHA256}" || echo "")
-            MALICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.malicious // 0' 2>/dev/null || echo "0")
-            SUSPICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.suspicious // 0' 2>/dev/null || echo "0")
-            UNDETECTED=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.undetected // 0' 2>/dev/null || echo "0")
-            TIMEOUT=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.timeout // 0' 2>/dev/null || echo "0")
-            
-            echo "  Results: malicious=$MALICIOUS, suspicious=$SUSPICIOUS, undetected=$UNDETECTED, timeout=$TIMEOUT"
-            
-            # Step 4: Determine pass/fail
-            if [ "$MALICIOUS" -gt 0 ]; then
-              echo "  ❌ FAIL: Binary flagged with $MALICIOUS malicious detection(s)"
-              echo ""
-              echo "  Detections:"
-              echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_results | to_entries[] | select(.value.category == "malicious") | "    \(.key): \(.value.engine_name) (\(.value.category))"' 2>/dev/null || echo "    (see VT dashboard for details)"
-              echo ""
-              FAILED=$((FAILED + 1))
-            else
-              if [ "$SUSPICIOUS" -gt 0 ]; then
-                echo "  ⚠️  WARN: Binary flagged with $SUSPICIOUS suspicious detection(s) (allowed)"
-                echo "  Suspicious detections:"
-                echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_results | to_entries[] | select(.value.category == "suspicious") | "    \(.key): \(.value.engine_name) (\(.value.category))"' 2>/dev/null || echo "    (see VT dashboard for details)"
-              else
-                echo "  ✅ PASS: Binary is clean"
-              fi
-              PASSED=$((PASSED + 1))
-            fi
-            
-            echo ""
-            
-            # Rate limit: VT free tier allows 4 req/min, be conservative
-            sleep 2
-          done
+           for binary in *; do
+             [ -f "$binary" ] || continue
+             
+             FILE_SIZE=$(stat -f%z "$binary" 2>/dev/null || stat -c%s "$binary" 2>/dev/null || echo "unknown")
+             echo "────────────────────────────────────────────────────────────"
+             echo "[$(($PASSED + $FAILED + 1))/$BINARY_COUNT] Scanning: $binary"
+             echo "  Size: $FILE_SIZE bytes"
+             
+             # Calculate SHA256 for reference
+             SHA256=$(sha256sum "$binary" | cut -d' ' -f1)
+             echo "  SHA256: $SHA256"
+             
+             # Step 1: Choose upload endpoint based on file size
+             echo "  Uploading to VirusTotal..."
+             
+             UPLOAD_ENDPOINT="https://www.virustotal.com/api/v3/files"
+             FILE_SIZE_BYTES=$(stat -c%s "$binary" 2>/dev/null || stat -f%z "$binary")
+             
+             # VT public endpoint has a 32MB limit; large files need special upload URL
+             if [ "$FILE_SIZE_BYTES" -gt 33554432 ]; then
+               echo "  File exceeds 32MB; requesting large-file upload URL..."
+               LARGE_URL_RESP=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors \
+                 -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
+                 "https://www.virustotal.com/api/v3/files/upload_url")
+               UPLOAD_ENDPOINT=$(echo "$LARGE_URL_RESP" | jq -r '.data // empty')
+               if [ -z "$UPLOAD_ENDPOINT" ]; then
+                 echo "  ERROR: Failed to obtain large-file upload URL"
+                 FAILED=$((FAILED + 1))
+                 continue
+               fi
+             fi
+             
+             UPLOAD_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -w "\n%{http_code}" -X POST \
+               -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
+               -F "file=@${binary}" \
+               "$UPLOAD_ENDPOINT" || printf "\n000")
+             HTTP_CODE=$(echo "$UPLOAD_RESPONSE" | tail -n1)
+             BODY=$(echo "$UPLOAD_RESPONSE" | sed '$d')
+             
+             if [ "$HTTP_CODE" != "200" ]; then
+               echo "  ERROR: Upload failed with HTTP $HTTP_CODE"
+               echo "  Response: $BODY"
+               FAILED=$((FAILED + 1))
+               continue
+             fi
+             
+             ANALYSIS_ID=$(echo "$BODY" | jq -r '.data.id // empty')
+             if [ -z "$ANALYSIS_ID" ]; then
+               echo "  ERROR: Failed to extract analysis ID from response"
+               FAILED=$((FAILED + 1))
+               continue
+             fi
+             
+             echo "  Upload successful (Analysis ID: ${ANALYSIS_ID:0:16}...)"
+             
+             # Step 2: Poll for analysis completion
+             echo "  Polling for analysis completion..."
+             ATTEMPTS=0
+             MAX_ATTEMPTS=120  # ~1 hour with 30s sleep
+             STATUS="queued"
+             
+             while [ "$ATTEMPTS" -lt "$MAX_ATTEMPTS" ]; do
+               ANALYSIS_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -X GET \
+                 -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
+                 "https://www.virustotal.com/api/v3/analyses/${ANALYSIS_ID}" || echo "{}")
+               STATUS=$(echo "$ANALYSIS_RESPONSE" | jq -r '.data.attributes.status // "unknown"')
+               
+               if [ "$STATUS" = "completed" ]; then
+                 break
+               fi
+               
+               if [ "$STATUS" = "failed" ]; then
+                 echo "  ERROR: Analysis failed"
+                 FAILED=$((FAILED + 1))
+                 STATUS="failed"
+                 break
+               fi
+               
+               ATTEMPTS=$((ATTEMPTS + 30))
+               echo "    Still polling... (${ATTEMPTS}s elapsed, status: $STATUS)"
+               sleep 30
+             done
+             
+             if [ "$STATUS" != "completed" ]; then
+               echo "  ERROR: Analysis did not complete after $((MAX_ATTEMPTS * 30))s"
+               FAILED=$((FAILED + 1))
+               continue
+             fi
+             
+             # Step 3: Fetch and parse results
+             echo "  Analysis complete, fetching results..."
+             
+             FILE_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -X GET \
+               -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
+               "https://www.virustotal.com/api/v3/files/${SHA256}" || echo "")
+             MALICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.malicious // 0' 2>/dev/null || echo "0")
+             SUSPICIOUS=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.suspicious // 0' 2>/dev/null || echo "0")
+             UNDETECTED=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.undetected // 0' 2>/dev/null || echo "0")
+             TIMEOUT=$(echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_stats.timeout // 0' 2>/dev/null || echo "0")
+             
+             echo "  Results: malicious=$MALICIOUS, suspicious=$SUSPICIOUS, undetected=$UNDETECTED, timeout=$TIMEOUT"
+             
+             # Step 4: Determine pass/fail
+             if [ "$MALICIOUS" -gt 0 ]; then
+               echo "  ❌ FAIL: Binary flagged with $MALICIOUS malicious detection(s)"
+               echo ""
+               echo "  Detections:"
+               echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_results | to_entries[] | select(.value.category == "malicious") | "    \(.key): \(.value.engine_name) (\(.value.category))"' 2>/dev/null || echo "    (see VT dashboard for details)"
+               echo ""
+               FAILED=$((FAILED + 1))
+             else
+               if [ "$SUSPICIOUS" -gt 0 ]; then
+                 echo "  ⚠️  WARN: Binary flagged with $SUSPICIOUS suspicious detection(s) (allowed)"
+                 echo "  Suspicious detections:"
+                 echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_results | to_entries[] | select(.value.category == "suspicious") | "    \(.key): \(.value.engine_name) (\(.value.category))"' 2>/dev/null || echo "    (see VT dashboard for details)"
+               else
+                 echo "  ✅ PASS: Binary is clean"
+               fi
+               PASSED=$((PASSED + 1))
+             fi
+             
+             echo ""
+             
+             # Rate limit: VT free tier allows 4 req/min, be conservative
+             sleep 2
+           done
           
           echo "────────────────────────────────────────────────────────────"
           echo "Scan Summary:"
