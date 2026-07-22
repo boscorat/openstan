@@ -226,7 +226,7 @@ If the VirusTotal scan job fails (malicious detections found), the draft release
    - Find the draft release
    - Click the three-dot menu → "Delete release" → confirm
 
-2. **Delete the local tag:**
+2. **Delete the tag locally and on origin:**
    ```bash
    git tag -d v1.2.3
    git push origin --delete v1.2.3
