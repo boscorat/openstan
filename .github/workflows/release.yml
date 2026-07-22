@@ -999,10 +999,18 @@ jobs:
              STATUS="queued"
              
              while [ "$ATTEMPTS" -lt "$MAX_ATTEMPTS" ]; do
-               ANALYSIS_RESPONSE=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -X GET \
-                 -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
-                 "https://www.virustotal.com/api/v3/analyses/${ANALYSIS_ID}" || echo "{}")
-               STATUS=$(echo "$ANALYSIS_RESPONSE" | jq -r '.data.attributes.status // "unknown"')
+                ANALYSIS_RAW=$(curl -sS --retry 3 --retry-delay 5 --retry-all-errors -w "\n%{http_code}" -X GET \
+                  -H "x-apikey: ${VIRUSTOTAL_API_KEY}" \
+                  "https://www.virustotal.com/api/v3/analyses/${ANALYSIS_ID}" || printf "\n000")
+                ANALYSIS_HTTP_CODE=$(echo "$ANALYSIS_RAW" | tail -n1)
+                ANALYSIS_RESPONSE=$(echo "$ANALYSIS_RAW" | sed '$d')
+                if [ "$ANALYSIS_HTTP_CODE" != "200" ]; then
+                  echo "    ERROR: Failed to fetch analysis status (HTTP $ANALYSIS_HTTP_CODE)"
+                  FAILED=$((FAILED + 1))
+                  STATUS="failed"
+                  break
+                fi
+                STATUS=$(echo "$ANALYSIS_RESPONSE" | jq -r '.data.attributes.status // "unknown"')
                
                if [ "$STATUS" = "completed" ]; then
                  break
