@@ -41,7 +41,9 @@ All four platform jobs must complete successfully:
 - Windows (.msi)
 - macOS (.dmg)
 
-**New:** After all builds complete, the **VirusTotal scanning job** runs automatically. This scans all 6 binaries against 75+ antivirus engines.
+**New:** After all builds complete:
+1. **A draft release for the tag has been created/updated by the build jobs** as each platform finishes and uploads its binaries (visible to maintainers/collaborators as a draft; not public)
+2. The **VirusTotal scanning job** then runs automatically, downloading binaries from the draft and scanning against 75+ antivirus engines
 
 **Scanning can fail if:**
 - Any binary is flagged with **malicious detections** (known malware names)
@@ -51,11 +53,11 @@ All four platform jobs must complete successfully:
 - All binaries are clean (0 malicious detections)
 - Binaries have only heuristic/suspicious flags (logged, but allowed)
 
-If scanning fails:
+**If scanning fails:**
+- The draft release remains in place (unpublished, invisible to end users)
 - Check the GitHub Actions log for details
-- Review the VirusTotal report at https://www.virustotal.com/gui/home/upload
-- Fix the binary or wait for the issue to resolve, then re-push the tag
-- See [SECURITY.md](SECURITY.md) for complete false positive policy
+- Delete the draft, fix the binary, and re-tag
+- See troubleshooting section below for cleanup steps
 
 Monitor progress at: `https://github.com/boscorat/openstan/actions`
 
@@ -209,6 +211,38 @@ After publishing:
 - Check individual job logs to see which platform failed
 - Re-run failed jobs from the GitHub Actions UI
 - Alternatively, delete the tag, fix the issue, and push a new tag
+
+### VirusTotal scan failed; how do I clean up?
+
+If the VirusTotal scan job fails (malicious detections found), the draft release remains in place but unpublished. You must clean it up before retrying:
+
+1. **Delete the draft release:**
+   ```bash
+   gh release delete v1.2.3 --repo boscorat/openstan --yes
+   ```
+   
+   Or via GitHub UI:
+   - Go to `https://github.com/boscorat/openstan/releases`
+   - Find the draft release
+   - Click the three-dot menu → "Delete release" → confirm
+
+2. **Delete the tag locally and on origin:**
+   ```bash
+   git tag -d v1.2.3
+   git push origin --delete v1.2.3
+   ```
+
+3. **Investigate and fix the binary:**
+   - Review the VirusTotal report: https://www.virustotal.com/gui/home/upload
+   - Check [SECURITY.md](SECURITY.md) for false positive policy
+   - Modify the binary or build process if needed
+
+4. **Re-tag and retry:**
+   ```bash
+   git tag v1.2.3
+   git push origin v1.2.3
+   ```
+   The workflow will run again automatically.
 
 ### Microsoft WDSI submission rejected
 

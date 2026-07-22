@@ -69,11 +69,13 @@ All platform binaries (Linux .deb/.rpm, Windows .msi, macOS .dmg) are automatica
 
 1. **Trigger**: When a version tag is pushed (e.g., `git tag v1.0.0`)
 2. **Process**:
-   - All four platform builds complete (Linux x86_64/ARM64, Windows, macOS)
+   - All four platform builds run in parallel (Linux x86_64/ARM64, Windows, macOS)
+   - Each build job uploads its binaries directly to the tag’s draft release as it completes (the draft is created/updated by these uploads)
+   - After all builds succeed, the `scan-with-virustotal` job downloads binaries from the draft release
    - Each binary is uploaded to VirusTotal's API
    - Results are polled for analysis completion (~30–60 seconds per file)
    - Per-engine detection results are logged
-3. **Gate**: If any binary is flagged with malicious detections, the release workflow **fails** and no draft release is created
+3. **Gate**: If any binary is flagged with malicious detections, the `scan-with-virustotal` job fails. The draft release exists (created during builds) but remains unpublished—invisible to end users. Maintainers must resolve the issue, delete the draft, and re-tag to retry.
 4. **Audit**: Detailed scan results are logged in GitHub Actions for maintainer review
 
 #### False Positive Policy
@@ -95,10 +97,12 @@ VirusTotal results are interpreted using a graduated policy:
 
 | Scenario | Action |
 |---|---|
-| **Malicious detection found** | Fix the binary, rebase, and re-tag. Contact maintainers if you believe it's a false positive. |
+| **Malicious detection found** | The draft release exists but is unpublished (invisible to users). Delete the draft, fix the binary, rebase, and re-tag. See RELEASE.md troubleshooting for cleanup steps. |
 | **Network timeout** | Curl retries transient failures automatically. If all retries fail, re-run from the GitHub Actions UI. |
 | **API key missing** | Add `VIRUSTOTAL_API_KEY` to repository secrets (admin only). |
 | **VirusTotal service down** | Rare (~99.9% uptime). Wait and re-run, or temporarily disable scanning. |
+
+**Note:** Because the draft remains unpublished, no user-facing binaries are exposed, but the draft must be cleaned up before retrying the release.
 
 #### Investigating Detections Manually
 

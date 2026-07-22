@@ -16,26 +16,36 @@ The release workflow now includes an automated VirusTotal scanning job that:
 ```
 Push version tag (e.g., v1.0.0)
         ↓
-  ┌─────────────────────────────┐
-  │ Parallel builds             │
-  │ (Linux, Linux-ARM64,        │
-  │  Windows, macOS)            │
-  └─────────────────────────────┘
-        ↓ (all succeed)
-  ┌─────────────────────────────┐
-  │ scan-with-virustotal job    │
-  │ • Download binaries         │
-  │ • Upload to VT API          │
-  │ • Poll for completion       │
-  │ • Parse results             │
-  │ • Block on malicious        │
-  │ • Allow on suspicious       │
-  └─────────────────────────────┘
-        ↓ (scan passes)
-  ┌─────────────────────────────┐
-  │ cleanup job                 │
-  │ (strip old assets)          │
-  └─────────────────────────────┘
+  ┌──────────────────────────────────────┐
+  │ Parallel builds                      │
+  │ • Linux x86_64 + ARM64 build/upload  │
+  │ • Windows build/upload               │
+  │ • macOS build/upload                 │
+  │ • Each uploads to draft release      │
+  └──────────────────────────────────────┘
+        ↓ (builds complete; draft has accumulated all assets)
+  ┌──────────────────────────────────────┐
+  │ Draft release created/updated by each │
+  │ build job upload; it now has all 6    │
+  └──────────────────────────────────────┘
+        ↓
+  ┌──────────────────────────────────────┐
+  │ scan-with-virustotal job starts      │
+  │ • Download binaries FROM draft       │
+  │ • Upload to VT API                   │
+  │ • Poll for completion                │
+  │ • Parse results                      │
+  │ ──────────────────────────────────── │
+  │ If malicious > 0: FAIL (exit 1)     │
+  │ If suspicious > 0: WARN (log, OK)   │
+  │ If clean: PASS                       │
+  └──────────────────────────────────────┘
+        ↓
+  ┌──────────────────────────────────────┐
+  │ cleanup job (runs regardless)        │
+  │ • Strip binaries from old releases   │
+  │ • Preserve 5 most recent             │
+  └──────────────────────────────────────┘
 ```
 
 ## False Positive Policy (Reference)
@@ -115,7 +125,9 @@ check_allow_list() {
 
 **Location:** `.github/workflows/release.yml` (lines 793–1014)
 
-**Runs:** After builds succeed, before cleanup
+**Runs:** After builds complete and draft release is created with binaries, before cleanup
+
+**Input:** Binaries downloaded from the draft release (not from build artifacts)
 
 **Inputs:** 
 - Binaries downloaded from GitHub Release draft
