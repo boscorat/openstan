@@ -995,7 +995,7 @@ jobs:
              # Step 2: Poll for analysis completion
              echo "  Polling for analysis completion..."
              ATTEMPTS=0
-             MAX_ATTEMPTS=120  # ~1 hour with 30s sleep
+             MAX_ATTEMPTS=120  # 120 iterations × 30s = 60 min timeout
              STATUS="queued"
              
              while [ "$ATTEMPTS" -lt "$MAX_ATTEMPTS" ]; do
@@ -1015,8 +1015,9 @@ jobs:
                  break
                fi
                
-               ATTEMPTS=$((ATTEMPTS + 30))
-               echo "    Still polling... (${ATTEMPTS}s elapsed, status: $STATUS)"
+               ATTEMPTS=$((ATTEMPTS + 1))
+               ELAPSED=$((ATTEMPTS * 30))
+               echo "    Still polling... (${ELAPSED}s elapsed, status: $STATUS)"
                sleep 30
              done
              
