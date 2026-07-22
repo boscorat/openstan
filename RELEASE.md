@@ -42,7 +42,7 @@ All four platform jobs must complete successfully:
 - macOS (.dmg)
 
 **New:** After all builds complete:
-1. **Draft release is created immediately** with all 6 binaries attached (this is visible in GitHub Releases as a draft)
+1. **A draft release for the tag has been created/updated by the build jobs** as each platform finishes and uploads its binaries (visible to maintainers/collaborators as a draft; not public)
 2. The **VirusTotal scanning job** then runs automatically, downloading binaries from the draft and scanning against 75+ antivirus engines
 
 **Scanning can fail if:**
