@@ -1264,8 +1264,7 @@ MARKDOWN_EOF
           # Only append table if results exist
           if [ -s "$RESULTS_FILE" ]; then
             VT_TABLE=$(generate_vt_table "$RESULTS_FILE")
-            NEW_BODY="${VT_TABLE}${CURRENT_BODY}"
-
+            NEW_BODY="$(printf '%s\n\n%s' "$CURRENT_BODY" "$VT_TABLE")"
             # Update release with new body
             if gh release edit "$TAG" \
               --repo "$REPO" \
