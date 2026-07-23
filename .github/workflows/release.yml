@@ -1244,25 +1244,25 @@ jobs:
           # Generate VirusTotal results table
           generate_vt_table() {
             local results_file="$1"
-            
-            cat <<'MARKDOWN_EOF'
-## Security Scan Results
 
-| Binary | Platform | Status | Detections | Link |
-|--------|----------|--------|-----------|------|
-MARKDOWN_EOF
+            cat <<'MARKDOWN_EOF'
+          ## Security Scan Results
+          
+          | Binary | Platform | Status | Detections | Link |
+          |--------|----------|--------|-----------|------|
+          MARKDOWN_EOF
 
             while IFS='|' read -r filename platform status malicious suspicious sha256; do
               vt_link="https://www.virustotal.com/gui/file/${sha256}"
               printf "| \`%s\` | %s | %s | %s malicious, %s suspicious | [Analysis](%s) |\n" \
                 "$filename" "$platform" "$status" "$malicious" "$suspicious" "$vt_link"
             done < "$results_file"
-            
+
             cat <<'MARKDOWN_EOF'
-
----
-
-MARKDOWN_EOF
+          
+          ---
+          
+          MARKDOWN_EOF
           }
 
           # Only append table if results exist
