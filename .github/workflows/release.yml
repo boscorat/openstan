@@ -62,12 +62,12 @@ jobs:
           # ────────────────────────────────────────────────────────────────
           # Extract version from pyproject.toml
           # ────────────────────────────────────────────────────────────────
-          # Using grep + POSIX regex:
+          # Using GNU grep (-P) with a PCRE pattern (note: \s and \K are PCRE-only):
           #   ^         = start of line
           #   \s*       = optional whitespace
           #   version   = literal "version"
           #   \s*=\s*"  = equals with optional whitespace, then opening quote
-          #   \K        = keep assertion (don't include prefix in output)
+          #   \K        = reset match start (don’t include prefix in output)
           #   [^"]+     = capture until closing quote
           if [ ! -f "pyproject.toml" ]; then
             echo "❌ FATAL: pyproject.toml not found"
@@ -98,14 +98,18 @@ jobs:
             echo "   Git tag declares:        $TAG_VERSION"
             echo "   pyproject.toml declares: $PYPROJECT_VERSION"
             echo ""
-            echo "Recovery steps:"
+            echo "Recovery steps (choose ONE path):"
+            echo ""
+            echo "Option A (tag is correct; bump pyproject.toml to match):"
+            echo "  1. Set pyproject.toml to version = \"$TAG_VERSION\""
+            echo "  2. Commit: git add pyproject.toml && git commit -m 'Bump version to $TAG_VERSION'"
+            echo ""
+            echo "Option B (pyproject.toml is correct; fix the tag):"
             echo "  1. Delete the tag locally and remotely:"
             echo "     git tag -d v$TAG_VERSION"
             echo "     git push origin :refs/tags/v$TAG_VERSION"
-            echo "  2. Update pyproject.toml to version = \"$PYPROJECT_VERSION\""
-            echo "  3. Commit: git add pyproject.toml && git commit -m 'Bump version to $PYPROJECT_VERSION'"
-            echo "  4. Re-tag: git tag -a v$PYPROJECT_VERSION -m 'Release $PYPROJECT_VERSION'"
-            echo "  5. Push: git push origin main v$PYPROJECT_VERSION"
+            echo "  2. Re-tag: git tag -a v$PYPROJECT_VERSION -m 'Release $PYPROJECT_VERSION'"
+            echo "  3. Push: git push origin main v$PYPROJECT_VERSION"
             exit 1
           fi
 
@@ -1264,8 +1268,7 @@ MARKDOWN_EOF
           # Only append table if results exist
           if [ -s "$RESULTS_FILE" ]; then
             VT_TABLE=$(generate_vt_table "$RESULTS_FILE")
-            NEW_BODY="${VT_TABLE}${CURRENT_BODY}"
-
+            NEW_BODY="$(printf '%s\n\n%s' "$CURRENT_BODY" "$VT_TABLE")"
             # Update release with new body
             if gh release edit "$TAG" \
               --repo "$REPO" \
