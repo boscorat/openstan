@@ -961,8 +961,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-linux, build-linux-arm64, build-windows, build-macos]
     if: success()  # Only run if all builds succeeded
-    permissions:
-      contents: write  # needed to download assets from draft releases
+     permissions:
+       contents: write  # Required to download assets from draft releases
+                        # (Draft releases are collaborator-only; cannot use contents:read)
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
