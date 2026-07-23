@@ -102,7 +102,7 @@ jobs:
             echo ""
             echo "Option A (tag is correct; bump pyproject.toml to match):"
             echo "  1. Set pyproject.toml to version = \"$TAG_VERSION\""
-            echo "  2. Commit: git add pyproject.toml && git commit -m 'Bump version to $TAG_VERSION'"
+            echo "  2. Commit: git add pyproject.toml && git commit -m \"Bump version to $TAG_VERSION\""
             echo ""
             echo "Option B (pyproject.toml is correct; fix the tag):"
             echo "  1. Delete the tag locally and remotely:"
