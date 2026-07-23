@@ -25,6 +25,95 @@ permissions: {}  # no workflow-level permissions; each job declares its own
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Validate version tag matches pyproject.toml before building
+  # ---------------------------------------------------------------------------
+  validate-version:
+    name: Validate tag version matches pyproject.toml
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Extract and compare versions
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          # ────────────────────────────────────────────────────────────────
+          # Extract version from git tag
+          # ────────────────────────────────────────────────────────────────
+          # Strip leading 'v' prefix (e.g., v1.0.0 → 1.0.0)
+          # Supports tags: v1.0.0, v0.1.4.11, v2.0.0-rc.1, v1.0.0+build.1
+          TAG_VERSION="${TAG_NAME#v}"
+
+          if [ -z "$TAG_VERSION" ]; then
+            echo "❌ FATAL: Git tag is empty"
+            exit 1
+          fi
+
+          echo "Git tag version: $TAG_VERSION"
+
+          # ────────────────────────────────────────────────────────────────
+          # Extract version from pyproject.toml
+          # ────────────────────────────────────────────────────────────────
+          # Using GNU grep (-P) with a PCRE pattern (note: \s and \K are PCRE-only):
+          #   ^         = start of line
+          #   \s*       = optional whitespace
+          #   version   = literal "version"
+          #   \s*=\s*"  = equals with optional whitespace, then opening quote
+          #   \K        = reset match start (don’t include prefix in output)
+          #   [^"]+     = capture until closing quote
+          if [ ! -f "pyproject.toml" ]; then
+            echo "❌ FATAL: pyproject.toml not found"
+            exit 1
+          fi
+
+          PYPROJECT_VERSION=$(grep -oP '^\s*version\s*=\s*"\K[^"]+' pyproject.toml || true)
+
+          if [ -z "$PYPROJECT_VERSION" ]; then
+            echo "❌ FATAL: Cannot extract version from pyproject.toml"
+            echo "  Expected format: version = \"<version>\""
+            exit 1
+          fi
+
+          echo "pyproject.toml version: $PYPROJECT_VERSION"
+
+          # ────────────────────────────────────────────────────────────────
+          # Compare versions
+          # ────────────────────────────────────────────────────────────────
+          if [ "$TAG_VERSION" = "$PYPROJECT_VERSION" ]; then
+            echo ""
+            echo "✅ Version validation PASSED"
+            echo "   Tag and pyproject.toml both declare: $TAG_VERSION"
+            exit 0
+          else
+            echo ""
+            echo "❌ Version validation FAILED"
+            echo "   Git tag declares:        $TAG_VERSION"
+            echo "   pyproject.toml declares: $PYPROJECT_VERSION"
+            echo ""
+            echo "Recovery steps (choose ONE path):"
+            echo ""
+            echo "Option A (tag is correct; bump pyproject.toml to match):"
+            echo "  1. Set pyproject.toml to version = \"$TAG_VERSION\""
+            echo "  2. Commit: git add pyproject.toml && git commit -m \"Bump version to $TAG_VERSION\""
+            echo ""
+            echo "Option B (pyproject.toml is correct; fix the tag):"
+            echo "  1. Delete the tag locally and remotely:"
+            echo "     git tag -d v$TAG_VERSION"
+            echo "     git push origin :refs/tags/v$TAG_VERSION"
+            echo "  2. Re-tag: git tag -a v$PYPROJECT_VERSION -m 'Release $PYPROJECT_VERSION'"
+            echo "  3. Push: git push origin main v$PYPROJECT_VERSION"
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
   # Linux — produces .deb and .rpm using fpm
   # ---------------------------------------------------------------------------
   #
@@ -42,10 +131,11 @@ jobs:
   #     a manual dpkg-deb repack to inject postinst/postrm.
   #   • fpm packages the frozen directory directly, never runs find-requires,
   #     and supports --after-install / --after-remove natively on both targets.
-  # ---------------------------------------------------------------------------
+   # ---------------------------------------------------------------------------
   build-linux:
     name: Build Linux packages (.deb / .rpm)
     runs-on: ubuntu-latest
+    needs: validate-version
     timeout-minutes: 30
     permissions:
       contents: write  # needed to upload release assets
@@ -191,10 +281,11 @@ jobs:
   #   • runner: ubuntu-24.04-arm  (native aarch64 — no cross-compilation)
   #   • .deb filename suffix: _arm64.deb
   #   • .rpm filename suffix: .aarch64.rpm
-  # ---------------------------------------------------------------------------
+   # ---------------------------------------------------------------------------
   build-linux-arm64:
     name: Build Linux ARM64 packages (.deb / .rpm)
     runs-on: ubuntu-24.04-arm
+    needs: validate-version
     timeout-minutes: 45
     permissions:
       contents: write
@@ -314,10 +405,11 @@ jobs:
   #   • Progress and Finish pages with "Launch openstan" checkbox
   #   • Desktop and Start Menu shortcuts
   #   • Clean major-upgrade (previous version replaced automatically)
-  # ---------------------------------------------------------------------------
+   # ---------------------------------------------------------------------------
   build-windows:
     name: Build Windows installer (.msi)
     runs-on: windows-latest
+    needs: validate-version
     permissions:
       contents: write  # needed to upload release assets
 
@@ -338,7 +430,13 @@ jobs:
         shell: pwsh
         run: |
           $url = "https://github.com/linebender/resvg/releases/download/v0.44.0/resvg-win64.zip"
+          $expectedSha256 = "4fd4ac0640bc0ee4b4e20335d9b7636d5e5b9722cfeaee4cd51b86655dcfdae5"
           Invoke-WebRequest $url -OutFile resvg.zip
+          $actualSha256 = (Get-FileHash resvg.zip -Algorithm SHA256).Hash.ToLower()
+          if ($actualSha256 -ne $expectedSha256) {
+            Write-Error "Checksum mismatch for resvg-win64.zip`nExpected: $expectedSha256`nGot: $actualSha256"
+            exit 1
+          }
           Expand-Archive resvg.zip -DestinationPath C:\resvg
           echo "C:\resvg" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
@@ -445,10 +543,11 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # macOS — produces .dmg disk image
-  # ---------------------------------------------------------------------------
+   # ---------------------------------------------------------------------------
   build-macos:
     name: Build macOS disk image (.dmg)
     runs-on: macos-latest
+    needs: validate-version
     permissions:
       contents: write  # needed to upload release assets
 
@@ -877,7 +976,8 @@ jobs:
     needs: [build-linux, build-linux-arm64, build-windows, build-macos]
     if: success()  # Only run if all builds succeeded
     permissions:
-      contents: write  # needed to download assets from draft releases
+      contents: write  # Required to download assets from draft releases
+                       # (Draft releases are collaborator-only; cannot use contents:read)
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
@@ -923,21 +1023,26 @@ jobs:
             exit 1
           fi
           
-          cd scan_binaries
-          BINARY_COUNT=$(ls -1 | wc -l)
-          
-          if [ "$BINARY_COUNT" -eq 0 ]; then
-            echo "ERROR: No binaries found to scan"
-            exit 1
-          fi
-          
-          echo "Scanning $BINARY_COUNT binaries with VirusTotal..."
-          echo ""
-          
-          FAILED=0
-          PASSED=0
-          
-           for binary in *; do
+           cd scan_binaries
+           BINARY_COUNT=$(ls -1 | wc -l)
+           
+           if [ "$BINARY_COUNT" -eq 0 ]; then
+             echo "ERROR: No binaries found to scan"
+             exit 1
+           fi
+           
+           echo "Scanning $BINARY_COUNT binaries with VirusTotal..."
+           echo ""
+           
+           # Initialize results file for VirusTotal table in release notes
+           # Format: FILENAME|PLATFORM|STATUS_EMOJI|MALICIOUS|SUSPICIOUS|SHA256
+           RESULTS_FILE="/tmp/vt_scan_results.txt"
+           > "$RESULTS_FILE"
+           
+           FAILED=0
+           PASSED=0
+           
+            for binary in *; do
              [ -f "$binary" ] || continue
              
              FILE_SIZE=$(stat -f%z "$binary" 2>/dev/null || stat -c%s "$binary" 2>/dev/null || echo "unknown")
@@ -1057,48 +1162,126 @@ jobs:
 
               echo "  Results: malicious=$MALICIOUS, suspicious=$SUSPICIOUS, undetected=$UNDETECTED, timeout=$TIMEOUT"
              
-             # Step 4: Determine pass/fail
-             if [ "$MALICIOUS" -gt 0 ]; then
-               echo "  ❌ FAIL: Binary flagged with $MALICIOUS malicious detection(s)"
-               echo ""
-               echo "  Detections:"
-               echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_results | to_entries[] | select(.value.category == "malicious") | "    \(.key): \(.value.engine_name) (\(.value.category))"' 2>/dev/null || echo "    (see VT dashboard for details)"
-               echo ""
-               FAILED=$((FAILED + 1))
-             else
-               if [ "$SUSPICIOUS" -gt 0 ]; then
-                 echo "  ⚠️  WARN: Binary flagged with $SUSPICIOUS suspicious detection(s) (allowed)"
-                 echo "  Suspicious detections:"
-                 echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_results | to_entries[] | select(.value.category == "suspicious") | "    \(.key): \(.value.engine_name) (\(.value.category))"' 2>/dev/null || echo "    (see VT dashboard for details)"
-               else
-                 echo "  ✅ PASS: Binary is clean"
-               fi
-               PASSED=$((PASSED + 1))
-             fi
+              # Infer platform from filename
+              case "$binary" in
+                *"-Linux-Ubuntu-x86_64"*) PLATFORM="Linux (x86_64)" ;;
+                *"-Linux-Ubuntu-arm64"*) PLATFORM="Linux (ARM64)" ;;
+                *"-Linux-Fedora-x86_64"*) PLATFORM="Linux (x86_64 RPM)" ;;
+                *"-Linux-Fedora-arm64"*) PLATFORM="Linux (ARM64 RPM)" ;;
+                *"-Windows"*) PLATFORM="Windows" ;;
+                *"-macOS"*) PLATFORM="macOS" ;;
+                *) PLATFORM="Unknown" ;;
+              esac
              
+              # Step 4: Determine pass/fail
+              if [ "$MALICIOUS" -gt 0 ]; then
+                echo "  ❌ FAIL: Binary flagged with $MALICIOUS malicious detection(s)"
+                echo ""
+                echo "  Detections:"
+                echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_results | to_entries[] | select(.value.category == "malicious") | "    \(.key): \(.value.engine_name) (\(.value.category))"' 2>/dev/null || echo "    (see VT dashboard for details)"
+                echo ""
+                STATUS_EMOJI="❌ FAIL"
+                FAILED=$((FAILED + 1))
+              else
+                if [ "$SUSPICIOUS" -gt 0 ]; then
+                  echo "  ⚠️  WARN: Binary flagged with $SUSPICIOUS suspicious detection(s) (allowed)"
+                  echo "  Suspicious detections:"
+                  echo "$FILE_RESPONSE" | jq -r '.data.attributes.last_analysis_results | to_entries[] | select(.value.category == "suspicious") | "    \(.key): \(.value.engine_name) (\(.value.category))"' 2>/dev/null || echo "    (see VT dashboard for details)"
+                  STATUS_EMOJI="⚠️ WARN"
+                else
+                  echo "  ✅ PASS: Binary is clean"
+                  STATUS_EMOJI="✅ PASS"
+                fi
+                PASSED=$((PASSED + 1))
+              fi
+              
+              # Collect result for table (only if scan succeeded)
+              if [ "$STATUS" != "failed" ]; then
+                echo "${binary}|${PLATFORM}|${STATUS_EMOJI}|${MALICIOUS}|${SUSPICIOUS}|${SHA256}" >> "$RESULTS_FILE"
+              fi
+              
+              echo ""
+              
+              # Rate limit: VT free tier allows 4 req/min, be conservative
+              sleep 2
+            done
+           
+           echo "────────────────────────────────────────────────────────────"
+           echo "Scan Summary:"
+           echo "  Passed: $PASSED/$BINARY_COUNT"
+           echo "  Failed: $FAILED/$BINARY_COUNT"
+           echo ""
+           
+           if [ "$FAILED" -gt 0 ]; then
+             echo "❌ SCANNING FAILED: $FAILED binary(ies) had malicious detections or could not be scanned"
              echo ""
-             
-             # Rate limit: VT free tier allows 4 req/min, be conservative
-             sleep 2
-           done
-          
-          echo "────────────────────────────────────────────────────────────"
-          echo "Scan Summary:"
-          echo "  Passed: $PASSED/$BINARY_COUNT"
-          echo "  Failed: $FAILED/$BINARY_COUNT"
-          echo ""
-          
-          if [ "$FAILED" -gt 0 ]; then
-            echo "❌ SCANNING FAILED: $FAILED binary(ies) had malicious detections or could not be scanned"
-            echo ""
-            echo "For details, see:"
-            echo "  • GitHub Actions logs above"
-            echo "  • VirusTotal dashboard: https://www.virustotal.com/gui/home/upload"
-            echo "  • Security policy: SECURITY.md in the repository"
-            exit 1
+             echo "For details, see:"
+             echo "  • GitHub Actions logs above"
+             echo "  • VirusTotal dashboard: https://www.virustotal.com/gui/home/upload"
+             echo "  • Security policy: SECURITY.md in the repository"
+             exit 1
+           fi
+           
+           echo "✅ ALL BINARIES PASSED VIRUSTOTAL SCAN"
+
+      - name: Append VirusTotal results table to release notes
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          RESULTS_FILE="/tmp/vt_scan_results.txt"
+
+          # Fetch current release body
+          CURRENT_BODY=$(gh release view "$TAG" \
+            --repo "$REPO" \
+            --json body \
+            --jq '.body' 2>/dev/null || echo "")
+
+          # Generate VirusTotal results table
+          generate_vt_table() {
+            local results_file="$1"
+            
+            cat <<'MARKDOWN_EOF'
+## Security Scan Results
+
+| Binary | Platform | Status | Detections | Link |
+|--------|----------|--------|-----------|------|
+MARKDOWN_EOF
+
+            while IFS='|' read -r filename platform status malicious suspicious sha256; do
+              vt_link="https://www.virustotal.com/gui/file/${sha256}"
+              printf "| \`%s\` | %s | %s | %s malicious, %s suspicious | [Analysis](%s) |\n" \
+                "$filename" "$platform" "$status" "$malicious" "$suspicious" "$vt_link"
+            done < "$results_file"
+            
+            cat <<'MARKDOWN_EOF'
+
+---
+
+MARKDOWN_EOF
+          }
+
+          # Only append table if results exist
+          if [ -s "$RESULTS_FILE" ]; then
+            VT_TABLE=$(generate_vt_table "$RESULTS_FILE")
+            NEW_BODY="$(printf '%s\n\n%s' "$CURRENT_BODY" "$VT_TABLE")"
+            # Update release with new body
+            if gh release edit "$TAG" \
+              --repo "$REPO" \
+              --notes "$NEW_BODY" 2>/dev/null; then
+              echo "✅ Updated release notes with VirusTotal security scan table"
+            else
+              echo "⚠️  WARNING: Failed to append VirusTotal table to release notes"
+              echo "    Release proceeds without table; check GitHub Actions logs"
+            fi
+          else
+            echo "⚠️  WARNING: No scan results collected; table not appended"
           fi
-          
-          echo "✅ ALL BINARIES PASSED VIRUSTOTAL SCAN"
+
           exit 0
 
   # ---------------------------------------------------------------------------
