@@ -230,7 +230,7 @@ class ProjectPresenter(QObject):
             self.open_folder_selection_dialog
         )
         self.view.wizard_existing.page_basic.name_row.textChanged.connect(
-            self.path_or_name_changed.emit
+            self.on_existing_project_name_changed
         )
         self.view.wizard_existing.new_project_required.connect(
             self.handle_project_required
@@ -471,6 +471,11 @@ class ProjectPresenter(QObject):
         """Only used by the new-project wizard to gate the location button."""
         name: str = self.view.wizard.page_basic.name_row.text()
         self.view.wizard.page_basic.location_button.setDisabled(len(name) == 0)
+        self.path_or_name_changed.emit()
+
+    @Slot(str)
+    def on_existing_project_name_changed(self, _name: str) -> None:
+        """Forward an existing-project name change without its text payload."""
         self.path_or_name_changed.emit()
 
     @Slot()
