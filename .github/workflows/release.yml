@@ -25,6 +25,91 @@ permissions: {}  # no workflow-level permissions; each job declares its own
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Validate version tag matches pyproject.toml before building
+  # ---------------------------------------------------------------------------
+  validate-version:
+    name: Validate tag version matches pyproject.toml
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Extract and compare versions
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          # ────────────────────────────────────────────────────────────────
+          # Extract version from git tag
+          # ────────────────────────────────────────────────────────────────
+          # Strip leading 'v' prefix (e.g., v1.0.0 → 1.0.0)
+          # Supports tags: v1.0.0, v0.1.4.11, v2.0.0-rc.1, v1.0.0+build.1
+          TAG_VERSION="${TAG_NAME#v}"
+
+          if [ -z "$TAG_VERSION" ]; then
+            echo "❌ FATAL: Git tag is empty"
+            exit 1
+          fi
+
+          echo "Git tag version: $TAG_VERSION"
+
+          # ────────────────────────────────────────────────────────────────
+          # Extract version from pyproject.toml
+          # ────────────────────────────────────────────────────────────────
+          # Using grep + POSIX regex:
+          #   ^         = start of line
+          #   \s*       = optional whitespace
+          #   version   = literal "version"
+          #   \s*=\s*"  = equals with optional whitespace, then opening quote
+          #   \K        = keep assertion (don't include prefix in output)
+          #   [^"]+     = capture until closing quote
+          if [ ! -f "pyproject.toml" ]; then
+            echo "❌ FATAL: pyproject.toml not found"
+            exit 1
+          fi
+
+          PYPROJECT_VERSION=$(grep -oP '^\s*version\s*=\s*"\K[^"]+' pyproject.toml || true)
+
+          if [ -z "$PYPROJECT_VERSION" ]; then
+            echo "❌ FATAL: Cannot extract version from pyproject.toml"
+            echo "  Expected format: version = \"<version>\""
+            exit 1
+          fi
+
+          echo "pyproject.toml version: $PYPROJECT_VERSION"
+
+          # ────────────────────────────────────────────────────────────────
+          # Compare versions
+          # ────────────────────────────────────────────────────────────────
+          if [ "$TAG_VERSION" = "$PYPROJECT_VERSION" ]; then
+            echo ""
+            echo "✅ Version validation PASSED"
+            echo "   Tag and pyproject.toml both declare: $TAG_VERSION"
+            exit 0
+          else
+            echo ""
+            echo "❌ Version validation FAILED"
+            echo "   Git tag declares:        $TAG_VERSION"
+            echo "   pyproject.toml declares: $PYPROJECT_VERSION"
+            echo ""
+            echo "Recovery steps:"
+            echo "  1. Delete the tag locally and remotely:"
+            echo "     git tag -d v$TAG_VERSION"
+            echo "     git push origin :refs/tags/v$TAG_VERSION"
+            echo "  2. Update pyproject.toml to version = \"$PYPROJECT_VERSION\""
+            echo "  3. Commit: git add pyproject.toml && git commit -m 'Bump version to $PYPROJECT_VERSION'"
+            echo "  4. Re-tag: git tag -a v$PYPROJECT_VERSION -m 'Release $PYPROJECT_VERSION'"
+            echo "  5. Push: git push origin main v$PYPROJECT_VERSION"
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
   # Linux — produces .deb and .rpm using fpm
   # ---------------------------------------------------------------------------
   #
