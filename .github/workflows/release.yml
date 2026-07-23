@@ -419,13 +419,19 @@ jobs:
         with:
           python-version: "3.14"
 
-      - name: Install resvg (headless SVG→PNG, no display required)
-        shell: pwsh
-        run: |
-          $url = "https://github.com/linebender/resvg/releases/download/v0.44.0/resvg-win64.zip"
-          Invoke-WebRequest $url -OutFile resvg.zip
-          Expand-Archive resvg.zip -DestinationPath C:\resvg
-          echo "C:\resvg" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+       - name: Install resvg (headless SVG→PNG, no display required)
+         shell: pwsh
+         run: |
+           $url = "https://github.com/linebender/resvg/releases/download/v0.44.0/resvg-win64.zip"
+           $expectedSha256 = "4fd4ac0640bc0ee4b4e20335d9b7636d5e5b9722cfeaee4cd51b86655dcfdae5"
+           Invoke-WebRequest $url -OutFile resvg.zip
+           $actualSha256 = (Get-FileHash resvg.zip -Algorithm SHA256).Hash.ToLower()
+           if ($actualSha256 -ne $expectedSha256) {
+             Write-Error "Checksum mismatch for resvg-win64.zip`nExpected: $expectedSha256`nGot: $actualSha256"
+             exit 1
+           }
+           Expand-Archive resvg.zip -DestinationPath C:\resvg
+           echo "C:\resvg" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Install WiX Toolset v4
         shell: pwsh
