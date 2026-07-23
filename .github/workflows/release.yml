@@ -62,12 +62,12 @@ jobs:
           # ────────────────────────────────────────────────────────────────
           # Extract version from pyproject.toml
           # ────────────────────────────────────────────────────────────────
-          # Using grep + POSIX regex:
+          # Using GNU grep (-P) with a PCRE pattern (note: \s and \K are PCRE-only):
           #   ^         = start of line
           #   \s*       = optional whitespace
           #   version   = literal "version"
           #   \s*=\s*"  = equals with optional whitespace, then opening quote
-          #   \K        = keep assertion (don't include prefix in output)
+          #   \K        = reset match start (don’t include prefix in output)
           #   [^"]+     = capture until closing quote
           if [ ! -f "pyproject.toml" ]; then
             echo "❌ FATAL: pyproject.toml not found"
