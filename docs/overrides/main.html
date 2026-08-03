@@ -107,8 +107,8 @@
       {
         "@type": "ListItem",
         "position": 2,
-        "name": "{{ page.title }}",
-        "item": "{{ page.canonical_url }}"
+        "name": {{ page.title | tojson }},
+        "item": {{ page.canonical_url | tojson }}
       }
     ]
   }
