@@ -1,3 +1,7 @@
+---
+description: "openstan privacy policy. No data collection, no telemetry, no cloud storage. Your bank statements stay on your machine."
+---
+
 # Privacy Policy
 
 *Last updated: May 2026*

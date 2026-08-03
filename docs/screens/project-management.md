@@ -1,3 +1,7 @@
+---
+description: "Create, switch between, and manage openstan projects. Project selector bar and navigation overview."
+---
+
 # Project Management
 
 The project management controls are always visible at the top of the application window, below the title bar.

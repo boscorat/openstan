@@ -1,3 +1,7 @@
+---
+description: "Project management operations — add, rename, or delete projects in openstan."
+---
+
 # Admin
 
 The **Admin** dialog is used for project management operations that modify or remove data. It is intentionally hidden from the main navigation to prevent accidental use.

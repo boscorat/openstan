@@ -1,3 +1,7 @@
+---
+description: "View project summary statistics, per-account breakdowns, and statement coverage gaps in openstan."
+---
+
 # Project Info
 
 The **Project Info** panel (`Alt+P`) provides a summary of all committed data in the active project.

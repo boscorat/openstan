@@ -1,3 +1,7 @@
+---
+description: "Redact bank statement PDFs for safe sharing using openstan's anonymise tool."
+---
+
 # Anonymise PDF
 
 The **Anonymise PDF** tool lets you produce a redacted copy of a bank statement PDF suitable for sharing — for example, when attaching a failing statement to a GitHub issue. All text is scrambled by default. You use two simple tables to control which phrases are left unchanged (so the parser can still read them) and which strings are replaced with safe alternatives (before scrambling occurs).

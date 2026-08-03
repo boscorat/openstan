@@ -1,3 +1,7 @@
+---
+description: "Build a queue of bank statement PDFs and run the import process in openstan."
+---
+
 # Import Statements
 
 The **Import Statements** panel (`Alt+I`) is where you build a queue of bank statement PDFs and run the import process.

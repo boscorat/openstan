@@ -1,3 +1,7 @@
+---
+description: "Build custom reports with filters, grouping, and aggregations in openstan's no-code report builder."
+---
+
 # Run Reports
 
 The **Run Reports** panel (`Alt+R`) provides a no-code report builder. You can define filters, column selections, groupings, and aggregations, preview the results live, save named reports, and export them to Excel, CSV, or JSON.

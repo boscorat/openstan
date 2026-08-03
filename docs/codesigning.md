@@ -1,3 +1,7 @@
+---
+description: "openstan code signing policy. Windows MSI installers signed via SignPath Foundation."
+---
+
 # Code Signing Policy
 
 Windows code signing via [Certum](https://www.certum.eu/) Open Source Code

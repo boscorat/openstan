@@ -1,3 +1,7 @@
+---
+description: "Export committed transaction data from openstan to Excel, CSV, or JSON using configurable presets."
+---
+
 # Export Data
 
 The **Export Data** panel (`Alt+E`) lets you export your committed transaction data to Excel, CSV, or JSON using configurable presets.
