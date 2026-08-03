@@ -47,6 +47,13 @@ markdown_extensions:
   - toc:
       permalink: true
 
+plugins:
+  - search
+  - sitemap:
+      sitemap_filename: sitemap.xml
+      changefreq: monthly
+      priority: 0.8
+
 extra_css:
   - assets/stylesheets/extra.css
 
