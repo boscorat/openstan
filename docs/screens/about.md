@@ -1,3 +1,7 @@
+---
+description: "Version information, links, and licence details for openstan and its dependencies."
+---
+
 # About
 
 The **About** dialog shows version information, links, and licence details for openstan and its dependencies.

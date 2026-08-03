@@ -1,3 +1,7 @@
+---
+description: "Review openstan import results — success, review, and failure tabs with debug output and original PDF side by side."
+---
+
 # Import Results
 
 The **Import Results** panel appears automatically when a batch finishes processing. It summarises what happened and lets you decide what to do next.

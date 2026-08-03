@@ -1,3 +1,7 @@
+---
+description: "Spec-driven custom exports in openstan via TOML files with per-account and date-range filtering."
+---
+
 # Advanced Export
 
 The **Advanced Export** tab lives inside the [Export Data](export-data.md) panel (`Alt+E`). It provides spec-driven custom exports where you control the account, statement, and date range, and the output format is defined by a TOML export spec file.

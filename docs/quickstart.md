@@ -1,3 +1,7 @@
+---
+description: "Step-by-step guide to creating your first project, importing bank statement PDFs, and exporting transactions in openstan."
+---
+
 # Quick Start
 
 This guide walks you through the full workflow from a fresh installation to your first committed batch of statements.
