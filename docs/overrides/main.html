@@ -79,4 +79,26 @@
   }
   </script>
   {% endif %}
+  {% if not page.is_homepage %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://openstan.org/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "{{ page.title }}",
+        "item": "{{ page.canonical_url }}"
+      }
+    ]
+  }
+  </script>
+  {% endif %}
 {% endblock %}
