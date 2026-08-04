@@ -1,6 +1,6 @@
 ---
 title: "Free UK Bank Statement Analyser"
-description: "Free, open-source UK bank statement analyser. Import HSBC, TSB, and NatWest PDFs offline. Parse 100 statements in under 60 seconds. Export to Excel, CSV, or JSON."
+description: "Free, open-source UK bank statement analyser. Import HSBC, TSB, NatWest, and Halifax PDFs offline. Parse 100 statements in under 60 seconds. Export to Excel, CSV, or JSON."
 ---
 
 # openstan — Free UK Bank Statement Analyser
@@ -57,9 +57,7 @@ openstan parses statements using the [bank_statement_parser](https://boscorat.gi
 
 | Bank | Supported account types |
 |---|---|
-| **HSBC UK** | Bank Account (Current), HSBC Advance, Flexible Saver, Online Bonus Saver, Rewards Credit Card |
-| **TSB UK** | Spend & Save (Current Account) |
-| **NatWest UK** | Current Account |
+--8<-- "supported_banks.md"
 
 New banks can be added by anyone via a [TOML configuration file](https://boscorat.github.io/bank_statement_parser/guides/new-bank-config/) — no coding required. Don't see your bank? [Request it here](https://github.com/boscorat/bank_statement_parser/issues/new?template=new-bank-request.yml).
 
