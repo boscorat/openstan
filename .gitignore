@@ -22,3 +22,6 @@ wheels/
 
 # example files
 examples/
+
+# Generated docs includes (rebuilt on every docs deploy)
+docs/includes/supported_banks.md

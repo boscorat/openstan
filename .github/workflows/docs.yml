@@ -40,6 +40,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-groups
 
+      - name: Generate bank data
+        run: uv run python docs/scripts/generate_bank_data.py
+
       - name: Build docs
         run: uv run zensical build
         env:
