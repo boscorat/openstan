@@ -95,9 +95,9 @@
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "openstan",
-    "url": "https://openstan.org",
-    "logo": "https://openstan.org/assets/logo-light.svg",
+    "name": {{ config.site_name | tojson }},
+    "url": {{ config.site_url | tojson }},
+    "logo": {{ (config.site_url ~ "assets/logo-light.svg") | tojson }},
     "sameAs": [
       "https://github.com/boscorat/openstan"
     ]
