@@ -73,7 +73,7 @@ def _render_markdown(banks: list[dict[str, object]]) -> str:
         "|---|---|",
     ]
     for bank in banks:
-        accounts = bank["accounts"]  # type: ignore[assignment]
+        accounts: list[dict[str, str]] = bank["accounts"]  # type: ignore[assignment]
         account_names = ", ".join(a["name"] for a in accounts)
         lines.append(f"| **{bank['name']}** | {account_names} |")
     return "\n".join(lines) + "\n"
