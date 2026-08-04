@@ -66,6 +66,13 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Quick Start: quickstart.md
+  - Use Cases:
+      - Overview: use-cases/index.md
+      - Self Assessment: use-cases/self-assessment.md
+      - Probate & Estate Admin: use-cases/probate.md
+      - Multi-Account Tracking: use-cases/multi-account-tracking.md
+      - Small Business: use-cases/small-business.md
+      - Conveyancing: use-cases/conveyancing.md
   - Screens:
       - Project Management: screens/project-management.md
       - Import Statements: screens/import-statements.md
