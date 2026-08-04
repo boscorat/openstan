@@ -67,15 +67,18 @@ def _load_bank_data(import_dir: Path) -> list[dict[str, object]]:
 
 
 def _render_markdown(banks: list[dict[str, object]]) -> str:
-    """Render a markdown table from the parsed bank data."""
-    lines = [
-        "| Bank | Supported account types |",
-        "|---|---|",
-    ]
+    """Render markdown table rows from the parsed bank data (no header)."""
+    lines: list[str] = []
     for bank in banks:
         accounts: list[dict[str, str]] = bank["accounts"]  # type: ignore[assignment]
-        account_names = ", ".join(a["name"] for a in accounts)
-        lines.append(f"| **{bank['name']}** | {account_names} |")
+        formatted = [
+            f"{a['name']} ({a['type']})"
+            if a["type"] and a["type"].lower() not in a["name"].lower()
+            else a["name"]
+            for a in accounts
+        ]
+        account_str = ", ".join(formatted)
+        lines.append(f"| **{bank['name']}** | {account_str} |")
     return "\n".join(lines) + "\n"
 
 
