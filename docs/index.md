@@ -72,6 +72,20 @@ New banks can be added by anyone via a [TOML configuration file](https://boscora
 
 ---
 
+## Key screens
+
+| Screen | Description |
+|--------|-------------|
+| [Project Management](screens/project-management.md) | Create, switch, and delete projects |
+| [Import Statements](screens/import-statements.md) | Import bank statement PDFs in bulk |
+| [Import Results](screens/import-results.md) | Review and commit imported statements |
+| [Project Info](screens/project-info.md) | View transaction counts and account breakdowns |
+| [Run Reports](screens/run-reports.md) | Filter, group, and aggregate transactions |
+| [Export Data](screens/export-data.md) | Export to Excel, CSV, or JSON |
+| [Admin](screens/admin.md) | Manage banks and statement configurations |
+
+---
+
 ## Supported platforms
 
 | Platform | Installer |
