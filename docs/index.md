@@ -68,6 +68,7 @@ New banks can be added by anyone via a [TOML configuration file](https://boscora
 1. [Install openstan](installation.md) for your operating system — no Python required.
 2. Follow the [Quick Start guide](quickstart.md) to create your first project and import your first statements.
 3. Browse the [Screens](screens/project-management.md) reference for a guide to every panel and option.
+4. Explore [Use Cases](use-cases/index.md) for ideas specific to your workflow.
 
 ---
 
