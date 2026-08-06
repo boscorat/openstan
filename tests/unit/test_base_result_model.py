@@ -13,7 +13,6 @@ of ``QStandardItem`` objects.
 from pathlib import Path
 from uuid import uuid4
 
-
 from PySide6.QtCore import Qt
 
 from openstan.models.statement_result_model import (

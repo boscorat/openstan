@@ -168,7 +168,7 @@ class StanDialog(QDialog):
         self.setAutoFillBackground(True)
         self._scrollable: bool = False
 
-    def setLayout(self, layout) -> None:  # noqa: N802
+    def setLayout(self, layout) -> None:
         """Set the dialog's layout, optionally wrapped in a scroll area.
 
         If _scrollable is True, wraps the layout in a StanScrollArea so
@@ -261,7 +261,7 @@ class StanErrorMessage(QDialog):
         layout.addWidget(buttons)
         self.setLayout(layout)
 
-    def showMessage(self, message: str, context_object: str | None = None) -> None:  # noqa: N802
+    def showMessage(self, message: str, context_object: str | None = None) -> None:
         """Display message in the dialog and exec it modally.
 
         Parameters
@@ -333,7 +333,7 @@ class StanErrorMessage(QDialog):
             from importlib.metadata import version as get_version
 
             pyside_version = get_version("PySide6")
-        except Exception:
+        except Exception:  # noqa: BLE001
             pyside_version = "unknown"
 
         # Build issue body
@@ -393,7 +393,7 @@ class StanErrorMessage(QDialog):
             from importlib.metadata import version
 
             return version("openstan")
-        except Exception:
+        except Exception:  # noqa: BLE001
             return "unknown"
 
 
@@ -477,7 +477,7 @@ class StanMutedLabel(StanLabel):
         palette.setColor(QPalette.ColorRole.WindowText, base)
         self.setPalette(palette)
 
-    def changeEvent(self, a0: QEvent) -> None:  # noqa: N802
+    def changeEvent(self, a0: QEvent) -> None:
         """Re-apply the muted colour whenever the palette changes."""
         if (
             not getattr(self, "_refreshing_color", False)
@@ -525,7 +525,7 @@ class StanThemedPixmapLabel(StanLabel):
         )
         self.setPixmap(pixmap)
 
-    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+    def changeEvent(self, event: QEvent) -> None:
         """Refresh pixmap when palette changes (theme switch)."""
         if event is not None and event.type() in (
             QEvent.Type.ApplicationPaletteChange,
@@ -569,7 +569,7 @@ class StanButton(QPushButton):
         pixmap = _load_themed_icon_pixmap(icon_path, size=16, palette=self.palette())
         self.setIcon(QIcon(pixmap))
 
-    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+    def changeEvent(self, event: QEvent) -> None:
         """Refresh icon when palette changes (theme switch)."""
         if event is not None and event.type() in (
             QEvent.Type.ApplicationPaletteChange,
@@ -640,7 +640,7 @@ class StanHelpIcon(QPushButton):
             # Fallback: render a text "?" if icon not found.
             self.setText("?")
 
-    def changeEvent(self, event: QEvent) -> None:  # noqa: N802
+    def changeEvent(self, event: QEvent) -> None:
         """Refresh icon when palette changes (theme switch)."""
         if event is not None and event.type() in (
             QEvent.Type.ApplicationPaletteChange,
@@ -653,7 +653,7 @@ class StanHelpIcon(QPushButton):
         """Show the tooltip at the centre of the button (click or keyboard)."""
         QToolTip.showText(self.mapToGlobal(self.rect().center()), self._help_text, self)
 
-    def mousePressEvent(self, e) -> None:  # noqa: N802
+    def mousePressEvent(self, e) -> None:
         """Show the tooltip at the cursor position on click."""
         QToolTip.showText(self.mapToGlobal(self.rect().center()), self._help_text, self)
         super().mousePressEvent(e)

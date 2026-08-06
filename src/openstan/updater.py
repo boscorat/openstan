@@ -24,7 +24,8 @@ from __future__ import annotations
 import json
 import threading
 import webbrowser
-from importlib.metadata import PackageNotFoundError, version as _pkg_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -180,7 +181,7 @@ class UpdateChecker(QObject):
                     "User-Agent": "openstan",
                 },
             )
-            with urlopen(req, timeout=_REQUEST_TIMEOUT) as response:  # noqa: S310
+            with urlopen(req, timeout=_REQUEST_TIMEOUT) as response:
                 data: dict = json.loads(response.read())
 
             tag: str = data.get("tag_name", "")
@@ -198,7 +199,7 @@ class UpdateChecker(QObject):
         except URLError, TimeoutError, json.JSONDecodeError, KeyError, ValueError:
             # Network unavailable, rate-limited, or malformed response — silently ignore
             pass
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             # Catch-all: update check must never crash the application
             pass
 

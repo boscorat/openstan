@@ -34,11 +34,10 @@ import pytest
 if sys.platform not in ("darwin", "win32"):
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QCoreApplication  # noqa: E402
-from PySide6.QtSql import QSqlDatabase  # noqa: E402
+from PySide6.QtCore import QCoreApplication
+from PySide6.QtSql import QSqlDatabase
 
-from openstan.data.create_gui_db import create_gui_db  # noqa: E402
-
+from openstan.data.create_gui_db import create_gui_db
 
 # ---------------------------------------------------------------------------
 # QCoreApplication — exactly one per process
@@ -68,7 +67,7 @@ def qapp() -> QCoreApplication:
 
 
 @pytest.fixture()
-def gui_db(qapp: QCoreApplication) -> Generator[QSqlDatabase, None, None]:
+def gui_db(qapp: QCoreApplication) -> Generator[QSqlDatabase]:
     """Function-scoped: a fresh gui.db schema in a temp file for each test.
 
     Yields an open ``QSqlDatabase``.  The connection is closed and the temp

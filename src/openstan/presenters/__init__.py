@@ -20,11 +20,11 @@ __all__: list[str] = [
     "ExportWorker",
     "ExportWorkerSignals",
     "ProjectPresenter",
-    "RunReportsPresenter",
-    "UserPresenter",
     "ProjectWelcomePresenter",
+    "RunReportsPresenter",
     "SessionPresenter",
     "StanPresenter",
     "StatementQueuePresenter",
     "StatementResultPresenter",
+    "UserPresenter",
 ]

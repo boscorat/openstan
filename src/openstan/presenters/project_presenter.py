@@ -25,7 +25,7 @@ def _fmt_date(s: str) -> str:
     if not s:
         return ""
     try:
-        return datetime.strptime(s, "%Y-%m-%d").strftime("%d/%m/%Y")
+        return datetime.strptime(s, "%Y-%m-%d").strftime("%d/%m/%Y")  # noqa: DTZ007
     except ValueError:
         return s
 
@@ -49,7 +49,7 @@ class ProjectInfo:
     gap_rows: pl.DataFrame
 
 
-def get_project_info(project_path: Path) -> "ProjectInfo | None":
+def get_project_info(project_path: Path) -> ProjectInfo | None:
     """Query project.db mart tables and return a structured :class:`ProjectInfo`.
 
     Returns ``None`` when the mart has not yet been built, all counts are zero,
@@ -68,7 +68,7 @@ def get_project_info(project_path: Path) -> "ProjectInfo | None":
     except sqlite3.OperationalError, bsp.StatementError:
         # Mart tables not yet built, or project.db missing — return nothing.
         return None
-    except Exception:
+    except Exception:  # noqa: BLE001
         traceback.print_exc(file=sys.stderr)
         return None
 
@@ -170,7 +170,7 @@ def get_project_info(project_path: Path) -> "ProjectInfo | None":
         )
         gap_count = gap_rows.height
 
-    except Exception:
+    except Exception:  # noqa: BLE001
         traceback.print_exc(file=sys.stderr)
         return None
 
@@ -191,17 +191,17 @@ class ProjectPresenter(QObject):
 
     def __init__(
         self,
-        model: "ProjectModel",
-        view: "ProjectView",
-        nav_view: "ProjectNavView",
-        welcome_view: "ProjectWelcomeView",
+        model: ProjectModel,
+        view: ProjectView,
+        nav_view: ProjectNavView,
+        welcome_view: ProjectWelcomeView,
     ) -> None:
         super().__init__()
         self.sessionID: str | None = None  # to be set by StanPresenter
-        self.model: "ProjectModel" = model
-        self.view: "ProjectView" = view
-        self.nav_view: "ProjectNavView" = nav_view
-        self.welcome_view: "ProjectWelcomeView" = welcome_view
+        self.model: ProjectModel = model
+        self.view: ProjectView = view
+        self.nav_view: ProjectNavView = nav_view
+        self.welcome_view: ProjectWelcomeView = welcome_view
         self.view.selection.setModel(self.model)
         self.view.selection.setModelColumn(1)  # project_name column
         self.view.selection.setEditable(False)
@@ -360,7 +360,7 @@ class ProjectPresenter(QObject):
             wizard.back()
             wizard.failure_dialog.showMessage(error)
             return False
-        except Exception as e:
+        except OSError as e:
             error = f"Failed to create project folder: {e}"
             wizard.back()
             wizard.failure_dialog.showMessage(error)
@@ -369,11 +369,11 @@ class ProjectPresenter(QObject):
         # bsp scaffolds subfolders, database and default config automatically
         try:
             bsp.validate_or_initialise_project(full_path)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             # Clean up the folder we just created so we don't leave a partial project
             try:
                 full_path.rmdir()
-            except Exception:
+            except OSError:
                 pass
             error = f"Failed to initialise project: {e}"
             wizard.back()
@@ -415,7 +415,7 @@ class ProjectPresenter(QObject):
         # Validate the selected folder is a usable bsp project (may scaffold missing pieces)
         try:
             bsp.validate_or_initialise_project(full_path)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             error = f"The selected folder does not appear to be a valid project: {e}"
             wizard.back()
             wizard.failure_dialog.showMessage(error)
@@ -501,13 +501,13 @@ class ProjectWelcomePresenter(QObject):
     """
 
     def __init__(
-        self: "ProjectWelcomePresenter",
-        project_presenter: "ProjectPresenter",
-        view: "ProjectWelcomeView",
+        self: ProjectWelcomePresenter,
+        project_presenter: ProjectPresenter,
+        view: ProjectWelcomeView,
     ) -> None:
         super().__init__()
-        self.project_presenter: "ProjectPresenter" = project_presenter
-        self.view: "ProjectWelcomeView" = view
+        self.project_presenter: ProjectPresenter = project_presenter
+        self.view: ProjectWelcomeView = view
         self.view.button_select.clicked.connect(
             self.project_presenter.show_project_view
         )

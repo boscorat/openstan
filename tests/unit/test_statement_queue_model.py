@@ -12,7 +12,6 @@ FK rows (session + project) before each test that needs them.
 
 from uuid import uuid4
 
-
 from PySide6.QtSql import QSqlDatabase
 
 from openstan.models.statement_queue_model import (
@@ -20,7 +19,6 @@ from openstan.models.statement_queue_model import (
     StatementQueueTreeModel,
 )
 from tests.unit.conftest import seed_session_and_project
-
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -103,7 +101,7 @@ class TestDeleteRecords:
         model.select()
         assert model.rowCount() == 1
 
-        success, deleted, msg = model.delete_records([file_id])
+        success, deleted, _msg = model.delete_records([file_id])
 
         assert success is True
         assert file_id in deleted
@@ -121,7 +119,7 @@ class TestDeleteRecords:
         model.select()
         assert model.rowCount() == 2
 
-        success, deleted, msg = model.delete_records([folder_id])
+        success, deleted, _msg = model.delete_records([folder_id])
 
         assert success is True
         assert folder_id in deleted
@@ -194,7 +192,7 @@ class TestGetBatchId:
 
     def test_empty_queue_returns_none(self, gui_db: QSqlDatabase) -> None:
         """An empty queue has no batch_id — returns None."""
-        session_id, project_id, _ = seed_session_and_project(gui_db)
+        _, project_id, _ = seed_session_and_project(gui_db)
         model = StatementQueueModel(db=gui_db)
         model.set_project(project_id)
 
@@ -372,7 +370,7 @@ class TestStatementQueueTreeModel:
 
     def test_empty_project_produces_empty_tree(self, gui_db: QSqlDatabase) -> None:
         """With no queue rows, the tree model has no rows."""
-        session_id, project_id, _ = seed_session_and_project(gui_db)
+        _, project_id, _ = seed_session_and_project(gui_db)
         tree = StatementQueueTreeModel(db=gui_db)
         tree.update_model(project_id)
 

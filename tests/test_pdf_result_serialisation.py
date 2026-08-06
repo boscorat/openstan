@@ -19,12 +19,12 @@ Run with::
 """
 
 import dataclasses
+import json
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
-
 from bank_statement_parser import PdfResult
 from bank_statement_parser.modules.data import (
     Failure,
@@ -33,11 +33,11 @@ from bank_statement_parser.modules.data import (
     StatementInfo,
     Success,
 )
+
 from openstan.models.statement_result_model import (
     _json_to_pdf_result,
     _pdf_result_to_json,
 )
-
 
 # ---------------------------------------------------------------------------
 # Shared fixtures
@@ -329,7 +329,7 @@ class TestTypeFidelity:
 
 class TestErrorHandling:
     def test_invalid_json_raises(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(json.JSONDecodeError):
             _json_to_pdf_result("not valid json")
 
     def test_unknown_discriminator_raises_value_error(self) -> None:

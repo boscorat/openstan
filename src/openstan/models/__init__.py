@@ -18,16 +18,16 @@ from openstan.models.user_model import UserModel
 
 __all__: list[str] = [
     "BatchModel",
+    "FailureResultModel",
     "ProjectModel",
     "ReportModel",
+    "ResultRow",
+    "ReviewResultModel",
     "SessionModel",
     "StatementQueueModel",
     "StatementQueueTreeModel",
-    "SuccessResultModel",
-    "ReviewResultModel",
-    "FailureResultModel",
-    "ResultRow",
     "StatementResultModel",
     "StatementResultPayloadModel",
+    "SuccessResultModel",
     "UserModel",
 ]

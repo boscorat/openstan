@@ -36,7 +36,7 @@ import sys
 import traceback
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -50,7 +50,6 @@ from openstan.models.statement_queue_model import _safe_hex_id
 
 if TYPE_CHECKING:
     from bank_statement_parser import PdfResult
-
     from PySide6.QtSql import QSqlDatabase
 
 
@@ -59,7 +58,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 
 
-def _pdf_result_to_json(pdf_result: "PdfResult") -> str:
+def _pdf_result_to_json(pdf_result: PdfResult) -> str:
     """Serialise a ``PdfResult`` to a JSON string.
 
     All non-JSON-native leaf types are converted to strings:
@@ -89,7 +88,7 @@ def _pdf_result_to_json(pdf_result: "PdfResult") -> str:
     return json.dumps(raw, default=_convert)
 
 
-def _json_to_pdf_result(text: str) -> "PdfResult":
+def _json_to_pdf_result(text: str) -> PdfResult:
     """Deserialise a JSON string produced by ``_pdf_result_to_json`` back to
     a ``PdfResult`` instance.
 
@@ -195,7 +194,7 @@ class ResultRow:
     debug_json_path: Path | None = field(default=None)
     debug_excel_path: Path | None = field(default=None)
     debug_status: str | None = field(default=None)
-    pdf_result: "PdfResult | None" = field(default=None)
+    pdf_result: PdfResult | None = field(default=None)
 
 
 # ---------------------------------------------------------------------------
@@ -223,7 +222,7 @@ _COL_ERROR = 6
 _COL_MESSAGE = 7
 
 
-def _row_items(row: "ResultRow") -> list[QStandardItem]:
+def _row_items(row: ResultRow) -> list[QStandardItem]:
     """Build a list of QStandardItems from a ResultRow (one per column)."""
     return [
         QStandardItem(row.file_path.name),
@@ -315,7 +314,7 @@ class StatementResultModel(QSqlTableModel):
     COL_DELETED = 14
     COL_CREATED = 15
 
-    def __init__(self, db: "QSqlDatabase") -> None:
+    def __init__(self, db: QSqlDatabase) -> None:
         super().__init__(None, db)
         self.setTable("statement_result")
         self.select()
@@ -373,7 +372,7 @@ class StatementResultModel(QSqlTableModel):
         # omitted from the INSERT entirely, so we must supply the value here.
         record.setValue(
             "created",
-            datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S"),
         )
         if self.insertRecord(-1, record) and self.submitAll():
             self.db_updated.emit()
@@ -516,7 +515,7 @@ class StatementResultPayloadModel(QSqlTableModel):
     The TEXT payload is never fetched during normal display operations.
     """
 
-    def __init__(self, db: "QSqlDatabase") -> None:
+    def __init__(self, db: QSqlDatabase) -> None:
         super().__init__(None, db)
         self.setTable("statement_result_payload")
         self.select()
@@ -532,11 +531,11 @@ class StatementResultPayloadModel(QSqlTableModel):
             self.setFilter("")
             self.select()
 
-    def add_payload(self, result_id: str, pdf_result: "PdfResult") -> tuple[bool, str]:
+    def add_payload(self, result_id: str, pdf_result: PdfResult) -> tuple[bool, str]:
         """Serialise *pdf_result* to JSON and persist it linked to *result_id*."""
         try:
             text: str = _pdf_result_to_json(pdf_result)
-        except Exception:
+        except Exception:  # noqa: BLE001
             traceback.print_exc(file=sys.stderr)
             return (False, "Failed to serialise PdfResult to JSON")
         record: QSqlRecord = self.record()
@@ -568,7 +567,7 @@ class StatementResultPayloadModel(QSqlTableModel):
             return (True, f"Payloads for {len(validated)} result(s) deleted")
         return (False, query.lastError().text())
 
-    def load_payloads_for_batch(self, result_ids: list[str]) -> "dict[str, PdfResult]":
+    def load_payloads_for_batch(self, result_ids: list[str]) -> dict[str, PdfResult]:
         """Deserialise JSON and return a {result_id: PdfResult} mapping for *result_ids*.
 
         Failed deserialisation attempts are logged to stderr and skipped
@@ -598,7 +597,7 @@ class StatementResultPayloadModel(QSqlTableModel):
             try:
                 obj = _json_to_pdf_result(str(text))
                 results[rid] = obj
-            except Exception:
+            except Exception:  # noqa: BLE001
                 print(
                     f"WARNING: Could not deserialise payload for result_id={rid} — skipping.",
                     file=sys.stderr,

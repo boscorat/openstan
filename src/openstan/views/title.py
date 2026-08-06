@@ -51,7 +51,7 @@ class TitleView(StanWidget):
         self.setLayout(layout)
         self.setMaximumHeight(72)
 
-    def changeEvent(self, a0: QEvent) -> None:  # noqa: N802
+    def changeEvent(self, a0: QEvent) -> None:
         """Reload the wordmark SVG whenever the application palette changes."""
         if a0 is not None and a0.type() in (
             QEvent.Type.ApplicationPaletteChange,

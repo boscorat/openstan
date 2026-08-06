@@ -7,9 +7,9 @@ if TYPE_CHECKING:
 
 
 class UserPresenter(QObject):
-    def __init__(self: "UserPresenter", model: "UserModel", view=None) -> None:
+    def __init__(self: UserPresenter, model: UserModel, view=None) -> None:
         super().__init__()
-        self.model: "UserModel" = model
+        self.model: UserModel = model
         self.view = view
         if self.view is not None:
             self.view.setModel(self.model)

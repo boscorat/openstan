@@ -10,9 +10,9 @@ if TYPE_CHECKING:
 class SessionPresenter(QObject):
     db_lock_signal = Signal()
 
-    def __init__(self: "SessionPresenter", model: "SessionModel", view=None) -> None:
+    def __init__(self: SessionPresenter, model: SessionModel, view=None) -> None:
         super().__init__()
-        self.model: "SessionModel" = model
+        self.model: SessionModel = model
         self.view = view
         if self.view is not None:
             self.view.setModel(self.model)

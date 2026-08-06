@@ -28,15 +28,15 @@ class AdminPresenter(QObject):
     """
 
     def __init__(
-        self: "AdminPresenter",
-        model: "ProjectModel",
-        view: "AdminView",
-        stan: "Stan",
+        self: AdminPresenter,
+        model: ProjectModel,
+        view: AdminView,
+        stan: Stan,
     ) -> None:
         super().__init__()
-        self.model: "ProjectModel" = model
-        self.view: "AdminView" = view
-        self.stan: "Stan" = stan
+        self.model: ProjectModel = model
+        self.view: AdminView = view
+        self.stan: Stan = stan
 
         self.view.button_delete_project.clicked.connect(self.delete_project)
         self.view.button_remove_project.clicked.connect(self.remove_project_from_ui)
@@ -136,7 +136,7 @@ class AdminPresenter(QObject):
         if delete_folder:
             try:
                 shutil.rmtree(Path(project_location))
-            except Exception:
+            except Exception:  # noqa: BLE001
                 traceback.print_exc()
                 StanErrorMessage(parent=self.view).showMessage(
                     f"Project record removed, but the folder could not be deleted:\n{project_location}"
@@ -191,7 +191,7 @@ class AdminPresenter(QObject):
             if gui_db_path.exists():
                 gui_db_path.unlink()
             create_gui_db(gui_db_path)
-        except Exception:
+        except Exception:  # noqa: BLE001
             traceback.print_exc()
             StanErrorMessage(parent=self.view).showMessage(
                 "Failed to recreate gui.db. The application will now close."

@@ -14,8 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import bank_statement_anonymiser as bsa
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QFileDialog
 
@@ -52,7 +51,7 @@ class NeverAnonymiseConfig:
         return "\n".join(lines)
 
     @classmethod
-    def from_toml(cls, toml_path: Path) -> "NeverAnonymiseConfig":
+    def from_toml(cls, toml_path: Path) -> NeverAnonymiseConfig:
         """Load from a TOML file."""
         if not toml_path.exists():
             return cls()
@@ -62,7 +61,7 @@ class NeverAnonymiseConfig:
             config = tomllib.loads(text)
             exclude = config.get("exclude", [])
             return cls(exclude=exclude)
-        except Exception:
+        except tomllib.TOMLDecodeError, OSError:
             traceback.print_exc()
             return cls()
 
@@ -87,7 +86,7 @@ class AlwaysAnonymiseConfig:
         return "\n".join(lines)
 
     @classmethod
-    def from_toml(cls, toml_path: Path) -> "AlwaysAnonymiseConfig":
+    def from_toml(cls, toml_path: Path) -> AlwaysAnonymiseConfig:
         """Load from a TOML file."""
         if not toml_path.exists():
             return cls()
@@ -103,7 +102,7 @@ class AlwaysAnonymiseConfig:
                 if isinstance(v, str) and not k.startswith("_")
             }
             return cls(replacements=replacements)
-        except Exception:
+        except tomllib.TOMLDecodeError, OSError:
             traceback.print_exc()
             return cls()
 
@@ -136,7 +135,7 @@ class _AnonymiseWorker(QRunnable):
         self._never_path = never_anonymise_path
 
     @Slot()
-    def run(self) -> None:  # noqa: N802  (Qt override)
+    def run(self) -> None:
         try:
             out = bsa.anonymise_pdf(
                 self._input,
@@ -144,7 +143,7 @@ class _AnonymiseWorker(QRunnable):
                 never_anonymise_path=self._never_path,
             )
             self.signals.finished.emit(out)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             self.signals.error.emit(str(exc))
 
 
@@ -169,8 +168,8 @@ class AnonymisePresenter(QObject):
 
     def __init__(
         self,
-        dialog: "AnonymiseDialog",
-        project_paths: "ProjectPaths",
+        dialog: AnonymiseDialog,
+        project_paths: ProjectPaths,
         initial_pdf: Path | None = None,
     ) -> None:
         super().__init__()
@@ -259,7 +258,7 @@ class AnonymisePresenter(QObject):
                 )
                 # Success
                 return True
-            except Exception as exc:
+            except OSError as exc:
                 traceback.print_exc()
                 if attempt < max_retries - 1:
                     # Retry after delay

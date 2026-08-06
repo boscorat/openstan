@@ -27,7 +27,7 @@ Status constants
 
 import sys
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import Qt, Signal
@@ -48,7 +48,7 @@ class BatchModel(QSqlTableModel):
     BATCH_STATUS_PENDING: int = 0  # import finished, awaiting commit
     BATCH_STATUS_COMMITTED: int = 2  # successfully committed to project.db
 
-    def __init__(self, db: "QSqlDatabase") -> None:
+    def __init__(self, db: QSqlDatabase) -> None:
         super().__init__(db=db)
         self.setTable("batch")
         self.select()
@@ -108,7 +108,7 @@ class BatchModel(QSqlTableModel):
         record.setValue("status", self.BATCH_STATUS_PENDING)
         record.setValue(
             "created",
-            datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S"),
         )
         if self.insertRecord(-1, record) and self.submitAll():
             self.db_updated.emit()

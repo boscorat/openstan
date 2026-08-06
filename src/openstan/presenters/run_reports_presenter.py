@@ -34,9 +34,9 @@ from PySide6.QtCore import (
     QDate,
     QObject,
     QRunnable,
+    Qt,
     QThreadPool,
     QTimer,
-    Qt,
     Signal,
     Slot,
 )
@@ -58,7 +58,6 @@ if TYPE_CHECKING:
     from PySide6.QtWidgets import QListWidget
 
 from PySide6.QtWidgets import QFileDialog, QMessageBox
-
 
 # ---------------------------------------------------------------------------
 # Background worker
@@ -84,7 +83,7 @@ class _ReportWorker(QRunnable):
         try:
             df: pl.DataFrame = self.fn()
             self.signals.finished.emit(df, df.height)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             self.signals.error.emit(str(e))
 
@@ -112,7 +111,7 @@ class _FetchWorker(QRunnable):
     def run(self) -> None:
         try:
             self.signals.finished.emit(self.fn())
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             self.signals.error.emit(str(e))
 
@@ -141,7 +140,7 @@ class _ReportExportWorker(QRunnable):
         try:
             self.fn()
             self.signals.finished.emit()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             self.signals.error.emit(str(e))
 
@@ -323,7 +322,7 @@ class RunReportsPresenter(QObject):
     def _toggle_derived_all(self) -> None:
         self._toggle_list_all(self.view.builder.derived_list)
 
-    def _toggle_list_all(self, list_widget: "QListWidget") -> None:
+    def _toggle_list_all(self, list_widget: QListWidget) -> None:
         """Toggle all items in *list_widget* — check all if any are unchecked, else uncheck all."""
         total = list_widget.count()
         checked = sum(
@@ -361,7 +360,7 @@ class RunReportsPresenter(QObject):
             cb.blockSignals(False)
 
     def _set_list_check_all(
-        self, list_widget: "QListWidget", state: "Qt.CheckState"
+        self, list_widget: QListWidget, state: Qt.CheckState
     ) -> None:
         list_widget.blockSignals(True)
         for i in range(list_widget.count()):
@@ -546,7 +545,7 @@ class RunReportsPresenter(QObject):
             try:
                 filter_expr = _build_filter_expr(col, op, val)
                 lf = lf.filter(filter_expr)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 # Skip malformed filter rather than crashing
                 traceback.print_exc()
 
@@ -568,7 +567,7 @@ class RunReportsPresenter(QObject):
                     continue
                 try:
                     agg_exprs.append(_build_agg_expr(col, fn, alias))
-                except Exception:
+                except Exception:  # noqa: BLE001
                     traceback.print_exc()
             if agg_exprs:
                 lf = lf.group_by(groupby_cols).agg(agg_exprs)
@@ -973,7 +972,7 @@ class RunReportsPresenter(QObject):
         p.button_export_csv.setEnabled(enabled)
         p.button_export_json.setEnabled(enabled)
 
-    def _do_export(self, suffix: str, write_fn: Any) -> None:  # noqa: ANN401
+    def _do_export(self, suffix: str, write_fn: Any) -> None:
         """Shared export helper — opens a save dialog then writes the file."""
         if self._current_df is None:
             return
@@ -1034,21 +1033,21 @@ class RunReportsPresenter(QObject):
 
     @Slot()
     def _on_export_excel(self) -> None:
-        def _write(df: pl.DataFrame, path: "Path") -> None:
+        def _write(df: pl.DataFrame, path: Path) -> None:
             df.write_excel(path)
 
         self._do_export(".xlsx", _write)
 
     @Slot()
     def _on_export_csv(self) -> None:
-        def _write(df: pl.DataFrame, path: "Path") -> None:
+        def _write(df: pl.DataFrame, path: Path) -> None:
             df.write_csv(path)
 
         self._do_export(".csv", _write)
 
     @Slot()
     def _on_export_json(self) -> None:
-        def _write(df: pl.DataFrame, path: "Path") -> None:
+        def _write(df: pl.DataFrame, path: Path) -> None:
             df.write_json(path)
 
         self._do_export(".json", _write)

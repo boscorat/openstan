@@ -114,6 +114,7 @@ def _detect_scheme_via_dbus() -> Qt.ColorScheme:
             capture_output=True,
             text=True,
             timeout=0.25,
+            check=False,
         )
         print(
             f"[openstan] _detect_scheme_via_dbus: returncode={result.returncode}"
@@ -127,7 +128,7 @@ def _detect_scheme_via_dbus() -> Qt.ColorScheme:
             print("[openstan] _detect_scheme_via_dbus: detected → Dark")
             return Qt.ColorScheme.Dark
         print("[openstan] _detect_scheme_via_dbus: detected → Light")
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         print(
             f"[openstan] _detect_scheme_via_dbus: exception {type(exc).__name__}({exc}) → Light"
         )
@@ -547,7 +548,7 @@ class Stan(QMainWindow):
         # (guard against closeEvent before stan_presenter is initialized)
         if (
             hasattr(self, "stan_presenter")
-            and self.stan_presenter.statement_result_presenter._importing  # noqa: SLF001
+            and self.stan_presenter.statement_result_presenter._importing
         ):
             warn = StanInfoMessage(self)
             warn.setText(

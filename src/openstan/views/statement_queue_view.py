@@ -159,7 +159,7 @@ class StatementQueueView(StanWidget):
     # Drag-and-drop support — accept PDF files and folders
     # ---------------------------------------------------------------------------
 
-    def dragEnterEvent(self, a0: QDragEnterEvent | None) -> None:  # noqa: N802
+    def dragEnterEvent(self, a0: QDragEnterEvent | None) -> None:
         if a0 is None:
             return
         mime = a0.mimeData()
@@ -178,7 +178,7 @@ class StatementQueueView(StanWidget):
                 return
         a0.ignore()
 
-    def dropEvent(self, a0: QDropEvent | None) -> None:  # noqa: N802
+    def dropEvent(self, a0: QDropEvent | None) -> None:
         if a0 is None:
             return
         mime = a0.mimeData()

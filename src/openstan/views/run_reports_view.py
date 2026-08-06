@@ -70,7 +70,6 @@ from openstan.models.report_model import (
     NUMERIC_COLUMNS,
 )
 
-
 # ---------------------------------------------------------------------------
 # Multi-select popup widget
 # ---------------------------------------------------------------------------
@@ -181,7 +180,7 @@ class MultiSelectWidget(StanWidget):
 
     def set_selected(self, values: list[str]) -> None:
         """Check exactly the items whose text is in *values*."""
-        vset = set(str(v) for v in values)
+        vset = {str(v) for v in values}
         self._list.blockSignals(True)
         for i in range(self._list.count()):
             item = self._list.item(i)

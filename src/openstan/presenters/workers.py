@@ -6,8 +6,9 @@
 """
 
 import traceback
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from PySide6.QtCore import QObject, QRunnable, Signal
 
@@ -48,9 +49,9 @@ class ExportWorker(QRunnable):
         self._output_folder = output_folder
         self.signals = ExportWorkerSignals()
 
-    def run(self) -> None:  # noqa: N802
+    def run(self) -> None:
         try:
             self._fn()
             self.signals.finished.emit(self._description, str(self._output_folder))
-        except Exception:
+        except Exception:  # noqa: BLE001
             self.signals.error.emit(traceback.format_exc())

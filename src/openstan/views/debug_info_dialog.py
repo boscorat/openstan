@@ -82,8 +82,8 @@ class DebugInfoDialog(StanDialog):
 
     def __init__(
         self,
-        rows: "list[ResultRow]",
-        project_paths: "ProjectPaths | None" = None,
+        rows: list[ResultRow],
+        project_paths: ProjectPaths | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -176,7 +176,7 @@ class DebugInfoDialog(StanDialog):
 
     def set_all_done(self) -> None:
         """Mark any still-pending rows as 'unavailable' (debug did not run)."""
-        for _, idx in self._row_index.items():
+        for idx in self._row_index.values():
             item = self._table.item(idx, _COL_STATUS)
             if item is not None and item.text() in ("pending", "running", ""):
                 item.setText("unavailable")
@@ -190,7 +190,7 @@ class DebugInfoDialog(StanDialog):
     # Private helpers
     # ------------------------------------------------------------------
 
-    def __add_row(self, row: "ResultRow") -> None:
+    def __add_row(self, row: ResultRow) -> None:
         table_row = self._table.rowCount()
         self._table.insertRow(table_row)
         self._row_index[row.result_id] = table_row
@@ -243,8 +243,8 @@ class DebugInfoDialog(StanDialog):
         if row.result == "REVIEW" and row.pdf_result is not None:
             cab_path = row.pdf_result.checks_and_balances
             pq = row.pdf_result.payload
-            heads_path: "Path | None" = None
-            lines_path: "Path | None" = None
+            heads_path: Path | None = None
+            lines_path: Path | None = None
             from bank_statement_parser.modules.data import Review as _Review
 
             if isinstance(pq, _Review):
@@ -293,9 +293,9 @@ class DebugInfoDialog(StanDialog):
 
     def __open_parquet(
         self,
-        checks_and_balances: "Path | None",
-        statement_heads: "Path | None",
-        statement_lines: "Path | None",
+        checks_and_balances: Path | None,
+        statement_heads: Path | None,
+        statement_lines: Path | None,
     ) -> None:
         """Open the ParquetViewDialog for the three REVIEW parquet files."""
         from openstan.views.parquet_view_dialog import ParquetViewDialog
