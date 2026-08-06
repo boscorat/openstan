@@ -95,7 +95,7 @@ class _DatamartLoadWorker(QRunnable):
                 .collect()
             )
             self.signals.finished.emit(accounts_df, statements_df)
-        except Exception:
+        except Exception:  # noqa: BLE001
             self.signals.error.emit(traceback.format_exc())
 
 
@@ -292,7 +292,7 @@ class AdvancedExportPresenter(QObject):
             with spec_path.open("rb") as fh:
                 data = tomllib.load(fh)
             return str(data.get("meta", {}).get("description", ""))
-        except Exception:
+        except tomllib.TOMLDecodeError, OSError:
             return ""
 
     # ---------------------------------------------------------------------------

@@ -83,7 +83,7 @@ class _ReportWorker(QRunnable):
         try:
             df: pl.DataFrame = self.fn()
             self.signals.finished.emit(df, df.height)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             self.signals.error.emit(str(e))
 
@@ -111,7 +111,7 @@ class _FetchWorker(QRunnable):
     def run(self) -> None:
         try:
             self.signals.finished.emit(self.fn())
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             self.signals.error.emit(str(e))
 
@@ -140,7 +140,7 @@ class _ReportExportWorker(QRunnable):
         try:
             self.fn()
             self.signals.finished.emit()
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             self.signals.error.emit(str(e))
 
@@ -545,7 +545,7 @@ class RunReportsPresenter(QObject):
             try:
                 filter_expr = _build_filter_expr(col, op, val)
                 lf = lf.filter(filter_expr)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 # Skip malformed filter rather than crashing
                 traceback.print_exc()
 
@@ -567,7 +567,7 @@ class RunReportsPresenter(QObject):
                     continue
                 try:
                     agg_exprs.append(_build_agg_expr(col, fn, alias))
-                except Exception:
+                except Exception:  # noqa: BLE001
                     traceback.print_exc()
             if agg_exprs:
                 lf = lf.group_by(groupby_cols).agg(agg_exprs)

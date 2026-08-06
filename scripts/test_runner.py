@@ -29,12 +29,13 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
+from typing import ClassVar
 
 
 class Runner:
     """Helper for running pytest with profile-based filtering."""
 
-    PROFILES = {
+    PROFILES: ClassVar[dict[str, dict[str, object]]] = {
         "all": {
             "description": "Run all tests (integration tests skip without PDFs)",
             "paths": None,

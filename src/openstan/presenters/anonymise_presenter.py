@@ -61,7 +61,7 @@ class NeverAnonymiseConfig:
             config = tomllib.loads(text)
             exclude = config.get("exclude", [])
             return cls(exclude=exclude)
-        except Exception:
+        except tomllib.TOMLDecodeError, OSError:
             traceback.print_exc()
             return cls()
 
@@ -102,7 +102,7 @@ class AlwaysAnonymiseConfig:
                 if isinstance(v, str) and not k.startswith("_")
             }
             return cls(replacements=replacements)
-        except Exception:
+        except tomllib.TOMLDecodeError, OSError:
             traceback.print_exc()
             return cls()
 
@@ -143,7 +143,7 @@ class _AnonymiseWorker(QRunnable):
                 never_anonymise_path=self._never_path,
             )
             self.signals.finished.emit(out)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             self.signals.error.emit(str(exc))
 
 
@@ -258,7 +258,7 @@ class AnonymisePresenter(QObject):
                 )
                 # Success
                 return True
-            except Exception as exc:
+            except OSError as exc:
                 traceback.print_exc()
                 if attempt < max_retries - 1:
                     # Retry after delay

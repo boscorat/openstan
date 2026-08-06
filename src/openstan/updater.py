@@ -199,7 +199,7 @@ class UpdateChecker(QObject):
         except URLError, TimeoutError, json.JSONDecodeError, KeyError, ValueError:
             # Network unavailable, rate-limited, or malformed response — silently ignore
             pass
-        except Exception:  # noqa: BLE001
+        except Exception:  # noqa: BLE001, S110
             # Catch-all: update check must never crash the application
             pass
 

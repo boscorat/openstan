@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from PySide6.QtSql import QSqlRecord, QSqlTableModel
@@ -18,7 +18,7 @@ class SessionModel(QSqlTableModel):
         record: QSqlRecord = self.record()
         record.setValue("session_id", session_id)
         record.setValue("user_id", user_id)
-        record.setValue("created", datetime.now())
+        record.setValue("created", datetime.now(UTC))
         record.setValue("terminated", None)
         record.setValue("is_active", 1)
         if self.insertRecord(-1, record):
@@ -34,7 +34,7 @@ class SessionModel(QSqlTableModel):
             record: QSqlRecord = self.record(row)
             if record.value("is_active"):
                 self.setData(
-                    self.index(row, self.fieldIndex("terminated")), datetime.now()
+                    self.index(row, self.fieldIndex("terminated")), datetime.now(UTC)
                 )
                 self.setData(self.index(row, self.fieldIndex("is_active")), 0)
                 self.submitAll()

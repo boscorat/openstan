@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -24,8 +24,8 @@ class UserModel(QSqlTableModel):
         record.setValue("username", username)
         record.setValue("createdBy_session", sessionID)
         record.setValue("updatedBy_session", sessionID)
-        record.setValue("created", datetime.now())
-        record.setValue("updated", datetime.now())
+        record.setValue("created", datetime.now(UTC))
+        record.setValue("updated", datetime.now(UTC))
         record.setValue("status_id", NEW_RECORD_STATUS)  # active status
         if self.insertRecord(-1, record):
             self.submitAll()

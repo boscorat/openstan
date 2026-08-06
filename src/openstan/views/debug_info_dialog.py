@@ -176,7 +176,7 @@ class DebugInfoDialog(StanDialog):
 
     def set_all_done(self) -> None:
         """Mark any still-pending rows as 'unavailable' (debug did not run)."""
-        for _, idx in self._row_index.items():
+        for idx in self._row_index.values():
             item = self._table.item(idx, _COL_STATUS)
             if item is not None and item.text() in ("pending", "running", ""):
                 item.setText("unavailable")

@@ -53,5 +53,5 @@ class ExportWorker(QRunnable):
         try:
             self._fn()
             self.signals.finished.emit(self._description, str(self._output_folder))
-        except Exception:
+        except Exception:  # noqa: BLE001
             self.signals.error.emit(traceback.format_exc())

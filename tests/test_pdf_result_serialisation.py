@@ -19,6 +19,7 @@ Run with::
 """
 
 import dataclasses
+import json
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
@@ -328,7 +329,7 @@ class TestTypeFidelity:
 
 class TestErrorHandling:
     def test_invalid_json_raises(self) -> None:
-        with pytest.raises(Exception):
+        with pytest.raises(json.JSONDecodeError):
             _json_to_pdf_result("not valid json")
 
     def test_unknown_discriminator_raises_value_error(self) -> None:

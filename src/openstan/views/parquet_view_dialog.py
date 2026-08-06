@@ -73,7 +73,7 @@ def _read_parquet(path: Path | None) -> pl.DataFrame | None:
         return None
     try:
         return pl.read_parquet(path)
-    except Exception:
+    except Exception:  # noqa: BLE001
         traceback.print_exc()
         return None
 

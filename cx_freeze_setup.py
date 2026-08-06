@@ -49,7 +49,7 @@ try:
     from importlib.metadata import version as _pkg_version
 
     _version = _pkg_version("openstan")
-except Exception:
+except Exception:  # noqa: BLE001
     _version = "0.0.0"
 
 # ---------------------------------------------------------------------------
@@ -206,7 +206,7 @@ if sys.platform != "win32" and sys.platform != "darwin":
                 subprocess.run(_cmd, check=True, capture_output=True)
                 print(f"Icon PNG generated via: {_cmd[0]}")
                 break
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 _last_exc = exc
         else:
             raise FileNotFoundError(

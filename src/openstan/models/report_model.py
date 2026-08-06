@@ -166,7 +166,7 @@ class ReportModel(QObject):
                 with open(p, "rb") as fh:
                     data = tomllib.load(fh)
                 name = data.get("meta", {}).get("title", p.stem)
-            except Exception:
+            except Exception:  # noqa: BLE001
                 name = p.stem
             results.append((name, p))
         return results
@@ -186,7 +186,7 @@ class ReportModel(QObject):
             with open(path, "rb") as fh:
                 data: ReportDefinition = tomllib.load(fh)
             return True, data, ""
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             return False, {}, f"Could not load report '{path.name}': {e}"
 
@@ -226,7 +226,7 @@ class ReportModel(QObject):
                 tomli_w.dump(definition, fh)
             self.reports_changed.emit()
             return True, path, ""
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             return False, path, f"Could not save report: {e}"
 
@@ -245,7 +245,7 @@ class ReportModel(QObject):
             path.unlink(missing_ok=True)
             self.reports_changed.emit()
             return True, path, ""
-        except Exception as e:
+        except OSError as e:
             traceback.print_exc()
             return False, path, f"Could not delete report '{path.name}': {e}"
 

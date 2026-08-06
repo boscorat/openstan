@@ -535,7 +535,7 @@ class StatementResultPayloadModel(QSqlTableModel):
         """Serialise *pdf_result* to JSON and persist it linked to *result_id*."""
         try:
             text: str = _pdf_result_to_json(pdf_result)
-        except Exception:
+        except Exception:  # noqa: BLE001
             traceback.print_exc(file=sys.stderr)
             return (False, "Failed to serialise PdfResult to JSON")
         record: QSqlRecord = self.record()
@@ -597,7 +597,7 @@ class StatementResultPayloadModel(QSqlTableModel):
             try:
                 obj = _json_to_pdf_result(str(text))
                 results[rid] = obj
-            except Exception:
+            except Exception:  # noqa: BLE001
                 print(
                     f"WARNING: Could not deserialise payload for result_id={rid} — skipping.",
                     file=sys.stderr,

@@ -333,7 +333,7 @@ class StanErrorMessage(QDialog):
             from importlib.metadata import version as get_version
 
             pyside_version = get_version("PySide6")
-        except Exception:
+        except Exception:  # noqa: BLE001
             pyside_version = "unknown"
 
         # Build issue body
@@ -393,7 +393,7 @@ class StanErrorMessage(QDialog):
             from importlib.metadata import version
 
             return version("openstan")
-        except Exception:
+        except Exception:  # noqa: BLE001
             return "unknown"
 
 
