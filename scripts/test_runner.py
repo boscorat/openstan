@@ -35,7 +35,7 @@ from typing import ClassVar
 class Runner:
     """Helper for running pytest with profile-based filtering."""
 
-    PROFILES: ClassVar[dict[str, dict[str, object]]] = {
+    PROFILES: ClassVar[dict[str, dict[str, str | list[str] | None]]] = {
         "all": {
             "description": "Run all tests (integration tests skip without PDFs)",
             "paths": None,
