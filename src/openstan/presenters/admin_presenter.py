@@ -60,7 +60,15 @@ class AdminPresenter(QObject):
         Called each time the admin dialog is opened and after any successful
         action that changes the project list.
         """
+        # Block signals on the project selection combo to prevent
+        # model.select() from resetting the current project.
+        combo = self.stan.project_view.selection
+        combo.blockSignals(True)
+        saved_index = combo.currentIndex()
         self.model.select()
+        combo.setCurrentIndex(saved_index)
+        combo.blockSignals(False)
+
         self.view.combo_delete.clear()
         self.view.combo_remove.clear()
         for row in range(self.model.rowCount()):
