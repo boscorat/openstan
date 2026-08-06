@@ -1,7 +1,7 @@
 import re
 from urllib.parse import urlencode
 
-from PySide6.QtCore import QAbstractTableModel, QEvent, QSize, Qt, QUrl
+from PySide6.QtCore import QAbstractTableModel, QEvent, QSize, QStandardPaths, Qt, QUrl
 from PySide6.QtGui import QColor, QDesktopServices, QIcon, QPainter, QPalette, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QDateEdit,
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QFormLayout,
     QFrame,
     QGroupBox,
@@ -423,6 +424,20 @@ class StanFrame(QFrame):
             QFrame.Shape.StyledPanel | QFrame.Shadow.Sunken | QFrame.Shape.Panel
         )
         self.setAutoFillBackground(True)
+
+
+class StanFolderDialog(QFileDialog):
+    """A directory-selection dialog that opens to the user's home directory."""
+
+    def __init__(self, caption: str = "Select folder") -> None:
+        super().__init__()
+        self.setWindowTitle(caption)
+        self.setDirectory(
+            QStandardPaths.writableLocation(
+                QStandardPaths.StandardLocation.HomeLocation
+            )
+        )
+        self.setFileMode(QFileDialog.FileMode.Directory)
 
 
 class StanWidget(QWidget):
