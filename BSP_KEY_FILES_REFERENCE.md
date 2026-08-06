@@ -286,11 +286,11 @@ _safe_hex_id()
 
 ### Worker Threads
 ```python
-SQWorker (statement_queue_presenter.py)
-DebugWorker (statement_result_presenter.py)
-CommitWorker (statement_result_presenter.py)
-ExportWorker (workers.py)
-_DatamartLoadWorker (advanced_export_presenter.py)
+SQWorker(statement_queue_presenter.py)
+DebugWorker(statement_result_presenter.py)
+CommitWorker(statement_result_presenter.py)
+ExportWorker(workers.py)
+_DatamartLoadWorker(advanced_export_presenter.py)
 ```
 
 ### Dialogs

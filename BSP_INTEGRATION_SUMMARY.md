@@ -313,9 +313,9 @@ class DebugWorker(QRunnable):
 ```python
 class CommitWorker(QRunnable):
     def run(self):
-        bsp.update_db(processed_pdfs, ...)      # Persist to datamart
-        bsp.copy_statements_to_project(...)     # Copy PDFs
-        bsp.delete_temp_files(...)              # Clean up
+        bsp.update_db(processed_pdfs, ...)  # Persist to datamart
+        bsp.copy_statements_to_project(...)  # Copy PDFs
+        bsp.delete_temp_files(...)  # Clean up
 ```
 
 **Signals:**

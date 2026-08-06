@@ -262,6 +262,7 @@ Use this pattern to break circular imports at runtime while preserving static an
 
 ```python
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from openstan.models.project_model import ProjectModel
     from openstan.views.project_view import ProjectView
@@ -303,6 +304,7 @@ class WorkerSignals(QObject):
     finished = Signal()
     progress = Signal(int)
 
+
 class SQWorker(QRunnable):
     def __init__(self) -> None:
         super().__init__()
@@ -312,6 +314,7 @@ class SQWorker(QRunnable):
         # background work here
         self.signals.progress.emit(50)
         self.signals.finished.emit()
+
 
 QThreadPool.globalInstance().start(worker)
 ```
@@ -345,7 +348,7 @@ Callers must check `result[0]` and handle the `False` case.
   ```python
   StanErrorMessage(parent=self.view).showMessage(
       "Failed to delete project",
-      context_object="AdminPresenter.delete_project(project_id=42)"
+      context_object="AdminPresenter.delete_project(project_id=42)",
   )
   ```
 
