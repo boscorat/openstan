@@ -11,10 +11,11 @@ the active project changes — consistent with the pattern used by
 ``StatementQueuePresenter`` and ``StatementResultPresenter``.
 """
 
+import os
+from collections.abc import Callable
 from pathlib import Path
 from subprocess import Popen
-import os
-from typing import TYPE_CHECKING, Any, Callable, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import bank_statement_parser as bsp
 from PySide6.QtCore import QObject, Signal, Slot
@@ -58,14 +59,14 @@ class ExportDataPresenter(QObject):
 
     def __init__(
         self,
-        view: "ExportDataView",
-        threadpool: "QThreadPool",
-        batch_model: "BatchModel",
+        view: ExportDataView,
+        threadpool: QThreadPool,
+        batch_model: BatchModel,
     ) -> None:
         super().__init__()
-        self.view: "ExportDataView" = view
-        self.threadpool: "QThreadPool" = threadpool
-        self.batch_model: "BatchModel" = batch_model
+        self.view: ExportDataView = view
+        self.threadpool: QThreadPool = threadpool
+        self.batch_model: BatchModel = batch_model
 
         # Set by StanPresenter on every project selection change.
         self.project_path: Path | None = None

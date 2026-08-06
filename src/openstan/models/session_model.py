@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 class SessionModel(QSqlTableModel):
-    def __init__(self, db: "QSqlDatabase") -> None:
+    def __init__(self, db: QSqlDatabase) -> None:
         super().__init__(db=db)
         self.setTable("session")
         self.select()

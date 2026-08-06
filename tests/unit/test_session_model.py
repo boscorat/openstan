@@ -9,11 +9,9 @@ dependency (session → user → session) that exists at the application level.
 import sqlite3
 from uuid import uuid4
 
-
 from PySide6.QtSql import QSqlDatabase
 
 from openstan.models.session_model import SessionModel
-
 
 # ---------------------------------------------------------------------------
 # Helpers

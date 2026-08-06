@@ -12,7 +12,6 @@ FK rows (session + project) before each test that needs them.
 
 from uuid import uuid4
 
-
 from PySide6.QtSql import QSqlDatabase
 
 from openstan.models.statement_queue_model import (
@@ -20,7 +19,6 @@ from openstan.models.statement_queue_model import (
     StatementQueueTreeModel,
 )
 from tests.unit.conftest import seed_session_and_project
-
 
 # ---------------------------------------------------------------------------
 # Internal helpers

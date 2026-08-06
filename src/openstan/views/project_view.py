@@ -636,7 +636,7 @@ class ProjectInfoView(StanWidget):
         """Switch between placeholder (page 0) and real content (page 1)."""
         self._stack.setCurrentIndex(0 if show else 1)
 
-    def update(self, info: "ProjectInfo | None") -> None:  # type: ignore[override]
+    def update(self, info: ProjectInfo | None) -> None:  # type: ignore[override]
         """Refresh the entire panel from *info*.
 
         Passing ``None`` clears all data (placeholder is controlled separately

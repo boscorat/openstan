@@ -65,8 +65,8 @@ class SQWorker(QRunnable):
 
     def __init__(
         self,
-        presenter: "StatementQueuePresenter",
-        model: "StatementQueueModel",
+        presenter: StatementQueuePresenter,
+        model: StatementQueueModel,
         batch_id: str,
     ) -> None:
         super().__init__()
@@ -122,13 +122,13 @@ class StatementQueuePresenter(QObject):
 
     def __init__(
         self,
-        model: "StatementQueueModel",
-        view: "StatementQueueView",
-        tree_model: "StatementQueueTreeModel",
-        threadpool: "QThreadPool",
+        model: StatementQueueModel,
+        view: StatementQueueView,
+        tree_model: StatementQueueTreeModel,
+        threadpool: QThreadPool,
     ) -> None:
         super().__init__()
-        self.threadpool: "QThreadPool" = threadpool
+        self.threadpool: QThreadPool = threadpool
         self.sessionID: str = "<<NO SESSION ID>>"  # set by StanPresenter
         self.projectID: str = "<<NO PROJECT ID>>"  # set by StanPresenter
         self.projectPath: Path = Path("<<NO PROJECT PATH>>")  # set by StanPresenter
@@ -140,9 +140,9 @@ class StatementQueuePresenter(QObject):
         # selected, so subsequent dialogs open in the same location.
         self._last_dir: Path | None = None
 
-        self.model: "StatementQueueModel" = model
-        self.view: "StatementQueueView" = view
-        self.tree_model: "StatementQueueTreeModel" = tree_model
+        self.model: StatementQueueModel = model
+        self.view: StatementQueueView = view
+        self.tree_model: StatementQueueTreeModel = tree_model
 
         self.view.tree.setModel(self.tree_model)
         self.view.tree.setHeaderHidden(True)
@@ -306,9 +306,9 @@ class StatementQueuePresenter(QObject):
     def __ask_subfolder_selection(
         self,
         root_path: Path,
-        dirs_with_pdfs: "dict[Path, list[Path]]",
-        sub_dirs: "list[Path]",
-    ) -> "set[Path] | None":
+        dirs_with_pdfs: dict[Path, list[Path]],
+        sub_dirs: list[Path],
+    ) -> set[Path] | None:
         """Show a checkbox dialog for subfolder selection.
 
         Returns the set of selected ``Path`` objects, or ``None`` if cancelled.

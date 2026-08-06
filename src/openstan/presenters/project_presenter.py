@@ -49,7 +49,7 @@ class ProjectInfo:
     gap_rows: pl.DataFrame
 
 
-def get_project_info(project_path: Path) -> "ProjectInfo | None":
+def get_project_info(project_path: Path) -> ProjectInfo | None:
     """Query project.db mart tables and return a structured :class:`ProjectInfo`.
 
     Returns ``None`` when the mart has not yet been built, all counts are zero,
@@ -191,17 +191,17 @@ class ProjectPresenter(QObject):
 
     def __init__(
         self,
-        model: "ProjectModel",
-        view: "ProjectView",
-        nav_view: "ProjectNavView",
-        welcome_view: "ProjectWelcomeView",
+        model: ProjectModel,
+        view: ProjectView,
+        nav_view: ProjectNavView,
+        welcome_view: ProjectWelcomeView,
     ) -> None:
         super().__init__()
         self.sessionID: str | None = None  # to be set by StanPresenter
-        self.model: "ProjectModel" = model
-        self.view: "ProjectView" = view
-        self.nav_view: "ProjectNavView" = nav_view
-        self.welcome_view: "ProjectWelcomeView" = welcome_view
+        self.model: ProjectModel = model
+        self.view: ProjectView = view
+        self.nav_view: ProjectNavView = nav_view
+        self.welcome_view: ProjectWelcomeView = welcome_view
         self.view.selection.setModel(self.model)
         self.view.selection.setModelColumn(1)  # project_name column
         self.view.selection.setEditable(False)
@@ -501,13 +501,13 @@ class ProjectWelcomePresenter(QObject):
     """
 
     def __init__(
-        self: "ProjectWelcomePresenter",
-        project_presenter: "ProjectPresenter",
-        view: "ProjectWelcomeView",
+        self: ProjectWelcomePresenter,
+        project_presenter: ProjectPresenter,
+        view: ProjectWelcomeView,
     ) -> None:
         super().__init__()
-        self.project_presenter: "ProjectPresenter" = project_presenter
-        self.view: "ProjectWelcomeView" = view
+        self.project_presenter: ProjectPresenter = project_presenter
+        self.view: ProjectWelcomeView = view
         self.view.button_select.clicked.connect(
             self.project_presenter.show_project_view
         )

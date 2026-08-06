@@ -25,7 +25,7 @@ Signals emitted (consumed by StanPresenter)
 import sys
 import threading
 import traceback
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -37,6 +37,7 @@ from openstan.models.statement_result_model import ResultRow
 
 if TYPE_CHECKING:
     from openstan.models.batch_model import BatchModel
+    from openstan.models.statement_queue_model import StatementQueueModel
     from openstan.models.statement_result_model import (
         FailureResultModel,
         ReviewResultModel,
@@ -44,7 +45,6 @@ if TYPE_CHECKING:
         StatementResultPayloadModel,
         SuccessResultModel,
     )
-    from openstan.models.statement_queue_model import StatementQueueModel
     from openstan.views.debug_info_dialog import DebugInfoDialog
     from openstan.views.statement_result_view import StatementResultView
 
@@ -127,7 +127,7 @@ class CommitWorker(QRunnable):
                 errors=self._errors,
                 reviews=self._reviews,
                 duration_secs=self._duration_secs,
-                process_time=datetime.now(timezone.utc),
+                process_time=datetime.now(UTC),
                 project_path=self._project_path,
             )
 
@@ -263,14 +263,14 @@ class StatementResultPresenter(QObject):
 
     def __init__(
         self,
-        success_model: "SuccessResultModel",
-        review_model: "ReviewResultModel",
-        failure_model: "FailureResultModel",
-        result_model: "StatementResultModel",
-        payload_model: "StatementResultPayloadModel",
-        queue_model: "StatementQueueModel",
-        batch_model: "BatchModel",
-        view: "StatementResultView",
+        success_model: SuccessResultModel,
+        review_model: ReviewResultModel,
+        failure_model: FailureResultModel,
+        result_model: StatementResultModel,
+        payload_model: StatementResultPayloadModel,
+        queue_model: StatementQueueModel,
+        batch_model: BatchModel,
+        view: StatementResultView,
     ) -> None:
         super().__init__()
         self.view = view
@@ -328,7 +328,7 @@ class StatementResultPresenter(QObject):
         self._n_failure: int = 0
 
         # Open debug-info dialog (may be None when closed)
-        self._debug_dialog: "DebugInfoDialog | None" = None
+        self._debug_dialog: DebugInfoDialog | None = None
 
         # Set by StanPresenter.update_current_project_info so the commit worker
         # has the correct context without accessing stan directly.
@@ -657,8 +657,8 @@ class StatementResultPresenter(QObject):
     def __on_debug_entry_done(
         self,
         result_id: str,
-        debug_json_path: "Path | None",
-        debug_excel_path: "Path | None",
+        debug_json_path: Path | None,
+        debug_excel_path: Path | None,
     ) -> None:
         """Persist debug result for one row and update the open dialog if any."""
         status = "done" if debug_json_path is not None else "error"

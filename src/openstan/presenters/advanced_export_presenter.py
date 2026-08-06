@@ -16,13 +16,13 @@ file manager; on failure a modal error dialog is shown.
 The project path is pushed in by ``StanPresenter`` via ``load_project()``.
 """
 
+import os
 import tomllib
 import traceback
 from datetime import date
 from functools import partial
 from pathlib import Path
 from subprocess import Popen
-import os
 from typing import TYPE_CHECKING
 
 import bank_statement_parser as bsp
@@ -65,7 +65,7 @@ class _DatamartLoadWorker(QRunnable):
         self._project_path = project_path
         self.signals = _DatamartLoadSignals()
 
-    def run(self) -> None:  # noqa: N802
+    def run(self) -> None:
         try:
             accounts_df: pl.DataFrame = (
                 bsp.db.DimAccount(self._project_path)
@@ -114,12 +114,12 @@ class AdvancedExportPresenter(QObject):
 
     def __init__(
         self,
-        view: "AdvancedExportView",
-        threadpool: "QThreadPool",
+        view: AdvancedExportView,
+        threadpool: QThreadPool,
     ) -> None:
         super().__init__()
-        self.view: "AdvancedExportView" = view
-        self.threadpool: "QThreadPool" = threadpool
+        self.view: AdvancedExportView = view
+        self.threadpool: QThreadPool = threadpool
 
         self.project_path: Path | None = None
 

@@ -13,7 +13,7 @@ NEW_RECORD_STATUS = 8  # active status
 class ProjectModel(QSqlTableModel):
     db_updated: Signal = Signal()
 
-    def __init__(self, db: "QSqlDatabase") -> None:
+    def __init__(self, db: QSqlDatabase) -> None:
         super().__init__(db=db)
         self.setTable("project")
         self.select()

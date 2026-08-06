@@ -17,9 +17,9 @@ if TYPE_CHECKING:
 
 
 class StanPresenter(QObject):
-    def __init__(self, stan: "Stan") -> None:
+    def __init__(self, stan: Stan) -> None:
         super().__init__()
-        self.stan: "Stan" = stan
+        self.stan: Stan = stan
 
         # presenters
         self.project_presenter = self.stan.project_presenter
@@ -139,7 +139,7 @@ class StanPresenter(QObject):
         print("Session ended.")
 
     def update_current_project_info(self, index: int) -> None:
-        current_record: "QSqlRecord" = self.project_presenter.model.record(index)
+        current_record: QSqlRecord = self.project_presenter.model.record(index)
         self.stan.current_project_name = current_record.value("project_name")
         self.stan.current_project_id = current_record.value("project_ID")
 
@@ -339,7 +339,7 @@ class StanPresenter(QObject):
             error_type = stmt.payload.error_type  # type: ignore[union-attr]
             message = stmt.payload.message  # type: ignore[union-attr]
 
-        batch_id = self.statement_queue_presenter._current_batch_id or ""  # noqa: SLF001
+        batch_id = self.statement_queue_presenter._current_batch_id or ""
 
         row = ResultRow(
             result_id="",  # assigned at persist time
@@ -369,7 +369,7 @@ class StanPresenter(QObject):
         # Mark the progress bar as complete
         self.statement_result_presenter.view.progressBar.setFormat("Import complete")
 
-        batch_id = self.statement_queue_presenter._current_batch_id  # noqa: SLF001
+        batch_id = self.statement_queue_presenter._current_batch_id
         if batch_id:
             ok, msg = self.stan.batch_model.create_batch(
                 batch_id=batch_id,

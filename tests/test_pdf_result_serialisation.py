@@ -24,7 +24,6 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-
 from bank_statement_parser import PdfResult
 from bank_statement_parser.modules.data import (
     Failure,
@@ -33,11 +32,11 @@ from bank_statement_parser.modules.data import (
     StatementInfo,
     Success,
 )
+
 from openstan.models.statement_result_model import (
     _json_to_pdf_result,
     _pdf_result_to_json,
 )
-
 
 # ---------------------------------------------------------------------------
 # Shared fixtures

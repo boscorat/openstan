@@ -25,7 +25,7 @@ import sys
 import tempfile
 from collections.abc import Generator
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -96,11 +96,11 @@ if sys.platform not in ("darwin", "win32"):
 # (which require a QApplication) can be instantiated in the same process —
 # e.g. by test_screenshots.py.  QApplication is a subclass of QCoreApplication
 # and satisfies all requirements of the integration test fixtures.
-from PySide6.QtSql import QSqlDatabase  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtSql import QSqlDatabase
+from PySide6.QtWidgets import QApplication
 
-from openstan.data.create_gui_db import create_gui_db  # noqa: E402
-from openstan.models import (  # noqa: E402
+from openstan.data.create_gui_db import create_gui_db
+from openstan.models import (
     BatchModel,
     FailureResultModel,
     ProjectModel,
@@ -112,10 +112,10 @@ from openstan.models import (  # noqa: E402
     SuccessResultModel,
     UserModel,
 )
-from openstan.models.statement_result_model import ResultRow  # noqa: E402
-from openstan.paths import Paths  # noqa: E402
-from openstan.presenters.statement_queue_presenter import SQWorker  # noqa: E402
-from openstan.presenters.statement_result_presenter import CommitWorker  # noqa: E402
+from openstan.models.statement_result_model import ResultRow
+from openstan.paths import Paths
+from openstan.presenters.statement_queue_presenter import SQWorker
+from openstan.presenters.statement_result_presenter import CommitWorker
 
 # ---------------------------------------------------------------------------
 # QApplication — exactly one instance per process
@@ -171,7 +171,7 @@ class OpenStanEnv:
 
 
 @pytest.fixture(scope="session")
-def bsp_harness() -> Generator[TestHarness, None, None]:
+def bsp_harness() -> Generator[TestHarness]:
     """Build the bsp reference project using the bundled anonymised PDFs.
 
     Uses ``skip_bsp_tests=True`` so the harness works whether bsp is installed
@@ -197,7 +197,7 @@ class _PresenterStub:
                          but kept for completeness)
     """
 
-    __slots__ = ("projectPath", "sessionID", "projectID")
+    __slots__ = ("projectID", "projectPath", "sessionID")
 
     def __init__(self, project_path: Path, session_id: str, project_id: str) -> None:
         self.projectPath: Path = project_path
@@ -206,7 +206,7 @@ class _PresenterStub:
 
 
 @pytest.fixture(scope="session")
-def openstan_env(bsp_harness: TestHarness) -> Generator[OpenStanEnv, None, None]:
+def openstan_env(bsp_harness: TestHarness) -> Generator[OpenStanEnv]:
     """Drive the full openstan import pipeline and yield test state.
 
     Steps
@@ -284,7 +284,7 @@ def openstan_env(bsp_harness: TestHarness) -> Generator[OpenStanEnv, None, None]
         " VALUES (:sid, 'bootstrap', :ts, 1)"
     )
     _q.bindValue(":sid", session_id)
-    _q.bindValue(":ts", datetime.now(timezone.utc).isoformat())
+    _q.bindValue(":ts", datetime.now(UTC).isoformat())
     assert _q.exec(), f"Could not insert bootstrap session: {_q.lastError().text()}"
 
     # Now add the user (createdBy_session references the bootstrap session)

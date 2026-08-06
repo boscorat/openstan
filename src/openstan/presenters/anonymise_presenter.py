@@ -14,8 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import bank_statement_anonymiser as bsa
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QFileDialog
 
@@ -52,7 +51,7 @@ class NeverAnonymiseConfig:
         return "\n".join(lines)
 
     @classmethod
-    def from_toml(cls, toml_path: Path) -> "NeverAnonymiseConfig":
+    def from_toml(cls, toml_path: Path) -> NeverAnonymiseConfig:
         """Load from a TOML file."""
         if not toml_path.exists():
             return cls()
@@ -87,7 +86,7 @@ class AlwaysAnonymiseConfig:
         return "\n".join(lines)
 
     @classmethod
-    def from_toml(cls, toml_path: Path) -> "AlwaysAnonymiseConfig":
+    def from_toml(cls, toml_path: Path) -> AlwaysAnonymiseConfig:
         """Load from a TOML file."""
         if not toml_path.exists():
             return cls()
@@ -136,7 +135,7 @@ class _AnonymiseWorker(QRunnable):
         self._never_path = never_anonymise_path
 
     @Slot()
-    def run(self) -> None:  # noqa: N802  (Qt override)
+    def run(self) -> None:
         try:
             out = bsa.anonymise_pdf(
                 self._input,
@@ -169,8 +168,8 @@ class AnonymisePresenter(QObject):
 
     def __init__(
         self,
-        dialog: "AnonymiseDialog",
-        project_paths: "ProjectPaths",
+        dialog: AnonymiseDialog,
+        project_paths: ProjectPaths,
         initial_pdf: Path | None = None,
     ) -> None:
         super().__init__()

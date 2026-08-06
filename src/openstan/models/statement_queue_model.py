@@ -33,7 +33,7 @@ class StatementQueueModel(QSqlTableModel):
 
     db_updated: Signal = Signal()
 
-    def __init__(self, db: "QSqlDatabase") -> None:
+    def __init__(self, db: QSqlDatabase) -> None:
         super().__init__(None, db)
         self.setTable("statement_queue")
         self._project_id: str | None = None
@@ -63,7 +63,7 @@ class StatementQueueModel(QSqlTableModel):
         parent_id: str,
         session_id: str,
         status_id: int,
-        path: str | "Path",
+        path: str | Path,
         is_folder: int = 0,
     ) -> tuple[bool, str, str]:
         msg: str = ""

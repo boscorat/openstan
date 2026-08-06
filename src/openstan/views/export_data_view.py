@@ -70,8 +70,8 @@ _HELP_FOLDER = (
 def _make_option_group(
     label_text: str,
     help_text: str,
-    *radio_buttons: "StanRadioButton",
-) -> tuple["StanWidget", "QButtonGroup"]:
+    *radio_buttons: StanRadioButton,
+) -> tuple[StanWidget, QButtonGroup]:
     """Build a labelled radio-button group container.
 
     Returns the container widget and the ``QButtonGroup`` so the caller can

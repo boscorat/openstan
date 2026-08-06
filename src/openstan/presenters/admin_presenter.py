@@ -28,15 +28,15 @@ class AdminPresenter(QObject):
     """
 
     def __init__(
-        self: "AdminPresenter",
-        model: "ProjectModel",
-        view: "AdminView",
-        stan: "Stan",
+        self: AdminPresenter,
+        model: ProjectModel,
+        view: AdminView,
+        stan: Stan,
     ) -> None:
         super().__init__()
-        self.model: "ProjectModel" = model
-        self.view: "AdminView" = view
-        self.stan: "Stan" = stan
+        self.model: ProjectModel = model
+        self.view: AdminView = view
+        self.stan: Stan = stan
 
         self.view.button_delete_project.clicked.connect(self.delete_project)
         self.view.button_remove_project.clicked.connect(self.remove_project_from_ui)

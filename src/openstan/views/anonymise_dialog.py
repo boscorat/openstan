@@ -16,9 +16,9 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QHBoxLayout,
     QSizePolicy,
-    QTabWidget,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )

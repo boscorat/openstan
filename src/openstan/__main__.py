@@ -49,19 +49,17 @@ DCONF_PROFILE
     openstan does not use dconf; Qt stores its settings via QSettings.
 """
 
-import os
-import shutil
-from pathlib import Path
-
 # ---------------------------------------------------------------------------
 # Resolve the bsp package install location BEFORE setting the env var redirect,
 # so we always have the real source regardless of BSP_DEFAULT_PROJECT_ROOT.
 # ---------------------------------------------------------------------------
-
 # bank_statement_parser.__file__ == .../bank_statement_parser/__init__.py
 # We derive the path without importing the package yet (avoids module-level
 # side-effects running before env vars are set).
 import importlib.util as _ilu
+import os
+import shutil
+from pathlib import Path
 
 from openstan.paths import _user_data_dir
 
@@ -136,7 +134,7 @@ def _seed_bsp_default_project() -> None:
 
 _seed_bsp_default_project()
 
-from openstan import main  # noqa: E402
+from openstan import main
 
 if __name__ == "__main__":
     main()
