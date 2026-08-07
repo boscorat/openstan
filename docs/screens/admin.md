@@ -64,9 +64,9 @@ Opens the [Anonymise PDF](anonymise.md) tool for the currently active project.
 
 | Control | Description |
 |---|---|
-| **Open Anonymise Tool** button | Opens the Anonymise PDF dialog, where you can select a statement, edit the exclusion config, and produce a redacted copy. |
+| **Open Anonymise Tool** button | Opens the Anonymise PDF dialog, where you can select a PDF or folder, edit the exclusion config, and produce anonymised copies. |
 
-Use this to create an anonymised version of a PDF that is safe to share or attach to a GitHub issue. The tool is also accessible directly from any REVIEW or FAILURE row in the [Debug Info dialog](import-results.md#debug-info-dialog).
+Use this to create anonymised versions of PDFs that are safe to share or attach to a GitHub issue. The tool supports both single-file and folder batch processing. It is also accessible directly from any REVIEW or FAILURE row in the [Debug Info dialog](import-results.md#debug-info-dialog).
 
 !!! info "A project must be active"
     The button is only useful when a project is open. If no project is selected, an error dialog is shown.
