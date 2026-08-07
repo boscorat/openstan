@@ -68,6 +68,11 @@ class AdminPresenter(QObject):
         self.model.select()
         combo.setCurrentIndex(saved_index)
         combo.blockSignals(was_blocked)
+        combo.blockSignals(True)
+        saved_index = combo.currentIndex()
+        self.model.select()
+        combo.setCurrentIndex(saved_index)
+        combo.blockSignals(False)
 
         self.view.combo_delete.clear()
         self.view.combo_remove.clear()
