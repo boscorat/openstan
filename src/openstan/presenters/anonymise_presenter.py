@@ -183,6 +183,14 @@ class _AnonymiseWorker(QRunnable):
                 # Move output to the dedicated subfolder if specified
                 if self._output_dir is not None:
                     dest = self._output_dir / out.name
+                    if dest.exists():
+                        counter = 1
+                        while dest.exists():
+                            dest = (
+                                self._output_dir
+                                / f"{out.stem}_{counter}{out.suffix}"
+                            )
+                            counter += 1
                     out.rename(dest)
                     out = dest
                 results.append((input_path, out, None))
