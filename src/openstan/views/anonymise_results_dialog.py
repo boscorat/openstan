@@ -143,7 +143,7 @@ class AnonymiseResultsDialog(StanDialog):
 
         # Close button
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        button_box.rejected.connect(self.accept)
+button_box.rejected.connect(self.reject)
         outer.addWidget(button_box)
 
         self.setLayout(outer)
