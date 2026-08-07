@@ -4,7 +4,7 @@ description: "Redact bank statement PDFs for safe sharing using openstan's anony
 
 # Anonymise PDF
 
-The **Anonymise PDF** tool lets you produce a redacted copy of a bank statement PDF suitable for sharing — for example, when attaching a failing statement to a GitHub issue. All text is scrambled by default. You use two simple tables to control which phrases are left unchanged (so the parser can still read them) and which strings are replaced with safe alternatives (before scrambling occurs).
+The **Anonymise PDF** tool lets you produce redacted copies of bank statement PDFs suitable for sharing — for example, when attaching a failing statement to a GitHub issue. You can anonymise a single file or an entire folder of PDFs in one go. All text is scrambled by default. You use two simple tables to control which phrases are left unchanged (so the parser can still read them) and which strings are replaced with safe alternatives (before scrambling occurs).
 
 ---
 
@@ -22,9 +22,12 @@ The Anonymise tool can be opened from two places:
 
 ## Selecting a source PDF
 
-Use the **Browse…** button to open a file picker and select the PDF you want to anonymise. The full path is shown in the field to the left of the button.
+You can anonymise files one at a time or process an entire folder at once:
 
-If the tool was opened from the Debug Info dialog, the path is pre-filled with the failing statement's path.
+- **Browse…** — opens a file picker to select a single PDF.
+- **Browse Folder…** — opens a folder picker. openstan recursively discovers all `.pdf` files in the selected folder and its subdirectories. A count of discovered files is shown below the path field.
+
+If the tool was opened from the Debug Info dialog, the path is pre-filled with the failing statement's path (single-file mode).
 
 ---
 
@@ -73,9 +76,13 @@ Example:
 
 ## Running the anonymisation
 
-Click **Run Anonymisation**. The tool calls `bsp.anonymise_pdf` in a background thread so the UI remains responsive. The status line updates when the run completes, showing the full path of the output file.
+Click **Run Anonymisation**.
 
-The anonymised PDF is written **alongside the source file** with `anonymised_` prepended to the filename (after any filename replacements are applied).
+**Single-file mode:** The tool calls `bsp.anonymise_pdf` in a background thread so the UI remains responsive. The anonymised PDF is written **alongside the source file** with `anonymised_` prepended to the filename (after any filename replacements are applied).
+
+**Folder mode:** A confirmation dialog warns that each file must be reviewed individually before sharing — automated anonymisation may not catch all sensitive information. Once confirmed, a progress bar shows "Anonymising file N of M…" as each PDF is processed. All output files are written to an `anonymised/` subfolder inside the selected folder.
+
+When the batch completes, the status line shows the number of files that succeeded or failed.
 
 !!! warning "Re-running overwrites the previous output"
     Each run writes to the same output path. If you need to preserve a previous version, move or rename it before running again.
@@ -84,12 +91,19 @@ The anonymised PDF is written **alongside the source file** with `anonymised_` p
 
 ## Viewing the results
 
-Once a run completes, **Open Original PDF** and **Open Anonymised PDF** both become active. Click either button to open the file in your system's default PDF viewer. Open both to compare them side-by-side.
+**Single-file mode:** Once a run completes, **Open Original PDF** and **Open Anonymised PDF** both become active. Click either button to open the file in your system's default PDF viewer. Open both to compare them side-by-side.
 
 | Button | Action |
 |---|---|
 | **Open Original PDF** | Opens the source PDF in the system viewer. Available as soon as a file is selected. |
 | **Open Anonymised PDF** | Opens the anonymised output in the system viewer. Enabled after a successful run. |
+
+**Folder mode:** After the batch completes, two additional buttons appear:
+
+| Button | Action |
+|---|---|
+| **View Anonymised Files…** | Opens a results table showing the status, original path, and anonymised path for every file. Each row has **Original** and **Anonymised** buttons to open the corresponding file. |
+| **Open Output Folder** | Opens the `anonymised/` subfolder in your operating system's file manager. |
 
 ---
 
