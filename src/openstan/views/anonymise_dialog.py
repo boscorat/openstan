@@ -1,7 +1,7 @@
 """anonymise_dialog.py — Dialog for anonymising a PDF bank statement.
 
 Allows the user to:
-   1. Select a source PDF or folder of PDFs via file browser.
+   1. Select a source PDF via file browser.
    2. View and edit the project's config in two tabs:
       - Always Anonymise: forced replacements (original + replacement pairs)
       - Never Anonymise: excluded phrases
@@ -30,8 +30,6 @@ from openstan.components import (
     StanFrame,
     StanLabel,
     StanLineEdit,
-    StanMutedLabel,
-    StanProgressBar,
 )
 
 
@@ -63,29 +61,21 @@ class AnonymiseDialog(StanDialog):
         layout_pdf.setSpacing(8)
 
         lbl_pdf_title = StanLabel("##### Source PDF")
-        lbl_pdf_info = StanLabel(
-            "Select a PDF statement or a folder of PDFs to anonymise."
-        )
+        lbl_pdf_info = StanLabel("Select the PDF statement you want to anonymise.")
         lbl_pdf_info.setWordWrap(True)
 
         row_pdf = QHBoxLayout()
         self.line_edit_pdf_path = StanLineEdit()
-        self.line_edit_pdf_path.setPlaceholderText("No PDF or folder selected…")
+        self.line_edit_pdf_path.setPlaceholderText("No PDF selected…")
         self.line_edit_pdf_path.setReadOnly(True)
         self.button_browse = StanButton("Browse…", min_width=120)
-        self.button_browse_folder = StanButton("Browse Folder…", min_width=120)
 
         row_pdf.addWidget(self.line_edit_pdf_path, stretch=1)
         row_pdf.addWidget(self.button_browse)
-        row_pdf.addWidget(self.button_browse_folder)
-
-        self.label_file_count = StanMutedLabel("")
-        self.label_file_count.setVisible(False)
 
         layout_pdf.addWidget(lbl_pdf_title)
         layout_pdf.addWidget(lbl_pdf_info)
         layout_pdf.addLayout(row_pdf)
-        layout_pdf.addWidget(self.label_file_count)
         section_pdf.setLayout(layout_pdf)
 
         # ------------------------------------------------------------------
@@ -197,15 +187,11 @@ class AnonymiseDialog(StanDialog):
         self.button_run = StanButton("Run Anonymisation", min_width=200)
         self.button_run.setEnabled(False)
 
-        self.progress_bar = StanProgressBar()
-        self.progress_bar.setVisible(False)
-
-        self.label_status = StanLabel("Select a PDF or folder to begin.")
+        self.label_status = StanLabel("Select a PDF to begin.")
         self.label_status.setWordWrap(True)
 
         layout_run.addWidget(lbl_run_title)
         layout_run.addWidget(self.button_run, alignment=Qt.AlignmentFlag.AlignLeft)
-        layout_run.addWidget(self.progress_bar)
         layout_run.addWidget(self.label_status)
         section_run.setLayout(layout_run)
 
@@ -227,15 +213,9 @@ class AnonymiseDialog(StanDialog):
         self.button_open_original.setEnabled(False)
         self.button_open_anonymised = StanButton("Open Anonymised PDF", min_width=180)
         self.button_open_anonymised.setEnabled(False)
-        self.button_open_results = StanButton("View Anonymised Files…", min_width=180)
-        self.button_open_results.setVisible(False)
-        self.button_open_output_folder = StanButton("Open Output Folder", min_width=180)
-        self.button_open_output_folder.setVisible(False)
 
         row_open.addWidget(self.button_open_original)
         row_open.addWidget(self.button_open_anonymised)
-        row_open.addWidget(self.button_open_results)
-        row_open.addWidget(self.button_open_output_folder)
         row_open.addStretch()
 
         layout_open.addWidget(lbl_open_title)

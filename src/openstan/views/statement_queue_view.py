@@ -5,7 +5,6 @@ from PySide6.QtWidgets import QFileDialog, QGridLayout, QSizePolicy
 from openstan.components import (
     Qt,
     StanButton,
-    StanFolderDialog,
     StanLabel,
     StanMutedLabel,
     StanTreeView,
@@ -32,6 +31,20 @@ class FileDialog(QFileDialog):
         self.setFileMode(QFileDialog.FileMode.ExistingFiles)
 
 
+class FolderDialog(QFileDialog):
+    caption = "Statement folders selection"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setWindowTitle(self.caption)
+        self.setDirectory(
+            QStandardPaths.writableLocation(
+                QStandardPaths.StandardLocation.HomeLocation
+            )
+        )
+        self.setFileMode(QFileDialog.FileMode.Directory)
+
+
 class StatementQueueView(StanWidget):
     header = (
         "#### Statement Queue - Select any new pdf statements to add to your project"
@@ -45,7 +58,7 @@ class StatementQueueView(StanWidget):
         super().__init__()
         self.setAcceptDrops(True)
         self.file_dialog = FileDialog()
-        self.folder_dialog = StanFolderDialog("Statement folders selection")
+        self.folder_dialog = FolderDialog()
         layout = QGridLayout()
         layout.setRowStretch(1, 1)  # tree row grows to fill available height
 
