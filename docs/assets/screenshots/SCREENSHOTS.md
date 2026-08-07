@@ -65,7 +65,7 @@ Both variants use the **same filename** — the `dark/` subfolder distinguishes 
 | `run_reports.png` | `screens/run-reports.md` | Run Reports — builder and preview | Builder pane: report title filled, 3+ columns ticked, 1 filter row added, Group By populated; Preview pane: results table showing data |
 | `admin.png` | `screens/admin.md` | Admin dialog | Dialog open; all **four** sections visible (Delete, Remove, Reset, Anonymise PDF); project drop-downs populated |
 | `debug_info.png` | `screens/import-results.md` | Debug Info dialog | Dialog open; at least one REVIEW or FAILURE row visible; debug status column showing `done`; Open JSON, Open PDF, and **Anonymise** buttons all visible |
-| `anonymise.png` | `screens/anonymise.md` | Anonymise PDF dialog | Dialog open; PDF path field populated; TOML editor showing the contents of `anonymise.toml`; status label showing "Ready" or "Done"; Open Anonymised PDF button enabled |
+| `anonymise.png` | `screens/anonymise.md` | Anonymise PDF dialog | Dialog open; PDF path field populated; Browse and Browse Folder buttons visible; TOML tabs showing Always Anonymise and Never Anonymise configs; Run Anonymisation button enabled; status label showing "Ready" or "Done" |
 | `about.png` | `screens/about.md` | About dialog | Dialog open; version number, links, and BSP version all visible |
 
 Each of the 15 files above must exist in **both** `docs/assets/screenshots/` (light)
