@@ -187,8 +187,7 @@ class _AnonymiseWorker(QRunnable):
                         counter = 1
                         while dest.exists():
                             dest = (
-                                self._output_dir
-                                / f"{out.stem}_{counter}{out.suffix}"
+                                self._output_dir / f"{out.stem}_{counter}{out.suffix}"
                             )
                             counter += 1
                     out.rename(dest)
