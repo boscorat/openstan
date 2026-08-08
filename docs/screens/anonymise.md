@@ -4,7 +4,7 @@ description: "Redact bank statement PDFs for safe sharing using openstan's anony
 
 # Anonymise PDF
 
-The **Anonymise PDF** tool lets you produce redacted copies of bank statement PDFs suitable for sharing — for example, when attaching a failing statement to a GitHub issue. You can anonymise a single file or an entire folder of PDFs in one go. All text is scrambled by default. You use two simple tables to control which phrases are left unchanged (so the parser can still read them) and which strings are replaced with safe alternatives (before scrambling occurs).
+The **Anonymise PDF** tool lets you produce redacted copies of bank statement PDFs suitable for sharing — for example, when attaching a failing statement to a GitHub issue. You can anonymise a single file or an entire folder of PDFs in one go. All text is scrambled by default. You use two simple tables to control which phrases are left unchanged (so the parser can still read them) and which strings are replaced with safe alternatives (before scrambling occurs). An optional **retain descriptions** mode lets you skip the scrambling pass for transaction descriptions, applying only your explicit always-anonymise replacements and numeric ID substitutions.
 
 ---
 
@@ -78,7 +78,7 @@ Example:
 
 Click **Run Anonymisation**.
 
-**Single-file mode:** The tool calls `bsp.anonymise_pdf` in a background thread so the UI remains responsive. The anonymised PDF is written **alongside the source file** with `anonymised_` prepended to the filename (after any filename replacements are applied).
+**Single-file mode:** The tool calls `bsa.anonymise_pdf` in a background thread so the UI remains responsive. The anonymised PDF is written **alongside the source file** with `anonymised_` prepended to the filename (after any filename replacements are applied).
 
 **Folder mode:** A confirmation dialog warns that each file must be reviewed individually before sharing — automated anonymisation may not catch all sensitive information. Once confirmed, a progress bar shows "Anonymising file N of M…" as each PDF is processed. All output files are written to an `anonymised/` subfolder inside the selected folder.
 
@@ -86,6 +86,29 @@ When the batch completes, the status line shows the number of files that succeed
 
 !!! warning "Re-running overwrites the previous output"
     Each run writes to the same output path. If you need to preserve a previous version, move or rename it before running again.
+
+---
+
+## Retaining transaction descriptions
+
+By default, all text in the PDF is scrambled — including transaction descriptions. An optional **Retain transaction descriptions** checkbox in the Run Anonymisation section lets you skip the scrambling pass, applying only your explicit Always Anonymise replacements and numeric ID substitutions (sort codes, account numbers, card numbers). Transaction descriptions and free text are left unchanged.
+
+### When to use this
+
+This option is useful when you need to demonstrate or test the parser's output with realistic-looking transaction descriptions — for example, in aggregated reports or internal demos where readability matters more than full redaction.
+
+### How it works
+
+1. The checkbox only appears when your **Always Anonymise** table contains at least one non-empty replacement row. This is a hard requirement — the underlying library raises an error if no always-anonymise file is provided, because sensitive names and addresses would otherwise remain un-anonymised.
+2. Checking the box triggers a **security warning dialog**. You must confirm that you understand the risks before the option is enabled.
+3. When active, the status label shows `[Retain descriptions: ON]` so you can see at a glance that descriptions will not be scrambled.
+4. The checkbox resets each time you open the dialog — you must re-confirm the warning on every session.
+
+!!! danger "Security warning"
+    Enabling this option means transaction descriptions and free text are **not** scrambled. Transaction descriptions may contain personally identifiable information such as merchant names, payment references, or addresses.
+
+    - Ensure you have added **all** personally identifiable information to your Always Anonymise file before using this option.
+    - Files produced with retain descriptions enabled must **not** be shared externally. Use them only for internal testing and demonstration at an **aggregated level**.
 
 ---
 
