@@ -26,8 +26,10 @@ from PySide6.QtWidgets import (
 from openstan.components import (
     Qt,
     StanButton,
+    StanCheckBox,
     StanDialog,
     StanFrame,
+    StanHelpIcon,
     StanLabel,
     StanLineEdit,
     StanMutedLabel,
@@ -194,6 +196,36 @@ class AnonymiseDialog(StanDialog):
         layout_run.setSpacing(8)
 
         lbl_run_title = StanLabel("##### Run Anonymisation")
+
+        self.checkbox_retain_descriptions = StanCheckBox(
+            "Retain transaction descriptions (do not scramble free text)"
+        )
+        self.checkbox_retain_descriptions.setVisible(False)
+        self.checkbox_retain_descriptions.setToolTip(
+            "Only always-anonymise replacements and numeric IDs are applied.\n"
+            "Transaction descriptions remain unchanged — this is a security risk."
+        )
+
+        self.help_retain_descriptions = StanHelpIcon(
+            "RETAIN DESCRIPTIONS — SECURITY WARNING\n\n"
+            "When enabled, only your explicit always-anonymise replacements and "
+            "numeric substitutions (sort codes, account numbers, card numbers) "
+            "are applied. Transaction descriptions and free text are NOT scrambled.\n\n"
+            "IMPORTANT:\n"
+            "• You MUST add all personally identifiable information to your "
+            "always_anonymise.toml file before using this option.\n"
+            "• Anonymised files with unscrambled descriptions must NOT be shared "
+            "externally.\n"
+            "• Use these files only for internal testing and demonstration at an "
+            "AGGREGATED level."
+        )
+        self.help_retain_descriptions.setVisible(False)
+
+        row_retain = QHBoxLayout()
+        row_retain.addWidget(self.checkbox_retain_descriptions)
+        row_retain.addWidget(self.help_retain_descriptions)
+        row_retain.addStretch()
+
         self.button_run = StanButton("Run Anonymisation", min_width=200)
         self.button_run.setEnabled(False)
 
@@ -204,6 +236,7 @@ class AnonymiseDialog(StanDialog):
         self.label_status.setWordWrap(True)
 
         layout_run.addWidget(lbl_run_title)
+        layout_run.addLayout(row_retain)
         layout_run.addWidget(self.button_run, alignment=Qt.AlignmentFlag.AlignLeft)
         layout_run.addWidget(self.progress_bar)
         layout_run.addWidget(self.label_status)
