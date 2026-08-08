@@ -113,7 +113,8 @@ class AdminView(StanDialog):
 
         self.button_empty_db = StanButton("Empty Database && Restart")
         self.button_empty_db.setToolTip(
-            "Delete and recreate gui.db, then restart the application — all projects, sessions, and users will be permanently lost"
+            "Remove all project records, sessions, and users from gui.db and restart — "
+            "project folders and data are unaffected"
         )
         self.button_empty_db.setStyleSheet(
             "StanButton { color: palette(highlight); font-weight: bold; }"
