@@ -495,7 +495,7 @@ class ReportBuilderPane(StanWidget):
         save_row = QHBoxLayout()
         self.button_save = StanButton("Save Report", min_width=110)
         self.button_save.setToolTip("Save the current report configuration")
-        self.button_delete = StanButton("Delete", min_width=80)
+        self.button_delete = StanButton("Delete Report", min_width=110)
         self.button_delete.setToolTip("Delete the selected saved report")
         save_row.addWidget(self.button_save)
         save_row.addWidget(self.button_delete)
@@ -515,8 +515,8 @@ class ReportBuilderPane(StanWidget):
         load_row.addWidget(self.button_load)
         load_row.addWidget(self.button_new)
 
-        persist_layout.addLayout(save_row)
         persist_layout.addLayout(load_row)
+        persist_layout.addLayout(save_row)
         persist_box.setLayout(persist_layout)
         outer.addWidget(persist_box)
 
@@ -534,8 +534,10 @@ class ReportBuilderPane(StanWidget):
         meta_form.setSpacing(6)
         self.title_edit = StanLineEdit()
         self.title_edit.setPlaceholderText("Report title…")
+        self.title_edit.setMinimumWidth(250)
         self.subtitle_edit = StanLineEdit()
         self.subtitle_edit.setPlaceholderText("Subtitle (optional)…")
+        self.subtitle_edit.setMinimumWidth(250)
         meta_form.addRow("Title:", self.title_edit)
         meta_form.addRow("Subtitle:", self.subtitle_edit)
         meta_box.setLayout(meta_form)
@@ -815,8 +817,7 @@ class ReportPreviewPane(StanWidget):
         self.live_checkbox = StanCheckBox("Live updates")
         self.live_checkbox.setChecked(True)
         self.live_checkbox.setToolTip(
-            "When checked, the preview updates automatically as you make changes.\n"
-            "Uncheck to defer updates and use 'Run Now' manually."
+            "When checked, the preview updates automatically as you make changes.\nUncheck to defer updates and use 'Run Now' manually."
         )
         self.live_checkbox.setAccessibleName("Live preview updates")
 
@@ -892,8 +893,7 @@ class ReportPreviewPane(StanWidget):
 
         # Placeholder shown before any query has run
         self.placeholder_label = StanMutedLabel(
-            "Configure your report on the left and press **Run Now**, "
-            "or enable **Live updates** to see a preview as you make changes."
+            "Configure your report on the left and press **Run Now**, or enable **Live updates** to see a preview as you make changes."
         )
         self.placeholder_label.setWordWrap(True)
         self.placeholder_label.setAlignment(
@@ -1016,7 +1016,7 @@ class RunReportsView(StanWidget):
         splitter.addWidget(self.preview)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
-        splitter.setSizes([380, 700])
+        splitter.setSizes([450, 630])
 
         content_page = StanWidget()
         content_layout = QVBoxLayout()

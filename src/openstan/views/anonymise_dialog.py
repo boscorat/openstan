@@ -50,6 +50,7 @@ class AnonymiseDialog(StanDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Anonymise PDF")
+        self.resize(900, 900)
 
         self.make_scrollable()
 
@@ -109,15 +110,16 @@ class AnonymiseDialog(StanDialog):
 
         lbl_always_title = StanLabel("**Force Exact Replacements**")
         lbl_always_info = StanLabel(
-            "Entries force exact string replacements before the scramble pass.\n"
-            "Add rows with original text and replacement value."
+            "Entries force exact string replacements before the scramble pass.\nAdd rows with original text and replacement value."
         )
         lbl_always_info.setWordWrap(True)
 
         self.table_always = QTableWidget()
         self.table_always.setColumnCount(2)
         self.table_always.setHorizontalHeaderLabels(["Original Text", "Replacement"])
-        self.table_always.horizontalHeader().setStretchLastSection(True)
+        self.table_always.setColumnWidth(0, 360)
+        self.table_always.setColumnWidth(1, 360)
+        self.table_always.horizontalHeader().setStretchLastSection(False)
         self.table_always.setSelectionBehavior(
             QAbstractItemView.SelectionBehavior.SelectRows
         )
@@ -125,7 +127,7 @@ class AnonymiseDialog(StanDialog):
             QAbstractItemView.SelectionMode.SingleSelection
         )
         self.table_always.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+            QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding
         )
 
         row_always_buttons = QHBoxLayout()
@@ -148,8 +150,7 @@ class AnonymiseDialog(StanDialog):
 
         lbl_never_title = StanLabel("**Exclude from Scrambling**")
         lbl_never_info = StanLabel(
-            "Phrases listed here are left unchanged during the scramble pass.\n"
-            "Matching is case-insensitive."
+            "Phrases listed here are left unchanged during the scramble pass.\nMatching is case-insensitive."
         )
         lbl_never_info.setWordWrap(True)
 

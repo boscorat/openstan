@@ -25,7 +25,7 @@ class AdminView(StanDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Admin")
-        self.setMinimumSize(600, 500)
+        self.resize(650, 750)
         self.make_scrollable()
 
         outer = QVBoxLayout()
