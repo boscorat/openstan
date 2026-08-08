@@ -50,7 +50,7 @@ class AnonymiseDialog(StanDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Anonymise PDF")
-        self.setMinimumSize(900, 900)
+        self.resize(900, 900)
 
         self.make_scrollable()
 

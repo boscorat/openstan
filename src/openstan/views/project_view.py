@@ -21,7 +21,6 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
-    QWidget,
 )
 
 from openstan.components import (
