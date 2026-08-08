@@ -50,6 +50,7 @@ class AnonymiseDialog(StanDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Anonymise PDF")
+        self.setMinimumSize(900, 900)
 
         self.make_scrollable()
 
@@ -65,9 +66,7 @@ class AnonymiseDialog(StanDialog):
         layout_pdf.setSpacing(8)
 
         lbl_pdf_title = StanLabel("##### Source PDF")
-        lbl_pdf_info = StanLabel(
-            "Select a PDF statement or a folder of PDFs to anonymise."
-        )
+        lbl_pdf_info = StanLabel("Select a PDF statement or a folder of PDFs to anonymise.")
         lbl_pdf_info.setWordWrap(True)
 
         row_pdf = QHBoxLayout()
@@ -109,24 +108,19 @@ class AnonymiseDialog(StanDialog):
 
         lbl_always_title = StanLabel("**Force Exact Replacements**")
         lbl_always_info = StanLabel(
-            "Entries force exact string replacements before the scramble pass.\n"
-            "Add rows with original text and replacement value."
+            "Entries force exact string replacements before the scramble pass.\nAdd rows with original text and replacement value."
         )
         lbl_always_info.setWordWrap(True)
 
         self.table_always = QTableWidget()
         self.table_always.setColumnCount(2)
         self.table_always.setHorizontalHeaderLabels(["Original Text", "Replacement"])
-        self.table_always.horizontalHeader().setStretchLastSection(True)
-        self.table_always.setSelectionBehavior(
-            QAbstractItemView.SelectionBehavior.SelectRows
-        )
-        self.table_always.setSelectionMode(
-            QAbstractItemView.SelectionMode.SingleSelection
-        )
-        self.table_always.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
+        self.table_always.setColumnWidth(0, 360)
+        self.table_always.setColumnWidth(1, 360)
+        self.table_always.horizontalHeader().setStretchLastSection(False)
+        self.table_always.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_always.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table_always.setSizePolicy(QSizePolicy.Policy.MinimumExpanding, QSizePolicy.Policy.MinimumExpanding)
 
         row_always_buttons = QHBoxLayout()
         self.button_add_always = StanButton("Add Row", min_width=100)
@@ -147,25 +141,16 @@ class AnonymiseDialog(StanDialog):
         layout_never.setSpacing(8)
 
         lbl_never_title = StanLabel("**Exclude from Scrambling**")
-        lbl_never_info = StanLabel(
-            "Phrases listed here are left unchanged during the scramble pass.\n"
-            "Matching is case-insensitive."
-        )
+        lbl_never_info = StanLabel("Phrases listed here are left unchanged during the scramble pass.\nMatching is case-insensitive.")
         lbl_never_info.setWordWrap(True)
 
         self.table_never = QTableWidget()
         self.table_never.setColumnCount(1)
         self.table_never.setHorizontalHeaderLabels(["Phrase"])
         self.table_never.horizontalHeader().setStretchLastSection(True)
-        self.table_never.setSelectionBehavior(
-            QAbstractItemView.SelectionBehavior.SelectRows
-        )
-        self.table_never.setSelectionMode(
-            QAbstractItemView.SelectionMode.SingleSelection
-        )
-        self.table_never.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
+        self.table_never.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_never.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.table_never.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         row_never_buttons = QHBoxLayout()
         self.button_add_never = StanButton("Add Row", min_width=100)
@@ -197,9 +182,7 @@ class AnonymiseDialog(StanDialog):
 
         lbl_run_title = StanLabel("##### Run Anonymisation")
 
-        self.checkbox_retain_descriptions = StanCheckBox(
-            "Retain transaction descriptions (do not scramble free text)"
-        )
+        self.checkbox_retain_descriptions = StanCheckBox("Retain transaction descriptions (do not scramble free text)")
         self.checkbox_retain_descriptions.setVisible(False)
         self.checkbox_retain_descriptions.setToolTip(
             "Only always-anonymise replacements and numeric IDs are applied.\n"
@@ -250,9 +233,7 @@ class AnonymiseDialog(StanDialog):
         layout_open.setSpacing(8)
 
         lbl_open_title = StanLabel("##### View Results")
-        lbl_open_info = StanLabel(
-            "Open both PDFs in the system viewer to compare them side-by-side."
-        )
+        lbl_open_info = StanLabel("Open both PDFs in the system viewer to compare them side-by-side.")
         lbl_open_info.setWordWrap(True)
 
         row_open = QHBoxLayout()
