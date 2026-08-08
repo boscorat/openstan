@@ -1,4 +1,6 @@
+import os
 import shutil
+import sys
 import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -7,7 +9,6 @@ from PySide6.QtCore import QObject, QSettings, Qt, Slot
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from openstan.components import StanErrorMessage, StanInfoMessage
-from openstan.data.create_gui_db import create_gui_db
 from openstan.paths import Paths
 
 if TYPE_CHECKING:
@@ -182,12 +183,14 @@ class AdminPresenter(QObject):
 
     @Slot()
     def empty_gui_db(self) -> None:
-        """Delete and recreate gui.db, then quit the application."""
+        """Delete gui.db and restart the application."""
         if not self._confirm(
             "Confirm Reset",
             "Reset the application?\n\n"
-            "This will permanently delete all projects, sessions, and users from gui.db "
-            "and close the application.\n\n"
+            "This will remove all project records, sessions, and users from gui.db "
+            "and restart the application.\n\n"
+            "Your project folders and data will not be affected — "
+            "you can re-attach them using 'Add Existing Project' on startup.\n\n"
             "This action cannot be undone.",
             icon=QMessageBox.Icon.Critical,
         ):
@@ -201,14 +204,25 @@ class AdminPresenter(QObject):
         try:
             if gui_db_path.exists():
                 gui_db_path.unlink()
-            create_gui_db(gui_db_path)
         except Exception:  # noqa: BLE001
             traceback.print_exc()
             StanErrorMessage(parent=self.view).showMessage(
-                "Failed to recreate gui.db. The application will now close."
+                "Failed to delete gui.db. The application will now close."
             )
+            QApplication.quit()
+            return
 
-        QApplication.quit()
+        # Restart — the new process will recreate gui.db on startup
+        argv = list(getattr(sys, "orig_argv", sys.argv))
+        argv[0] = sys.executable
+        try:
+            os.execv(sys.executable, argv)
+        except OSError:
+            traceback.print_exc()
+            StanErrorMessage(parent=self.view).showMessage(
+                "Failed to restart the application. The application will now close."
+            )
+            QApplication.quit()
 
     @Slot()
     def open_anonymise_tool(self) -> None:
