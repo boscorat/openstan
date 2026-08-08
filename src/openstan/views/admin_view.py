@@ -104,8 +104,9 @@ class AdminView(StanDialog):
 
         lbl_empty_title = StanLabel("##### Reset Application")
         lbl_empty_info = StanLabel(
-            "Deletes and recreates gui.db, then closes the application. "
-            "All projects, sessions, and users will be permanently lost. "
+            "Removes all project records, sessions, and users from gui.db "
+            "and restarts the application. Project folders and data are not affected — "
+            "re-attach them using 'Add Existing Project' on startup. "
             "This action cannot be undone."
         )
         lbl_empty_info.setWordWrap(True)
