@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
+    QWidget,
 )
 
 from openstan.components import (
@@ -31,6 +32,7 @@ from openstan.components import (
     StanErrorMessage,
     StanForm,
     StanHeaderLabel,
+    StanHelpIcon,
     StanInfoMessage,
     StanLabel,
     StanLineEdit,
@@ -49,6 +51,34 @@ if TYPE_CHECKING:
 
 # Sentinel value used as the "Skip" source key in config selections
 _SKIP_SENTINEL: str = "__skip__"
+
+_HELP_PROJECT_ID = "Auto-generated unique identifier for this project. Cannot be changed after creation."
+
+_HELP_PROJECT_NAME_NEW = (
+    "Choose a descriptive name for your project, e.g. \u2018Jason\u2019s Banking\u2019. This name is used for display purposes only."
+)
+
+_HELP_PROJECT_NAME_EXISTING = "Pre-populated from the selected folder name. You can change it if required."
+
+_HELP_LOCATION_NEW = (
+    "Select the parent folder where your project folder will be created. "
+    "A sub-folder named after your project will be created inside. "
+    "Your data export, configuration files and logs will be stored here."
+)
+
+_HELP_LOCATION_EXISTING = "Select the root folder of your existing openstan project."
+
+
+def _make_label_with_help(label_text: str, help_text: str) -> QWidget:
+    """Create a label widget with an adjacent help icon for use in StanForm."""
+    container = QWidget()
+    row = QHBoxLayout()
+    row.setContentsMargins(0, 0, 0, 0)
+    row.addWidget(StanLabel(label_text))
+    row.addWidget(StanHelpIcon(help_text))
+    row.addStretch()
+    container.setLayout(row)
+    return container
 
 
 def _default_config_dir() -> Path:
@@ -70,11 +100,7 @@ class FolderSelectionDialog(QFileDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Select Project Folder Location")
-        self.setDirectory(
-            QStandardPaths.writableLocation(
-                QStandardPaths.StandardLocation.HomeLocation
-            )
-        )
+        self.setDirectory(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.HomeLocation))
         self.setFileMode(QFileDialog.FileMode.Directory)
 
 
@@ -85,60 +111,59 @@ class ProjectPageBasic(StanWizardPage):
         self.newProjectID = "AUTO_GENERATED_ID"  # Will be set by project_presenter
         self.folder_path: Path | None = None  # Will be set when user selects folder
         self.folder_selection_dialog = FolderSelectionDialog()
-        self.setTitle("Project Details")
 
         if mode == "existing":
-            self.folder_selection_dialog.setWindowTitle(
-                "Select Existing Project Folder"
-            )
-            self.setSubTitle(
-                "\nThe project ID has been auto-generated."
-                "\n"
-                "\nSelect the existing project folder."
-                "\nThe project name will be pre-populated from the folder name — you can change it if required."
-            )
+            self.setTitle("Existing Project Wizard\n")
+            self.folder_selection_dialog.setWindowTitle("Select Existing Project Folder")
+            self.setSubTitle("Attach to an existing project by selecting its root folder.")
         else:
+            self.setTitle("New Project Wizard\n")
             self.setSubTitle(
-                "\nThe project ID has been auto-generated."
-                "\n"
-                "\nChoose a name for your project e.g. "
-                "Jason's Banking"
-                "\n"
-                "\nSelect a folder location where project files will be stored."
-                "\nYour data export, configuration files and logs will be stored here."
-                "\nA sub-folder named after your project will be created inside the selected folder."
+                "Create a new project by providing a name and selecting a parent folder where the project folder will be created."
             )
 
         layout = StanForm()
+
         self.id_row = StanLineEdit()
         self.id_row.setDisabled(True)
         self.id_row.setText(self.newProjectID)
         self.id_row.setFixedWidth(300)
-        layout.addRow("Project ID:", self.id_row)
+        layout.addRow(
+            _make_label_with_help("Project ID:", _HELP_PROJECT_ID),
+            self.id_row,
+        )
 
         self.name_row = StanLineEdit()
         self.name_row.setFixedWidth(300)
         if mode == "existing":
             self.name_row.setDisabled(True)
             self.name_row.setPlaceholderText("Populated after folder selection")
-        layout.addRow("Project Name:", self.name_row)
+            name_help = _HELP_PROJECT_NAME_EXISTING
+        else:
+            name_help = _HELP_PROJECT_NAME_NEW
+        layout.addRow(
+            _make_label_with_help("Project Name:", name_help),
+            self.name_row,
+        )
 
         if mode == "existing":
             self.location_button = StanButton("Select Existing Project Folder")
-            self.location_button.setToolTip(
-                "Select the root folder of an existing openstan project"
-            )
+            location_help = _HELP_LOCATION_EXISTING
         else:
             self.location_button = StanButton("Select Project Folder Location")
-            self.location_button.setToolTip(
-                "Select the parent folder where the new project folder will be created"
-            )
+            location_help = _HELP_LOCATION_NEW
+        self.location_button.setToolTip(
+            "Select the project folder" if mode == "existing" else "Select the parent folder where the new project folder will be created"
+        )
         self.location_button.set_themed_icon("folder-plus.svg")
         self.location_label = StanLineEdit()
         self.location_label.setReadOnly(True)
         self.location_label.setFixedWidth(300)
         self.location_label.hide()
-        layout.addRow("Location:", self.location_button)
+        layout.addRow(
+            _make_label_with_help("Location:", location_help),
+            self.location_button,
+        )
         layout.addRow("", self.location_label)
         self.setLayout(layout)
 
@@ -182,9 +207,7 @@ class ProjectWizard(StanWizard):
             self.page_basic.location_button.setDisabled(True)
         if self.mode == "existing":
             self.page_basic.name_row.setDisabled(True)
-            self.page_basic.name_row.setPlaceholderText(
-                "Populated after folder selection"
-            )
+            self.page_basic.name_row.setPlaceholderText("Populated after folder selection")
         self.page_basic.newProjectID = "AUTO_GENERATED_ID"
         self.page_basic.id_row.setText(self.page_basic.newProjectID)
         self.full_project_path = None
@@ -228,9 +251,7 @@ class ProjectView(StanWidget):
         self.button_existing.setToolTip("Add an existing project folder to openstan")
         self.button_existing.setAccessibleName("Add existing project")
         layout = QGridLayout()
-        layout.addWidget(
-            self.label, 0, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-        )
+        layout.addWidget(self.label, 0, 0, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(
             self.selection,
             0,
@@ -387,16 +408,10 @@ class ProjectWelcomeView(StanWidget):
         icon.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
 
         heading = StanLabel("## Welcome to openstan")
-        heading.setAlignment(
-            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
-        )
+        heading.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
 
-        subheading = StanLabel(
-            "Select an existing project, create a new one, or import a project folder."
-        )
-        subheading.setAlignment(
-            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
-        )
+        subheading = StanLabel("Select an existing project, create a new one, or import a project folder.")
+        subheading.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter)
 
         self.button_select = StanButton("Select Project", min_width=200)
         self.button_select.set_themed_icon("folder-open.svg")
@@ -543,9 +558,7 @@ class ProjectInfoView(StanWidget):
         ph_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         ph_icon = StanThemedPixmapLabel("briefcase.svg", size=64)
         ph_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        ph_text = StanMutedLabel(
-            "No data yet — import and commit some statements to see your project summary."
-        )
+        ph_text = StanMutedLabel("No data yet — import and commit some statements to see your project summary.")
         ph_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         ph_text.setWordWrap(True)
         ph_layout.addWidget(ph_icon)
@@ -572,9 +585,7 @@ class ProjectInfoView(StanWidget):
 
         # ── Account table ─────────────────────────────────────────────────────
         self._acc_table_header = StanHeaderLabel("Accounts")
-        self._acc_table_currency_note = StanMutedLabel(
-            "Monetary values are in the currency recorded in each statement."
-        )
+        self._acc_table_currency_note = StanMutedLabel("Monetary values are in the currency recorded in each statement.")
         self._acc_table = StanTableView()
         self._acc_table.horizontalHeader().setSectionResizeMode(  # type: ignore[union-attr]
             self._acc_table.horizontalHeader().ResizeMode.ResizeToContents  # type: ignore[union-attr]
@@ -595,9 +606,7 @@ class ProjectInfoView(StanWidget):
             "A gap means there is a missing statement between two consecutive imported statements "
             "for the same account.  Click to see which accounts and date ranges are affected."
         )
-        self._gap_button.setAccessibleDescription(
-            "One or more statement gaps detected. Click to review."
-        )
+        self._gap_button.setAccessibleDescription("One or more statement gaps detected. Click to review.")
         self._gap_button.clicked.connect(self.gap_clicked)
         self._gap_button.hide()
 
@@ -663,9 +672,7 @@ class ProjectInfoView(StanWidget):
         # Gap indicator
         if info.gap_count > 0:
             gap_word = "gap" if info.gap_count == 1 else "gaps"
-            self._gap_button.setText(
-                f"Warning: {info.gap_count} statement {gap_word} detected — click to review"
-            )
+            self._gap_button.setText(f"Warning: {info.gap_count} statement {gap_word} detected — click to review")
             self._gap_dialog.load(info.gap_rows)
             self._gap_button.show()
         else:
