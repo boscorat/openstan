@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 import bank_statement_anonymiser as bsa
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QFileDialog
+from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 from openstan.components import StanErrorMessage, StanFolderDialog, StanInfoMessage
 
@@ -138,6 +138,7 @@ class _AnonymiseWorker(QRunnable):
         always_anonymise_path: Path | None = None,
         never_anonymise_path: Path | None = None,
         output_dir: Path | None = None,
+        retain_descriptions: bool = False,
     ) -> None:
         super().__init__()
         self.signals = _AnonymiseSignals()
@@ -146,6 +147,7 @@ class _AnonymiseWorker(QRunnable):
         self._always_path = always_anonymise_path
         self._never_path = never_anonymise_path
         self._output_dir = output_dir
+        self._retain_descriptions = retain_descriptions
 
     @Slot()
     def run(self) -> None:
@@ -162,6 +164,7 @@ class _AnonymiseWorker(QRunnable):
                 self._input,
                 always_anonymise_path=self._always_path,
                 never_anonymise_path=self._never_path,
+                retain_descriptions=self._retain_descriptions,
             )
             self.signals.finished.emit(out)
         except Exception as exc:  # noqa: BLE001
@@ -179,6 +182,7 @@ class _AnonymiseWorker(QRunnable):
                     input_path,
                     always_anonymise_path=self._always_path,
                     never_anonymise_path=self._never_path,
+                    retain_descriptions=self._retain_descriptions,
                 )
                 # Move output to the dedicated subfolder if specified
                 if self._output_dir is not None:
@@ -247,6 +251,9 @@ class AnonymisePresenter(QObject):
         self._always_config = AlwaysAnonymiseConfig()
         self._never_config = NeverAnonymiseConfig()
 
+        # Retain-descriptions option (per-session, not persisted)
+        self._retain_descriptions: bool = False
+
         # Wire buttons
         self.dialog.button_browse.clicked.connect(self._browse_pdf)
         self.dialog.button_browse_folder.clicked.connect(self._browse_folder)
@@ -261,6 +268,14 @@ class AnonymisePresenter(QObject):
         self.dialog.button_remove_always.clicked.connect(self._remove_always_row)
         self.dialog.button_add_never.clicked.connect(self._add_never_row)
         self.dialog.button_remove_never.clicked.connect(self._remove_never_row)
+
+        # Wire retain-descriptions checkbox
+        self.dialog.checkbox_retain_descriptions.stateChanged.connect(
+            self._on_retain_descriptions_toggled
+        )
+
+        # Wire table change signals for dynamic visibility
+        self.dialog.table_always.cellChanged.connect(self._on_always_table_changed)
 
         # Ensure config directory exists
         self._config_dir.mkdir(parents=True, exist_ok=True)
@@ -291,6 +306,9 @@ class AnonymisePresenter(QObject):
 
         # Populate "Never Anonymise" table
         self.dialog.populate_never_table(self._never_config.exclude)
+
+        # Refresh retain-descriptions button visibility
+        self._update_retain_description_visibility()
 
     # ---------------------------------------------------------------------------
     # Config saving with retry logic
@@ -357,6 +375,7 @@ class AnonymisePresenter(QObject):
         current_row = self.dialog.table_always.currentRow()
         if current_row >= 0:
             self.dialog.table_always.removeRow(current_row)
+        self._update_retain_description_visibility()
 
     @Slot()
     def _add_never_row(self) -> None:
@@ -377,6 +396,83 @@ class AnonymisePresenter(QObject):
         current_row = self.dialog.table_never.currentRow()
         if current_row >= 0:
             self.dialog.table_never.removeRow(current_row)
+
+    # ---------------------------------------------------------------------------
+    # Retain-descriptions logic
+    # ---------------------------------------------------------------------------
+
+    @Slot(int)
+    def _on_retain_descriptions_toggled(self, state: int) -> None:
+        """Handle the retain-descriptions checkbox toggle.
+
+        When checked, show a warning dialog. If the user declines,
+        uncheck the box.
+        """
+        is_checked = state == 2  # Qt.CheckState.Checked.value
+        if is_checked and not self._show_retain_descriptions_warning():
+            self.dialog.checkbox_retain_descriptions.setChecked(False)
+            return
+        self._retain_descriptions = is_checked
+        self._update_retain_description_status()
+
+    def _show_retain_descriptions_warning(self) -> bool:
+        """Show a warning about retain_descriptions security risks.
+
+        Returns True if the user confirmed, False otherwise.
+        """
+        msg = StanInfoMessage(parent=self.dialog)
+        msg.setWindowTitle("Security Warning — Retain Descriptions")
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setText("Retain Transaction Descriptions — Security Risk")
+        msg.setInformativeText(
+            "Enabling this option means transaction descriptions and free text "
+            "will NOT be scrambled.\n\n"
+            "Risks:\n"
+            "• Transaction descriptions may contain personally identifiable "
+            "information (names, references, addresses).\n"
+            "• Only your explicit always-anonymise replacements and numeric ID "
+            "substitutions will be applied.\n\n"
+            "Before proceeding, ensure you have added ALL personally identifiable "
+            "information to your Always Anonymise file.\n\n"
+            "Recommendation: files produced with this option must NOT be shared "
+            "externally. Use them only for internal testing and demonstration "
+            "at an AGGREGATED level."
+        )
+        msg.setStandardButtons(
+            StanInfoMessage.StandardButton.Yes | StanInfoMessage.StandardButton.Cancel
+        )
+        msg.setDefaultButton(StanInfoMessage.StandardButton.Cancel)
+        return msg.exec() == StanInfoMessage.StandardButton.Yes
+
+    @Slot(int, int)
+    def _on_always_table_changed(self, row: int, col: int) -> None:
+        """Refresh retain-descriptions visibility when always_anonymise table changes."""
+        self._update_retain_description_visibility()
+
+    def _update_retain_description_visibility(self) -> None:
+        """Show/hide the retain-descriptions checkbox based on always_anonymise data.
+
+        The checkbox only appears when the user has at least one non-empty
+        replacement row in the always_anonymise table — bsa.anonymise_pdf()
+        with retain_descriptions=True requires a non-empty always_anonymise file.
+        """
+        has_replacements = bool(self.dialog.get_always_table_data())
+        self.dialog.checkbox_retain_descriptions.setVisible(has_replacements)
+        self.dialog.help_retain_descriptions.setVisible(has_replacements)
+
+        if not has_replacements and self._retain_descriptions:
+            self.dialog.checkbox_retain_descriptions.setChecked(False)
+            self._retain_descriptions = False
+            self._update_retain_description_status()
+
+    def _update_retain_description_status(self) -> None:
+        """Append retain-descriptions indicator to the current status label."""
+        current = self.dialog.label_status.text()
+        marker = " [Retain descriptions: ON]"
+        current = current.replace(marker, "")
+        if self._retain_descriptions:
+            current += marker
+        self.dialog.label_status.setText(current)
 
     @Slot()
     def _browse_pdf(self) -> None:
@@ -506,6 +602,7 @@ class AnonymisePresenter(QObject):
             input_path=self._input_path,
             always_anonymise_path=always_path,
             never_anonymise_path=never_path,
+            retain_descriptions=self._retain_descriptions,
         )
         worker.signals.finished.connect(self._on_finished)
         worker.signals.error.connect(self._on_error)
@@ -559,6 +656,7 @@ class AnonymisePresenter(QObject):
             always_anonymise_path=always_path,
             never_anonymise_path=never_path,
             output_dir=output_dir,
+            retain_descriptions=self._retain_descriptions,
         )
         worker.signals.progress.connect(self._on_progress)
         worker.signals.batch_finished.connect(self._on_batch_finished)
