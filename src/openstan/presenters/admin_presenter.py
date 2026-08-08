@@ -213,7 +213,16 @@ class AdminPresenter(QObject):
             return
 
         # Restart — the new process will recreate gui.db on startup
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+        argv = list(getattr(sys, "orig_argv", sys.argv))
+        argv[0] = sys.executable
+        try:
+            os.execv(sys.executable, argv)
+        except OSError:  # noqa: BLE001
+            traceback.print_exc()
+            StanErrorMessage(parent=self.view).showMessage(
+                "Failed to restart the application. The application will now close."
+            )
+            QApplication.quit()
 
     @Slot()
     def open_anonymise_tool(self) -> None:
