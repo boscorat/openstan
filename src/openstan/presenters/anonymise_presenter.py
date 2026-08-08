@@ -408,7 +408,7 @@ class AnonymisePresenter(QObject):
         When checked, show a warning dialog. If the user declines,
         uncheck the box.
         """
-        is_checked = state == 2  # Qt.CheckState.Checked.value
+        is_checked = self.dialog.checkbox_retain_descriptions.isChecked()
         if is_checked and not self._show_retain_descriptions_warning():
             self.dialog.checkbox_retain_descriptions.setChecked(False)
             return
