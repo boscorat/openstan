@@ -645,11 +645,11 @@ class AnonymisePresenter(QObject):
             return
         output_dir = self._input_folder / "anonymised"
         if sys.platform == "darwin":
-            subprocess.run(["open", str(output_dir)], check=False)
+            subprocess.Popen(["open", str(output_dir)])
         elif sys.platform == "win32":
-            subprocess.run(["explorer", str(output_dir)], check=False)
+            subprocess.Popen(["explorer", str(output_dir)])
         else:
-            subprocess.run(["xdg-open", str(output_dir)], check=False)
+            subprocess.Popen(["xdg-open", str(output_dir)])
 
     # ---------------------------------------------------------------------------
     # Dialog lifecycle
