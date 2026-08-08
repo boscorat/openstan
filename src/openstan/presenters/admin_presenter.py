@@ -217,7 +217,7 @@ class AdminPresenter(QObject):
         argv[0] = sys.executable
         try:
             os.execv(sys.executable, argv)
-        except OSError:  # noqa: BLE001
+        except OSError:
             traceback.print_exc()
             StanErrorMessage(parent=self.view).showMessage(
                 "Failed to restart the application. The application will now close."
