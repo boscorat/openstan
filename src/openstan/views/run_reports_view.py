@@ -159,7 +159,11 @@ class MultiSelectWidget(StanWidget):
         for v in values:
             item = QListWidgetItem(v)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            state = Qt.CheckState.Checked if (preserve_selection and v in previously_checked) else Qt.CheckState.Unchecked
+            state = (
+                Qt.CheckState.Checked
+                if (preserve_selection and v in previously_checked)
+                else Qt.CheckState.Unchecked
+            )
             item.setCheckState(state)
             self._list.addItem(item)
         self._list.blockSignals(False)
@@ -170,7 +174,8 @@ class MultiSelectWidget(StanWidget):
         return [
             self._list.item(i).text()
             for i in range(self._list.count())
-            if (item := self._list.item(i)) and item.checkState() == Qt.CheckState.Checked
+            if (item := self._list.item(i))
+            and item.checkState() == Qt.CheckState.Checked
         ]
 
     def set_selected(self, values: list[str]) -> None:
@@ -180,7 +185,11 @@ class MultiSelectWidget(StanWidget):
         for i in range(self._list.count()):
             item = self._list.item(i)
             if item:
-                item.setCheckState(Qt.CheckState.Checked if item.text() in vset else Qt.CheckState.Unchecked)
+                item.setCheckState(
+                    Qt.CheckState.Checked
+                    if item.text() in vset
+                    else Qt.CheckState.Unchecked
+                )
         self._list.blockSignals(False)
         self._update_button_text()
 
@@ -199,8 +208,15 @@ class MultiSelectWidget(StanWidget):
     def _toggle_all(self) -> None:
         """If all items are checked, uncheck all; otherwise check all."""
         total = self._list.count()
-        checked = sum(1 for i in range(total) if (item := self._list.item(i)) and item.checkState() == Qt.CheckState.Checked)
-        new_state = Qt.CheckState.Unchecked if checked == total else Qt.CheckState.Checked
+        checked = sum(
+            1
+            for i in range(total)
+            if (item := self._list.item(i))
+            and item.checkState() == Qt.CheckState.Checked
+        )
+        new_state = (
+            Qt.CheckState.Unchecked if checked == total else Qt.CheckState.Checked
+        )
         self._list.blockSignals(True)
         for i in range(total):
             item = self._list.item(i)
@@ -379,7 +395,9 @@ class FilterRowWidget(StanWidget):
                 self._pending_is_in_values = [str(v) for v in raw_value]
             else:
                 # Backward compat: comma-separated string
-                self._pending_is_in_values = [v.strip() for v in str(raw_value).split(",") if v.strip()]
+                self._pending_is_in_values = [
+                    v.strip() for v in str(raw_value).split(",") if v.strip()
+                ]
 
         op_idx = self.operator_combo.findData(op)
         if op_idx >= 0:
@@ -485,7 +503,9 @@ class ReportBuilderPane(StanWidget):
 
         load_row = QHBoxLayout()
         self.saved_reports_combo = StanComboBox()
-        self.saved_reports_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.saved_reports_combo.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
         self.saved_reports_combo.setAccessibleName("Saved reports")
         self.button_load = StanButton("Load", min_width=60)
         self.button_load.setToolTip("Load the selected saved report into the builder")
@@ -612,7 +632,9 @@ class ReportBuilderPane(StanWidget):
         self.button_add_filter.setToolTip("Add a new row filter rule")
 
         filter_layout.addWidget(self._filter_container)
-        filter_layout.addWidget(self.button_add_filter, alignment=Qt.AlignmentFlag.AlignLeft)
+        filter_layout.addWidget(
+            self.button_add_filter, alignment=Qt.AlignmentFlag.AlignLeft
+        )
         filter_box.setLayout(filter_layout)
         builder_layout.addWidget(filter_box)
 
@@ -764,7 +786,11 @@ class ReportBuilderPane(StanWidget):
             item = QListWidgetItem(label)
             item.setData(Qt.ItemDataRole.UserRole, col)
             item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            state = Qt.CheckState.Checked if col in previously_checked else Qt.CheckState.Unchecked
+            state = (
+                Qt.CheckState.Checked
+                if col in previously_checked
+                else Qt.CheckState.Unchecked
+            )
             item.setCheckState(state)
             self.groupby_list.addItem(item)
 
@@ -796,7 +822,9 @@ class ReportPreviewPane(StanWidget):
         self.live_checkbox.setAccessibleName("Live preview updates")
 
         self.button_run = StanButton("Run Now", min_width=90)
-        self.button_run.setToolTip("Run the report and refresh the preview (Alt+Return)")
+        self.button_run.setToolTip(
+            "Run the report and refresh the preview (Alt+Return)"
+        )
         self.button_run.setShortcut(QKeySequence("Alt+Return"))
         # Run Now is disabled while live updates are active (synced by presenter)
         self.button_run.setEnabled(False)
@@ -809,7 +837,9 @@ class ReportPreviewPane(StanWidget):
 
         self.button_export_excel = StanButton("Export Excel")
         self.button_export_excel.set_themed_icon("file-spreadsheet.svg")
-        self.button_export_excel.setToolTip("Export the current report to an Excel (.xlsx) file")
+        self.button_export_excel.setToolTip(
+            "Export the current report to an Excel (.xlsx) file"
+        )
         self.button_export_excel.setEnabled(False)
         self.button_export_excel.hide()
 
@@ -826,7 +856,9 @@ class ReportPreviewPane(StanWidget):
         self.button_export_json.hide()
 
         self.row_count_label = StanLabel("")
-        self.row_count_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.row_count_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
 
         toolbar.addWidget(self.live_checkbox)
         toolbar.addWidget(self.button_run)
@@ -853,7 +885,9 @@ class ReportPreviewPane(StanWidget):
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         header.setStretchLastSection(False)
         self.table_view.setSortingEnabled(True)
-        self.table_view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.table_view.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         self.table_view.hide()
         layout.addWidget(self.table_view, stretch=1)
 
@@ -862,13 +896,17 @@ class ReportPreviewPane(StanWidget):
             "Configure your report on the left and press **Run Now**, or enable **Live updates** to see a preview as you make changes."
         )
         self.placeholder_label.setWordWrap(True)
-        self.placeholder_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.placeholder_label.setAlignment(
+            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
+        )
         layout.addWidget(self.placeholder_label, stretch=1)
 
         # Error label (hidden until an error occurs)
         self.error_label = StanLabel("")
         self.error_label.setWordWrap(True)
-        self.error_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.error_label.setAlignment(
+            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft
+        )
         self.error_label.hide()
         layout.addWidget(self.error_label, stretch=1)
 
@@ -890,7 +928,9 @@ class ReportPreviewPane(StanWidget):
         import polars as _pl
 
         # Round float columns to 2 decimal places
-        float_cols = [c for c in df.columns if df.schema[c] in (_pl.Float32, _pl.Float64)]
+        float_cols = [
+            c for c in df.columns if df.schema[c] in (_pl.Float32, _pl.Float64)
+        ]
         if float_cols:
             df = df.with_columns([_pl.col(c).round(2) for c in float_cols])
 
@@ -990,7 +1030,9 @@ class RunReportsView(StanWidget):
         ph_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         ph_icon = StanThemedPixmapLabel("player-play.svg", size=64)
         ph_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        ph_text = StanMutedLabel("No data yet — import and commit some statements before running reports.")
+        ph_text = StanMutedLabel(
+            "No data yet — import and commit some statements before running reports."
+        )
         ph_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         ph_text.setWordWrap(True)
         ph_layout.addWidget(ph_icon)
