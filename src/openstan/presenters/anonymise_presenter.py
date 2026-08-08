@@ -241,6 +241,7 @@ class AnonymisePresenter(QObject):
         self._input_folder: Path | None = None
         self._input_files: list[Path] = []
         self._completed: list[tuple[Path, Path | None, str | None]] = []
+        self._output_dir: Path | None = None
 
         # Current config state (loaded from TOML)
         self._always_config = AlwaysAnonymiseConfig()
