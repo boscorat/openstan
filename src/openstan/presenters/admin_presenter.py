@@ -63,11 +63,14 @@ class AdminPresenter(QObject):
         # Block signals on the project selection combo to prevent
         # model.select() from resetting the current project.
         combo = self.stan.project_view.selection
-        combo.blockSignals(True)
         saved_index = combo.currentIndex()
-        self.model.select()
-        combo.setCurrentIndex(saved_index)
-        combo.blockSignals(False)
+        combo.blockSignals(True)
+        try:
+            self.model.select()
+            if 0 <= saved_index < combo.count():
+                combo.setCurrentIndex(saved_index)
+        finally:
+            combo.blockSignals(False)
 
         self.view.combo_delete.clear()
         self.view.combo_remove.clear()
