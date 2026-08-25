@@ -9,6 +9,7 @@ from openstan.paths import Paths
 class TitleView(StanWidget):
     about_requested: Signal = Signal()
     admin_requested: Signal = Signal()
+    close_requested: Signal = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -41,6 +42,13 @@ class TitleView(StanWidget):
         admin_btn.setAccessibleName("Admin options")
         admin_btn.clicked.connect(self.admin_requested)
 
+        close_btn = StanButton("", min_width=36)
+        close_btn.setFixedWidth(36)
+        close_btn.set_themed_icon("x.svg")
+        close_btn.setToolTip("Close openstan")
+        close_btn.setAccessibleName("Close application")
+        close_btn.clicked.connect(self.close_requested)
+
         layout = QHBoxLayout()
         layout.setContentsMargins(8, 4, 8, 4)
         layout.addWidget(self._wordmark)
@@ -48,6 +56,7 @@ class TitleView(StanWidget):
         layout.addWidget(whats_this_btn)
         layout.addWidget(about_btn)
         layout.addWidget(admin_btn)
+        layout.addWidget(close_btn)
         self.setLayout(layout)
         self.setMaximumHeight(72)
 

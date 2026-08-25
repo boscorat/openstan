@@ -511,6 +511,7 @@ class Stan(QMainWindow):
         # Pure display — no presenter needed.  Wired here rather than in
         # StanPresenter because it carries no business logic or model access.
         self.title_view.about_requested.connect(self._on_about_requested)
+        self.title_view.close_requested.connect(self.close)
 
         # ── Layout ────────────────────────────────────────────────────────
         # VBox: title → project selector → nav bar → stacked content → footer
