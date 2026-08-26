@@ -399,21 +399,15 @@ class TestStatementQueueTreeModel:
         assert folder_item is not None
         assert "(empty)" in folder_item.text()
 
-    def test_folder_with_children_labelled_with_count(
-        self, gui_db: QSqlDatabase
-    ) -> None:
+    def test_folder_with_children_labelled_with_count(self, gui_db: QSqlDatabase) -> None:
         """A folder with N children is labelled '(N pdf files)'."""
         session_id, project_id, _ = seed_session_and_project(gui_db)
         queue_model = StatementQueueModel(db=gui_db)
         queue_model.set_project(project_id)
 
         folder_id = _add_folder(queue_model, session_id, path="/data/folder")
-        _add_file(
-            queue_model, session_id, parent_id=folder_id, path="/data/folder/a.pdf"
-        )
-        _add_file(
-            queue_model, session_id, parent_id=folder_id, path="/data/folder/b.pdf"
-        )
+        _add_file(queue_model, session_id, parent_id=folder_id, path="/data/folder/a.pdf")
+        _add_file(queue_model, session_id, parent_id=folder_id, path="/data/folder/b.pdf")
 
         tree = StatementQueueTreeModel(db=gui_db)
         tree.update_model(project_id)
@@ -425,46 +419,30 @@ class TestStatementQueueTreeModel:
         assert "2 pdf files" in folder_item.text()
         assert "(empty)" not in folder_item.text()
 
-    def test_multiple_folders_each_show_own_child_count(
-        self, gui_db: QSqlDatabase
-    ) -> None:
+    def test_multiple_folders_each_show_own_child_count(self, gui_db: QSqlDatabase) -> None:
         """Each folder shows only its own children, not the total across all folders."""
         session_id, project_id, _ = seed_session_and_project(gui_db)
         queue_model = StatementQueueModel(db=gui_db)
         queue_model.set_project(project_id)
 
         folder_a = _add_folder(queue_model, session_id, path="/data/folder_a")
-        _add_file(
-            queue_model, session_id, parent_id=folder_a, path="/data/folder_a/1.pdf"
-        )
-        _add_file(
-            queue_model, session_id, parent_id=folder_a, path="/data/folder_a/2.pdf"
-        )
-        _add_file(
-            queue_model, session_id, parent_id=folder_a, path="/data/folder_a/3.pdf"
-        )
+        _add_file(queue_model, session_id, parent_id=folder_a, path="/data/folder_a/1.pdf")
+        _add_file(queue_model, session_id, parent_id=folder_a, path="/data/folder_a/2.pdf")
+        _add_file(queue_model, session_id, parent_id=folder_a, path="/data/folder_a/3.pdf")
 
         folder_b = _add_folder(queue_model, session_id, path="/data/folder_b")
-        _add_file(
-            queue_model, session_id, parent_id=folder_b, path="/data/folder_b/x.pdf"
-        )
+        _add_file(queue_model, session_id, parent_id=folder_b, path="/data/folder_b/x.pdf")
 
         tree = StatementQueueTreeModel(db=gui_db)
         tree.update_model(project_id)
 
         folders_root = tree.item(0)
         assert folders_root is not None
-folder_texts = {
-    child.text()
-    for i in range(folders_root.rowCount())
-    if (child := folders_root.child(i)) is not None
-}
+        folder_texts = {child.text() for i in range(folders_root.rowCount()) if (child := folders_root.child(i)) is not None}
         assert any("3 pdf files" in t for t in folder_texts), folder_texts
         assert any("1 pdf file" in t for t in folder_texts), folder_texts
 
-    def test_standalone_file_placed_under_files_root(
-        self, gui_db: QSqlDatabase
-    ) -> None:
+    def test_standalone_file_placed_under_files_root(self, gui_db: QSqlDatabase) -> None:
         """A standalone file (own-parent, is_folder=0) appears under a 'Files' root."""
         session_id, project_id, _ = seed_session_and_project(gui_db)
         queue_model = StatementQueueModel(db=gui_db)
@@ -509,9 +487,7 @@ folder_texts = {
         tree = StatementQueueTreeModel(db=gui_db)
         tree.update_model(project_id)
 
-        root_texts = [
-            item.text() for i in range(tree.rowCount()) if (item := tree.item(i))
-        ]
+        root_texts = [item.text() for i in range(tree.rowCount()) if (item := tree.item(i))]
         assert "Folders" not in root_texts
 
     def test_no_files_root_when_only_folders(self, gui_db: QSqlDatabase) -> None:
@@ -525,7 +501,5 @@ folder_texts = {
         tree = StatementQueueTreeModel(db=gui_db)
         tree.update_model(project_id)
 
-        root_texts = [
-            item.text() for i in range(tree.rowCount()) if (item := tree.item(i))
-        ]
+        root_texts = [item.text() for i in range(tree.rowCount()) if (item := tree.item(i))]
         assert "Files" not in root_texts
