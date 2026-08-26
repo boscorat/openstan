@@ -259,7 +259,10 @@ class StatementQueueTreeModel(QStandardItemModel):
                 parent_id = QStandardItem(record.value("queue_id"))
                 parent_path = QStandardItem(record.value("path"))
                 parent_path.setData(record.value("path"), Qt.ItemDataRole.UserRole)
-                child_filter: str = f"parent_id = '{_safe_hex_id(record.value('queue_id'))}' AND queue_id != parent_id"
+child_filter: str = (
+    f"parent_id = '{_safe_hex_id(record.value('queue_id'))}' "
+    f"AND queue_id != parent_id AND project_id = '{pid}'"
+)
                 self.child_model.setFilter(child_filter)
                 self.child_model.select()
                 while self.child_model.canFetchMore():
