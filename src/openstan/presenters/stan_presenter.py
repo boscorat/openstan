@@ -123,6 +123,10 @@ class StanPresenter(QObject):
 
     @Slot(int)
     def project_selection_changed(self, index: int) -> None:
+        # If the results view is active (import running or batch pending),
+        # close it first so nav buttons are re-enabled before we switch.
+        if self.stan.content_stack.currentIndex() == self.stan.nav_idx_results:
+            self.hide_results()
         self.update_current_project_info(index)
 
     @Slot()
