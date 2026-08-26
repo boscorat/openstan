@@ -454,11 +454,11 @@ class TestStatementQueueTreeModel:
 
         folders_root = tree.item(0)
         assert folders_root is not None
-        folder_texts = {
-            folders_root.child(i).text()
-            for i in range(folders_root.rowCount())
-            if folders_root.child(i) is not None
-        }
+folder_texts = {
+    child.text()
+    for i in range(folders_root.rowCount())
+    if (child := folders_root.child(i)) is not None
+}
         assert any("3 pdf files" in t for t in folder_texts), folder_texts
         assert any("1 pdf files" in t for t in folder_texts), folder_texts
 
