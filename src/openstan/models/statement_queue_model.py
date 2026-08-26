@@ -259,9 +259,7 @@ class StatementQueueTreeModel(QStandardItemModel):
                 parent_id = QStandardItem(record.value("queue_id"))
                 parent_path = QStandardItem(record.value("path"))
                 parent_path.setData(record.value("path"), Qt.ItemDataRole.UserRole)
-                child_filter: str = (
-                    f"parent_id = '{_safe_hex_id(record.value('queue_id'))}' AND queue_id != parent_id AND project_id = '{pid}'"
-                )
+                child_filter: str = f"parent_id = '{_safe_hex_id(record.value('queue_id'))}' AND queue_id != parent_id AND project_id = '{pid}'"
                 self.child_model.setFilter(child_filter)
                 self.child_model.select()
                 while self.child_model.canFetchMore():
@@ -277,7 +275,9 @@ class StatementQueueTreeModel(QStandardItemModel):
                     if child_count == 0:
                         parent_path.setText(parent_path.text() + " (empty)")
                     else:
-                        parent_path.setText(parent_path.text() + f" ({child_count} pdf files)")
+                        parent_path.setText(
+                            parent_path.text() + f" ({child_count} pdf files)"
+                        )
                     folders_root.appendRow([parent_path, parent_id])
                     folder_count += 1
                 else:
