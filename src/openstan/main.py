@@ -276,6 +276,7 @@ def main() -> None:
         )
 
     app: QApplication = QApplication(sys.argv)
+    app.setApplicationName("openstan")
     print("[openstan] QApplication constructed")
 
     # set application style based on OS
@@ -534,6 +535,7 @@ class Stan(QMainWindow):
         self.setCentralWidget(self.stan)
         self.setMinimumSize(1400, 900)
         self.resize(1400, 900)
+        self.setWindowTitle("openstan")
 
         # Status bar — used by StanPresenter to display transient contextual messages.
         status_bar = self.statusBar()
