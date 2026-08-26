@@ -237,9 +237,13 @@ class StatementQueueTreeModel(QStandardItemModel):
         self.parent_filter = f"parent_id = queue_id AND project_id = '{pid}'"
         self.parent_model.setFilter(self.parent_filter)
         self.parent_model.select()
+        while self.parent_model.canFetchMore():
+            self.parent_model.fetchMore()
         self.child_filter = f"parent_id != queue_id AND project_id = '{pid}'"
         self.child_model.setFilter(self.child_filter)
         self.child_model.select()
+        while self.child_model.canFetchMore():
+            self.child_model.fetchMore()
         self.clear()
         files_root = QStandardItem("Files")
         folders_root = QStandardItem("Folders")
@@ -257,6 +261,9 @@ class StatementQueueTreeModel(QStandardItemModel):
                 parent_path.setData(record.value("path"), Qt.ItemDataRole.UserRole)
                 child_filter: str = f"parent_id = '{_safe_hex_id(record.value('queue_id'))}' AND queue_id != parent_id"
                 self.child_model.setFilter(child_filter)
+                self.child_model.select()
+                while self.child_model.canFetchMore():
+                    self.child_model.fetchMore()
                 if self.child_model.rowCount() > 0:
                     for child_row in range(self.child_model.rowCount()):
                         child: QSqlRecord = self.child_model.record(child_row)
