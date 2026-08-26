@@ -22,10 +22,10 @@ Import an entire year of statements, build reports, and export to Excel in under
 
 | | **openstan** | **EasyBankConvert** | **DocuClipper** | **Dext / AutoEntry** |
 |---|---|---|---|---|
-| **Price** | Free | $49–$159/month | $20–$360+/month | £25–£50+/month |
+| **Price** | Free | monthly subscription | monthly subscription | monthly subscription |
 | **Privacy** | 100% offline | Cloud upload | Cloud upload | Cloud upload |
 | **UK banks** | HSBC, TSB, NatWest + extensible | Implied (AI-based) | Explicitly yes | Yes |
-| **Output** | Excel, CSV, JSON | Excel, CSV, JSON | Excel, CSV, QBO, Xero | Xero, QuickBooks, CSV |
+| **Output** | Excel, CSV, JSON, custom | Excel, CSV, JSON | Excel, CSV, QBO, Xero | Xero, QuickBooks, CSV |
 | **Open source** | Yes (LGPL-3.0) | No | No | No |
 | **Extensible** | Yes — TOML files | No | No | No |
 | **Offline** | Yes | No | No | No |
@@ -36,9 +36,10 @@ Import an entire year of statements, build reports, and export to Excel in under
 
 | Bank | Supported account types |
 |---|---|
-| **HSBC UK** | Bank Account (Current), HSBC Advance, Flexible Saver, Online Bonus Saver, Rewards Credit Card |
-| **TSB UK** | Spend & Save (Current Account) |
-| **NatWest UK** | Current Account |
+| **HSBC Bank UK** | Rewards Credit Card, Flexible Saver (Savings Account), Bank Account (Current Account), HSBC Advance (Current Account), Online Bonus Saver (Savings Account) |
+| **TSB Bank UK** | Spend & Save (Current Account) |
+| **NatWest Bank UK** | Select Account (Current Account) |
+| **Halifax Bank UK** | Current Account |
 
 New banks can be added by anyone via a [TOML configuration file](https://boscorat.github.io/bank_statement_parser/guides/new-bank-config/) — no coding required. Don't see your bank? [Request it here](https://github.com/boscorat/bank_statement_parser/issues/new?template=new-bank-request.yml).
 
