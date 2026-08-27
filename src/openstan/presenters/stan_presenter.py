@@ -41,6 +41,7 @@ class StanPresenter(QObject):
             self.project_selection_changed
         )
         self.project_presenter.model.db_updated.connect(self.project_db_updated)
+        self.project_presenter.project_switched.connect(self.project_selection_changed)
         self.session_presenter.db_lock_signal.connect(self.db_lock_handler)
         self.statement_queue_presenter.statement_imported.connect(
             self.statement_imported
