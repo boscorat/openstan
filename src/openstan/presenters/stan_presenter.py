@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 import bank_statement_parser as bsp
 from bank_statement_parser import ProjectPaths
 from PySide6.QtCore import QObject, Slot
-from PySide6.QtWidgets import QPushButton
 
+from openstan.components import StanButton
 from openstan.models.statement_result_model import ResultRow
 from openstan.presenters.admin_presenter import AdminPresenter
 from openstan.presenters.project_presenter import get_project_info
@@ -228,7 +228,7 @@ class StanPresenter(QObject):
     # Navigation helpers
     # ---------------------------------------------------------------------------
 
-    def _build_nav_map(self) -> dict[int, tuple[QPushButton, str]]:
+    def _build_nav_map(self) -> dict[int, tuple[StanButton, str]]:
         """Map stack index → (button, status bar label) for the four nav panels."""
         return {
             self.stan.nav_idx_info: (self.nav_view.button_info, "Project Information"),
