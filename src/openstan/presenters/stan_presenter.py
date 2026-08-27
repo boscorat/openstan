@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 import bank_statement_parser as bsp
 from bank_statement_parser import ProjectPaths
 from PySide6.QtCore import QObject, Slot
+from PySide6.QtWidgets import QPushButton
 
 from openstan.models.statement_result_model import ResultRow
 from openstan.presenters.admin_presenter import AdminPresenter
@@ -53,11 +54,23 @@ class StanPresenter(QObject):
         self.export_data_presenter.review_pending_batch.connect(self.show_results)
         self.title_view.admin_requested.connect(self.open_admin_dialog)
 
-        # Nav button clicks
-        self.nav_view.button_info.clicked.connect(self.__nav_to_info)
-        self.nav_view.button_import.clicked.connect(self.__nav_to_import)
-        self.nav_view.button_export.clicked.connect(self.__nav_to_export)
-        self.nav_view.button_reports.clicked.connect(self.__nav_to_reports)
+        # Nav button clicks → unified navigation
+        self.nav_view.button_info.clicked.connect(
+            lambda: self.__navigate_to(self.stan.nav_idx_info)
+        )
+        self.nav_view.button_import.clicked.connect(
+            lambda: self.__navigate_to(self.stan.nav_idx_import)
+        )
+        self.nav_view.button_export.clicked.connect(
+            lambda: self.__navigate_to(self.stan.nav_idx_export)
+        )
+        self.nav_view.button_reports.clicked.connect(
+            lambda: self.__navigate_to(self.stan.nav_idx_reports)
+        )
+
+        # Safety net: keep button highlights in sync if the stack index
+        # changes outside the normal nav flow (e.g. project switch).
+        self.stan.content_stack.currentChanged.connect(self._on_stack_changed)
 
         # ── Bootstrap ──────────────────────────────────────────────────────────
         # Add a new user to the database if not exists
@@ -153,7 +166,7 @@ class StanPresenter(QObject):
 
         # Show welcome panel when no projects exist
         if not has_projects:
-            self.stan.content_stack.setCurrentIndex(self.stan.nav_idx_welcome)
+            self.__navigate_to(self.stan.nav_idx_welcome)
 
         if not selected_project:
             return
@@ -215,6 +228,18 @@ class StanPresenter(QObject):
     # Navigation helpers
     # ---------------------------------------------------------------------------
 
+    def _build_nav_map(self) -> dict[int, tuple[QPushButton, str]]:
+        """Map stack index → (button, status bar label) for the four nav panels."""
+        return {
+            self.stan.nav_idx_info: (self.nav_view.button_info, "Project Information"),
+            self.stan.nav_idx_import: (
+                self.nav_view.button_import,
+                "Import Statements",
+            ),
+            self.stan.nav_idx_export: (self.nav_view.button_export, "Export Data"),
+            self.stan.nav_idx_reports: (self.nav_view.button_reports, "Run Reports"),
+        }
+
     def __refresh_project_info(self) -> None:
         """Query project.db and push the result into the Project Info panel.
 
@@ -237,9 +262,30 @@ class StanPresenter(QObject):
         self.stan.run_reports_view.show_placeholder(not has_data)
 
         if has_data:
-            self.__nav_to_info()
+            self.__navigate_to(self.stan.nav_idx_info)
         else:
-            self.__nav_to_import()
+            self.__navigate_to(self.stan.nav_idx_import)
+
+    def __navigate_to(self, idx: int) -> None:
+        """Single entry-point: sync button highlight + stack panel + status bar."""
+        nav_map = self._build_nav_map()
+        if idx in nav_map:
+            button, label = nav_map[idx]
+            button.setChecked(True)
+            self.stan.content_stack.setCurrentIndex(idx)
+            self.__show_status(label)
+        else:
+            # Non-nav panel (e.g. results, welcome) — just switch the stack.
+            self.stan.content_stack.setCurrentIndex(idx)
+
+    @Slot(int)
+    def _on_stack_changed(self, idx: int) -> None:
+        """Safety net: if the stack changes externally, resync button highlight."""
+        nav_map = self._build_nav_map()
+        if idx in nav_map:
+            nav_map[idx][0].setChecked(True)
+        elif idx == self.stan.nav_idx_results or idx == self.stan.nav_idx_welcome:
+            self.nav_view.clear_checks()
 
     def __set_panel(self, idx: int) -> None:
         """Switch the stacked content widget to the given index."""
@@ -251,37 +297,13 @@ class StanPresenter(QObject):
         if sb is not None:
             sb.showMessage(message, timeout)
 
-    @Slot()
-    def __nav_to_info(self) -> None:
-        self.nav_view.button_info.setChecked(True)
-        self.__set_panel(self.stan.nav_idx_info)
-        self.__show_status("Project Information")
-
-    @Slot()
-    def __nav_to_import(self) -> None:
-        self.nav_view.button_import.setChecked(True)
-        self.__set_panel(self.stan.nav_idx_import)
-        self.__show_status("Import Statements")
-
-    @Slot()
-    def __nav_to_export(self) -> None:
-        self.nav_view.button_export.setChecked(True)
-        self.__set_panel(self.stan.nav_idx_export)
-        self.__show_status("Export Data")
-
-    @Slot()
-    def __nav_to_reports(self) -> None:
-        self.nav_view.button_reports.setChecked(True)
-        self.__set_panel(self.stan.nav_idx_reports)
-        self.__show_status("Run Reports")
-
     # ---------------------------------------------------------------------------
     # Results panel (import flow — overlays import panel)
     # ---------------------------------------------------------------------------
 
     def show_results(self) -> None:
         """Switch the content area to the results block."""
-        self.__set_panel(self.stan.nav_idx_results)
+        self.__navigate_to(self.stan.nav_idx_results)
         # Uncheck and disable all nav buttons — results is not a user-navigable
         # panel; the user must commit, abandon, or close results to leave.
         self.nav_view.clear_checks()
@@ -290,7 +312,7 @@ class StanPresenter(QObject):
     def hide_results(self) -> None:
         """Return from the results block to the import panel."""
         self.__set_nav_enabled(True)
-        self.__nav_to_import()
+        self.__navigate_to(self.stan.nav_idx_import)
 
     def __set_nav_enabled(self, enabled: bool) -> None:
         """Enable or disable all four nav bar buttons."""
