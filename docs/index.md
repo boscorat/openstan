@@ -92,12 +92,12 @@ New banks can be added by anyone via a [TOML configuration file](https://boscora
 |---|---|
 | Windows 10 / 11 | `.msi` |
 | macOS 12+ (Intel & Apple Silicon) | `.dmg` |
-| Ubuntu / Debian | `.deb` |
-| Fedora / RHEL | `.rpm` |
+| Ubuntu / Debian (x86_64 & ARM64) | `.deb` |
+| Fedora / RHEL (x86_64 & ARM64) | `.rpm` |
 
 ---
 
 ## Licence
 
 openstan is released under the [LGPL-3.0-or-later](https://www.gnu.org/licenses/lgpl-3.0.html) licence.  
-Copyright © 2025 Jason Farrar.
+Copyright © 2025–2026 Jason Farrar.

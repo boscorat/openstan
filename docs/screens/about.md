@@ -28,6 +28,6 @@ Click the **About** button in the top-right corner of the application title bar.
 | **Powered by bank\_statement\_parser** | The version of the underlying parsing library in use. |
 | **bank\_statement\_parser repository** | Link to the BSP source code on GitHub. |
 | **Copyright** | © 2025 Jason Farrar |
-| **Licence** | Link to the full GPL v3+ licence text. |
+| **Licence** | Link to the full LGPL v3.0 or later licence text. |
 
 All links open in your system's default web browser.

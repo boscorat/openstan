@@ -16,9 +16,9 @@ openstan is distributed as a self-contained native installer for each supported 
 4. Launch **openstan** from the Start menu or desktop shortcut.
 
 !!! note "Windows SmartScreen"
-    Windows installers are code-signed via [SignPath Foundation](https://signpath.org)
-    *(approval pending)*. Until signing is active, Windows may show a SmartScreen warning
-    on first run. Click **More info → Run anyway** to proceed.
+    Windows installers are code-signed via [Certum](https://www.certum.eu/) Open Source Code
+    Signing certificate. SmartScreen may still show a warning on first run for newly
+    signed applications. Click **More info → Run anyway** to proceed.
     See the [Code signing policy](codesigning.md) for details.
 
 ---
@@ -27,10 +27,12 @@ openstan is distributed as a self-contained native installer for each supported 
 
 1. Download the latest `openstan-<version>.dmg` from the [GitHub Releases](https://github.com/boscorat/openstan/releases) page.
 2. Open the `.dmg` and drag **openstan** into your `Applications` folder.
-3. On first launch, right-click the app icon and choose **Open**, then confirm in the dialog that appears.
+3. Double-click to launch openstan. The app is signed and notarized by Apple, so Gatekeeper will trust it automatically.
 
 !!! note "Gatekeeper"
-    macOS Gatekeeper will block unsigned apps on first launch. Use right-click → **Open** rather than double-clicking. This is only required once.
+    openstan macOS builds are signed with an Apple Developer ID certificate and
+    notarized by Apple. You can launch the app normally — no right-click workaround
+    is required. See the [Code signing policy](codesigning.md) for details.
 
 ---
 
@@ -44,13 +46,11 @@ sudo apt install ./openstan-<version>.deb
 
 After installation, launch openstan from your application menu, or run `openstan` in a terminal.
 
+Both x86_64 and ARM64 packages are available.
+
 ### Dependencies installed automatically
 
-The `.deb` package declares the following system dependencies; `apt` will install them automatically:
-
-- `libegl1`
-- `libxcb-cursor0`
-- `libxkbcommon-x11-0`
+The `.deb` package declares `libxcb-cursor0` as a runtime dependency; `apt` will install it automatically. All other libraries (Qt, Python, OpenSSL, etc.) are bundled inside the installer.
 
 ---
 
@@ -61,6 +61,8 @@ Download the latest `openstan-<version>.rpm` from the [GitHub Releases](https://
 ```bash
 sudo dnf install ./openstan-<version>.rpm
 ```
+
+Both x86_64 and ARM64 packages are available.
 
 ---
 
@@ -130,8 +132,6 @@ To upgrade to a newer version, download the new installer and run it — it will
 
 ## Code signing
 
-Windows installers for openstan are code-signed through the
-[SignPath Foundation](https://signpath.org), which provides free code signing for
-open-source projects. SignPath Foundation is a non-profit organisation that issues
-certificates on behalf of open-source maintainers to help users verify the
-authenticity and integrity of downloaded software.
+All platform installers are code-signed to verify authenticity and integrity.
+See the [Code signing policy](codesigning.md) for full details on Windows, macOS,
+and the build process.

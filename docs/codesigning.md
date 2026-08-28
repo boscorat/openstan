@@ -1,15 +1,19 @@
 ---
-description: "openstan code signing policy. Windows MSI installers signed via SignPath Foundation."
+description: "openstan code signing policy. Windows MSI installers signed via Certum; macOS apps signed and notarized via Apple Developer ID."
 ---
 
 # Code Signing Policy
 
-Windows code signing via [Certum](https://www.certum.eu/) Open Source Code
-Signing certificate, signed with [jsign](https://github.com/ebourg/jsign).
+openstan installers are code-signed to verify authenticity and integrity.
+
+- **Windows**: signed with a [Certum](https://www.certum.eu/) Open Source Code Signing certificate using [jsign](https://github.com/ebourg/jsign).
+- **macOS**: signed with an Apple Developer ID Application certificate, notarized by Apple, and stapled.
 
 ---
 
 ## Scope
+
+### Windows
 
 Windows installers (`.msi`) for openstan are code-signed using a certificate
 issued to **Open Source Developer Jason Telford Farrar** by
@@ -21,6 +25,16 @@ certificate stored in Certum's SimplySign cloud-based virtual smartcard.
 The signature covers the MSI installer package. It confirms that the installer
 was produced by an automated, verifiable build from the source code in this
 repository.
+
+### macOS
+
+macOS builds (`.app` inside `.dmg`) are signed with an Apple Developer ID
+Application certificate. The signed app is submitted to Apple's notarisation
+service, and the notarisation ticket is stapled to the bundle before the DMG
+is created.
+
+This means Gatekeeper will trust the application on double-click — no
+right-click workaround is required.
 
 ---
 
@@ -53,6 +67,9 @@ Full details: [Privacy Policy](privacy.md)
    runs automatically:
    - Dependencies are installed via `uv sync`
    - The application is frozen with cx_Freeze
+
+#### Windows
+
    - The MSI installer is compiled with WiX v4
    - The unsigned MSI is attached to the GitHub Release as a draft
 3. The maintainer manually signs the MSI using jsign + SimplySign Desktop:
@@ -60,6 +77,13 @@ Full details: [Privacy Policy](privacy.md)
    - Run `jsign --storetype PKCS11 --keystore ~/provider_simplysign.cfg ...`
    - Re-upload the signed MSI to the draft release
 4. The signed MSI is verified, then the draft release is promoted to published.
+
+#### macOS
+
+   - The `.app` bundle is signed with `codesign` (Developer ID, hardened runtime)
+   - The signed `.app` is submitted to Apple's notary service via `notarytool`
+   - The notarisation ticket is stapled with `xcrun stapler`
+   - The DMG is created and signed separately
 
 All build configuration is in the public repository. The release workflow and
 WiX installer source (`packaging/windows/openstan.wxs`) are open to inspection.

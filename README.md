@@ -1,6 +1,6 @@
 [![License: LGPL-3.0-or-later](https://img.shields.io/badge/License-LGPL--3.0--or--later-blue.svg)](LICENSE)
 [![Latest release](https://img.shields.io/github/v/release/boscorat/openstan?include_prereleases)](https://github.com/boscorat/openstan/releases)
-[![CI](https://github.com/boscorat/openstan/actions/workflows/release.yml/badge.svg)](https://github.com/boscorat/openstan/actions/workflows/release.yml)
+[![CI](https://github.com/boscorat/openstan/actions/workflows/ci.yml/badge.svg)](https://github.com/boscorat/openstan/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-openstan.org-informational)](https://openstan.org)
 
 # openstan — Free UK Bank Statement Analyser
