@@ -204,6 +204,7 @@ def get_project_info(project_path: Path) -> ProjectInfo | None:
 
 class ProjectPresenter(QObject):
     path_or_name_changed: Signal = Signal()
+    project_switched: Signal = Signal(int)
 
     def __init__(
         self,
@@ -331,9 +332,16 @@ class ProjectPresenter(QObject):
             wizard.success_dialog.setDetailedText(info)
             if wizard.success_dialog.exec():
                 wizard.project_created = True
-                self.model.select()
-                new_index = self.model.rowCount() - 1
-                self.view.selection.setCurrentIndex(new_index)
+                combo = self.view.selection
+                combo.blockSignals(True)
+                try:
+                    self.model.select()
+                    new_index = self.model.rowCount() - 1
+                    if new_index >= 0:
+                        combo.setCurrentIndex(new_index)
+                finally:
+                    combo.blockSignals(False)
+                self.project_switched.emit(combo.currentIndex())
                 wizard.accept()
                 return True
         else:
