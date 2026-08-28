@@ -613,7 +613,7 @@ class ProjectInfoView(StanWidget):
         self._acc_table.horizontalHeader().setSectionResizeMode(  # type: ignore[union-attr]
             self._acc_table.horizontalHeader().ResizeMode.ResizeToContents  # type: ignore[union-attr]
         )
-        self._acc_table.horizontalHeader().setStretchLastSection(True)  # type: ignore[union-attr]
+        self._acc_table.horizontalHeader().setStretchLastSection(False)  # type: ignore[union-attr]
 
         # ── Gap indicator ─────────────────────────────────────────────────────
         self._gap_button = QPushButton()
