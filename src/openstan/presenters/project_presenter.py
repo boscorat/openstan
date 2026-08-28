@@ -30,12 +30,20 @@ def _fmt_date(s: str) -> str:
         return s
 
 
+def _fmt_money(v: float | None) -> str:
+    """Format a monetary value with commas and two decimal places."""
+    if v is None:
+        return ""
+    return f"{v:,.2f}"
+
+
 @dataclass(frozen=True, slots=True)
 class ProjectInfo:
     """Snapshot of project-level datamart summary data.
 
     All date strings are formatted as DD/MM/YYYY; empty string means no data.
-    Monetary amounts are stored as whole integers.
+    Monetary amounts are formatted strings (e.g. ``"1,234"`` for whole numbers,
+    ``"1,234.56"`` for balances).
     # TODO: include currency symbol/code in datamart (bsp) — see project info panel
     """
 
@@ -129,9 +137,17 @@ def get_project_info(project_path: Path) -> ProjectInfo | None:
                     pl.col("from_date").map_elements(_fmt_date, return_dtype=pl.String),
                     pl.col("to_date").map_elements(_fmt_date, return_dtype=pl.String),
                     # TODO: include currency symbol/code in datamart (bsp) — see project info panel
-                    pl.col("total_in").cast(pl.Int64),
-                    pl.col("total_out").cast(pl.Int64),
-                    pl.col("latest_balance"),
+                    pl.col("total_in")
+                    .cast(pl.Int64)
+                    .map_elements(lambda v: f"{v:,}", return_dtype=pl.String)
+                    .alias("Total in"),
+                    pl.col("total_out")
+                    .cast(pl.Int64)
+                    .map_elements(lambda v: f"{v:,}", return_dtype=pl.String)
+                    .alias("Total out"),
+                    pl.col("latest_balance")
+                    .map_elements(_fmt_money, return_dtype=pl.String)
+                    .alias("Latest balance"),
                 ]
             )
             .sort("account")
