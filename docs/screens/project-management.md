@@ -41,7 +41,7 @@ Click **Create New Project** to open the project wizard.
 Click **Finish** to create the project. openstan calls the `bank_statement_parser` library to scaffold the project folder structure, then registers the new project in the application database and selects it automatically.
 
 !!! info "What gets created on disk"
-    The project folder contains a `config/` directory (with import and export TOML configuration files), a `statements/` directory, and a `project.db` SQLite database managed by `bank_statement_parser`. See the [bank\_statement\_parser project structure guide](https://boscorat.github.io/bank_statement_parser/guides/project-structure/) for full details.
+    The project folder contains a `config/` directory (with import and export TOML configuration files), a `statements/` directory, and a `project.db` SQLite database managed by `bank_statement_parser`. See the [bank\_statement\_parser project structure guide](https://boscorat.github.io/bank_statement_parser/latest/guides/project-structure/) for full details.
 
 ---
 

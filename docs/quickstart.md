@@ -71,7 +71,7 @@ The results panel shows three tabs:
 For REVIEW and FAILURE rows, click **View Debug Info** to open a dialog with per-file debug output and the original PDF side by side.
 
 !!! info "Unsupported banks"
-    If all your statements appear in the FAILURE tab, your bank may not yet have a parser configuration. See the [bank\_statement\_parser guide on adding a new bank](https://boscorat.github.io/bank_statement_parser/guides/new-bank-config/) for instructions on creating a TOML config file.
+    If all your statements appear in the FAILURE tab, your bank may not yet have a parser configuration. See the [bank\_statement\_parser guide on adding a new bank](https://boscorat.github.io/bank_statement_parser/latest/guides/new-bank-config/) for instructions on creating a TOML config file.
 
 ---
 

@@ -67,4 +67,4 @@ openstan processes **PDF** files only. Other file types in the selected folders 
 
 Parsing is handled by the `bank_statement_parser` library. A parser configuration (a set of TOML files) must exist for each bank whose statements you want to import.
 
-If your bank is not yet supported, refer to the [bank\_statement\_parser guide on adding a new bank](https://boscorat.github.io/bank_statement_parser/guides/new-bank-config/) for instructions on creating and modifying the TOML configuration files.
+If your bank is not yet supported, refer to the [bank\_statement\_parser guide on adding a new bank](https://boscorat.github.io/bank_statement_parser/latest/guides/new-bank-config/) for instructions on creating and modifying the TOML configuration files.

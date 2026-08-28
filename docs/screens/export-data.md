@@ -76,4 +76,4 @@ See the [Advanced Export](advanced-export.md) screen guide for documentation on 
 
 Export behaviour is controlled by TOML configuration files. The `bank_statement_parser` library handles the underlying export mechanics.
 
-For a comprehensive guide to creating and modifying export TOML config files, see the [bank\_statement\_parser export documentation](https://boscorat.github.io/bank_statement_parser/guides/export-config/).
+For a comprehensive guide to creating and modifying export TOML config files, see the [bank\_statement\_parser export documentation](https://boscorat.github.io/bank_statement_parser/latest/guides/exports/).

@@ -80,7 +80,7 @@ A progress indicator at the bottom of the dialog shows how many debug files have
       on the bank_statement_parser repo and attach the anonymised statement.
     - **Bank not yet supported:** open a
       [new bank request](https://github.com/boscorat/bank_statement_parser/issues/new?template=new-bank-request.yml)
-      or follow the [Adding a new bank](https://boscorat.github.io/bank_statement_parser/guides/new-bank-config/)
+      or follow the [Adding a new bank](https://boscorat.github.io/bank_statement_parser/latest/guides/new-bank-config/)
       guide if you'd like to configure it yourself.
 
 ---

@@ -41,7 +41,7 @@ Import an entire year of statements, build reports, and export to Excel in under
 | **NatWest Bank UK** | Select Account (Current Account) |
 | **Halifax Bank UK** | Current Account |
 
-New banks can be added by anyone via a [TOML configuration file](https://boscorat.github.io/bank_statement_parser/guides/new-bank-config/) — no coding required. Don't see your bank? [Request it here](https://github.com/boscorat/bank_statement_parser/issues/new?template=new-bank-request.yml).
+New banks can be added by anyone via a [TOML configuration file](https://boscorat.github.io/bank_statement_parser/latest/guides/new-bank-config/) — no coding required. Don't see your bank? [Request it here](https://github.com/boscorat/bank_statement_parser/issues/new?template=new-bank-request.yml).
 
 ---
 
