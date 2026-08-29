@@ -204,7 +204,7 @@ jobs:
           cat /tmp/changelog_body.md
 
       - name: Upload changelog artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: changelog-body
           path: /tmp/changelog_body.md
@@ -1082,7 +1082,7 @@ jobs:
           persist-credentials: false
 
       - name: Download changelog artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with:
           name: changelog-body
           path: /tmp
@@ -1381,11 +1381,11 @@ jobs:
             NEW_BODY="${CHANGELOG}"
           fi
           if [ -n "$CURRENT_BODY" ]; then
-            NEW_BODY="${NEW_BODY}${CURRENT_BODY}"$'\n'
+            NEW_BODY="${NEW_BODY}"$'\n'"${CURRENT_BODY}"
           fi
           if [ -s "$RESULTS_FILE" ]; then
             VT_TABLE=$(generate_vt_table "$RESULTS_FILE")
-            NEW_BODY="${NEW_BODY}${VT_TABLE}"
+            NEW_BODY="${NEW_BODY}"$'\n'"${VT_TABLE}"
           fi
 
           if [ -n "$NEW_BODY" ]; then
