@@ -271,9 +271,11 @@ class StatementResultPresenter(QObject):
         queue_model: StatementQueueModel,
         batch_model: BatchModel,
         view: StatementResultView,
+        threadpool: QThreadPool | None = None,
     ) -> None:
         super().__init__()
         self.view = view
+        self.threadpool: QThreadPool = threadpool or QThreadPool()
 
         # In-memory presentation models (live during import, populated on restore)
         self.success_model = success_model
@@ -595,6 +597,7 @@ class StatementResultPresenter(QObject):
                 else None
             ),
             parent=self.view,
+            threadpool=self.threadpool,
         )
         if not self._debug_worker_done:
             self._debug_dialog.update_progress_label(
@@ -649,9 +652,7 @@ class StatementResultPresenter(QObject):
         worker.signals.all_done.connect(self.__on_debug_all_done)
         worker.signals.error.connect(self.__on_debug_error)
 
-        thread_pool = QThreadPool.globalInstance()
-        assert thread_pool is not None, "QThreadPool.globalInstance() returned None"
-        thread_pool.start(worker)
+        self.threadpool.start(worker)
 
     @Slot(str, object)
     def __on_debug_entry_done(
@@ -798,9 +799,7 @@ class StatementResultPresenter(QObject):
         worker.signals.finished.connect(self.__on_commit_finished)
         worker.signals.error.connect(self.__on_commit_error)
 
-        thread_pool = QThreadPool.globalInstance()
-        assert thread_pool is not None, "QThreadPool.globalInstance() returned None"
-        thread_pool.start(worker)
+        self.threadpool.start(worker)
 
     # ---------------------------------------------------------------------------
     # Commit worker callbacks

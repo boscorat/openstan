@@ -19,7 +19,7 @@ Each row shows:
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QThreadPool, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QDialogButtonBox,
@@ -85,6 +85,7 @@ class DebugInfoDialog(StanDialog):
         rows: list[ResultRow],
         project_paths: ProjectPaths | None = None,
         parent: QWidget | None = None,
+        threadpool: QThreadPool | None = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle("Debug Information")
@@ -92,6 +93,7 @@ class DebugInfoDialog(StanDialog):
         self.setMinimumHeight(400)
 
         self._project_paths = project_paths
+        self.threadpool: QThreadPool = threadpool or QThreadPool()
         self._row_index: dict[str, int] = {}
 
         # Table
@@ -320,6 +322,7 @@ class DebugInfoDialog(StanDialog):
             dialog=dlg,
             project_paths=self._project_paths,
             initial_pdf=pdf_path,
+            threadpool=self.threadpool,
         )
         dlg.exec()
 

@@ -16,20 +16,19 @@ Design constraints
   string and release URL so the caller can show a dialog and open a browser on
   demand.
 * Zero new runtime dependencies — uses only the standard library (``urllib``,
-  ``json``, ``threading``, ``importlib.metadata``) and PySide6.
+  ``json``, ``importlib.metadata``) and PySide6.
 """
 
 from __future__ import annotations
 
 import json
-import threading
 import webbrowser
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
-from PySide6.QtCore import QObject, Signal, Slot
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout, QWidget
 
 # ---------------------------------------------------------------------------
@@ -135,6 +134,57 @@ class _UpdateDialog(QDialog):
 # ---------------------------------------------------------------------------
 
 
+class _UpdateCheckWorkerSignals(QObject):
+    """Signals for the update-check worker."""
+
+    finished = Signal(str, str)  # (latest_version, release_url)
+
+
+class _UpdateCheckWorker(QRunnable):
+    """Background worker that checks GitHub for a newer release."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.signals = _UpdateCheckWorkerSignals()
+
+    @Slot()
+    def run(self) -> None:
+        """Fetch the latest release and compare versions.
+
+        All exceptions are caught — a failed update check must never surface
+        to the user as an error.
+        """
+        try:
+            req = Request(
+                _API_URL,
+                headers={
+                    "Accept": "application/vnd.github+json",
+                    "User-Agent": "openstan",
+                },
+            )
+            with urlopen(req, timeout=_REQUEST_TIMEOUT) as response:
+                data: dict = json.loads(response.read())
+
+            tag: str = data.get("tag_name", "")
+            release_url: str = data.get("html_url", _RELEASES_URL)
+
+            if not tag:
+                return
+
+            latest = _parse_version(tag)
+            current = _parse_version(_current_version())
+
+            if latest > current:
+                self.signals.finished.emit(tag.lstrip("v"), release_url)
+
+        except URLError, TimeoutError, json.JSONDecodeError, KeyError, ValueError:
+            # Network unavailable, rate-limited, or malformed response — silently ignore
+            pass
+        except Exception:  # noqa: BLE001, S110
+            # Catch-all: update check must never crash the application
+            pass
+
+
 class UpdateChecker(QObject):
     """Background update checker.
 
@@ -164,44 +214,11 @@ class UpdateChecker(QObject):
 
     def check_async(self) -> None:
         """Start the background check.  Returns immediately."""
-        t = threading.Thread(target=self._check, daemon=True, name="UpdateChecker")
-        t.start()
-
-    def _check(self) -> None:
-        """Worker: fetch the latest release and compare versions.
-
-        All exceptions are caught — a failed update check must never surface
-        to the user as an error.
-        """
-        try:
-            req = Request(
-                _API_URL,
-                headers={
-                    "Accept": "application/vnd.github+json",
-                    "User-Agent": "openstan",
-                },
-            )
-            with urlopen(req, timeout=_REQUEST_TIMEOUT) as response:
-                data: dict = json.loads(response.read())
-
-            tag: str = data.get("tag_name", "")
-            release_url: str = data.get("html_url", _RELEASES_URL)
-
-            if not tag:
-                return
-
-            latest = _parse_version(tag)
-            current = _parse_version(_current_version())
-
-            if latest > current:
-                self.update_available.emit(tag.lstrip("v"), release_url)
-
-        except URLError, TimeoutError, json.JSONDecodeError, KeyError, ValueError:
-            # Network unavailable, rate-limited, or malformed response — silently ignore
-            pass
-        except Exception:  # noqa: BLE001, S110
-            # Catch-all: update check must never crash the application
-            pass
+        worker = _UpdateCheckWorker()
+        worker.signals.finished.connect(self.update_available)
+        thread_pool = QThreadPool.globalInstance()
+        assert thread_pool is not None, "QThreadPool.globalInstance() returned None"
+        thread_pool.start(worker)
 
     @Slot(str, str)
     def show_update_dialog(

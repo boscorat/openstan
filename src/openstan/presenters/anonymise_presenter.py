@@ -227,9 +227,11 @@ class AnonymisePresenter(QObject):
         dialog: AnonymiseDialog,
         project_paths: ProjectPaths,
         initial_pdf: Path | None = None,
+        threadpool: QThreadPool | None = None,
     ) -> None:
         super().__init__()
         self.dialog = dialog
+        self.threadpool: QThreadPool = threadpool or QThreadPool()
         self._project_paths = project_paths
         self._config_dir: Path = Path(str(project_paths.root)) / "config" / "user"
         self._always_anonymise_path: Path = self._config_dir / "always_anonymise.toml"
@@ -606,9 +608,7 @@ class AnonymisePresenter(QObject):
         )
         worker.signals.finished.connect(self._on_finished)
         worker.signals.error.connect(self._on_error)
-        thread_pool = QThreadPool.globalInstance()
-        assert thread_pool is not None, "QThreadPool.globalInstance() returned None"
-        thread_pool.start(worker)
+        self.threadpool.start(worker)
 
     def _run_folder_anonymisation(self) -> None:
         """Process all PDFs in the selected folder."""
@@ -660,9 +660,7 @@ class AnonymisePresenter(QObject):
         )
         worker.signals.progress.connect(self._on_progress)
         worker.signals.batch_finished.connect(self._on_batch_finished)
-        thread_pool = QThreadPool.globalInstance()
-        assert thread_pool is not None, "QThreadPool.globalInstance() returned None"
-        thread_pool.start(worker)
+        self.threadpool.start(worker)
 
     def _config_paths(self) -> tuple[Path | None, Path | None]:
         """Return (always_path, never_path) — None if the file doesn't exist."""
