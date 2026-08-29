@@ -240,5 +240,7 @@ class AdminPresenter(QObject):
             return
 
         dlg = AnonymiseDialog(parent=self.view)
-        _presenter = AnonymisePresenter(dialog=dlg, project_paths=project_paths)
+        _presenter = AnonymisePresenter(
+            dialog=dlg, project_paths=project_paths, threadpool=self.stan.threadpool
+        )
         dlg.exec()

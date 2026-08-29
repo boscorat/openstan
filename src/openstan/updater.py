@@ -16,20 +16,19 @@ Design constraints
   string and release URL so the caller can show a dialog and open a browser on
   demand.
 * Zero new runtime dependencies — uses only the standard library (``urllib``,
-  ``json``, ``threading``, ``importlib.metadata``) and PySide6.
+  ``json``, ``importlib.metadata``) and PySide6.
 """
 
 from __future__ import annotations
 
 import json
-import threading
 import webbrowser
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
-from PySide6.QtCore import QObject, Signal, Slot
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QVBoxLayout, QWidget
 
 # ---------------------------------------------------------------------------
@@ -135,40 +134,22 @@ class _UpdateDialog(QDialog):
 # ---------------------------------------------------------------------------
 
 
-class UpdateChecker(QObject):
-    """Background update checker.
+class _UpdateCheckWorkerSignals(QObject):
+    """Signals for the update-check worker."""
 
-    Emit ``update_available(latest_version, release_url)`` from the worker
-    thread; connect it to ``show_update_dialog`` (or any slot) on the main
-    thread to present the UI.
+    finished = Signal(str, str)  # (latest_version, release_url)
 
-    Typical usage in ``StanPresenter.__init__``::
 
-        self._update_checker = UpdateChecker(parent=self)
-        self._update_checker.update_available.connect(
-            self._on_update_available
-        )
-        self._update_checker.check_async()
+class _UpdateCheckWorker(QRunnable):
+    """Background worker that checks GitHub for a newer release."""
 
-    Signals
-    -------
-    update_available : (str, str)
-        Emitted when a newer version is found.  Arguments are the latest
-        version string and the HTML URL of the release.
-    """
+    def __init__(self) -> None:
+        super().__init__()
+        self.signals = _UpdateCheckWorkerSignals()
 
-    update_available = Signal(str, str)  # (latest_version, release_url)
-
-    def __init__(self, parent: QObject | None = None) -> None:
-        super().__init__(parent)
-
-    def check_async(self) -> None:
-        """Start the background check.  Returns immediately."""
-        t = threading.Thread(target=self._check, daemon=True, name="UpdateChecker")
-        t.start()
-
-    def _check(self) -> None:
-        """Worker: fetch the latest release and compare versions.
+    @Slot()
+    def run(self) -> None:
+        """Fetch the latest release and compare versions.
 
         All exceptions are caught — a failed update check must never surface
         to the user as an error.
@@ -194,7 +175,7 @@ class UpdateChecker(QObject):
             current = _parse_version(_current_version())
 
             if latest > current:
-                self.update_available.emit(tag.lstrip("v"), release_url)
+                self.signals.finished.emit(tag.lstrip("v"), release_url)
 
         except URLError, TimeoutError, json.JSONDecodeError, KeyError, ValueError:
             # Network unavailable, rate-limited, or malformed response — silently ignore
@@ -202,6 +183,43 @@ class UpdateChecker(QObject):
         except Exception:  # noqa: BLE001, S110
             # Catch-all: update check must never crash the application
             pass
+
+
+class UpdateChecker(QObject):
+    """Background update checker.
+
+    Emit ``update_available(latest_version, release_url)`` from the worker
+    thread; connect it to ``show_update_dialog`` (or any slot) on the main
+    thread to present the UI.
+
+    Typical usage in ``StanPresenter.__init__``::
+
+        self._update_checker = UpdateChecker(parent=self)
+        self._update_checker.update_available.connect(
+            self._on_update_available
+        )
+        self._update_checker.check_async()
+
+    Signals
+    -------
+    update_available : (str, str)
+        Emitted when a newer version is found.  Arguments are the latest
+        version string and the HTML URL of the release.
+    """
+
+    update_available = Signal(str, str)  # (latest_version, release_url)
+
+    def __init__(
+        self, parent: QObject | None = None, threadpool: QThreadPool | None = None
+    ) -> None:
+        super().__init__(parent)
+        self.threadpool: QThreadPool = threadpool or QThreadPool()
+
+    def check_async(self) -> None:
+        """Start the background check.  Returns immediately."""
+        worker = _UpdateCheckWorker()
+        worker.signals.finished.connect(self.update_available)
+        self.threadpool.start(worker)
 
     @Slot(str, str)
     def show_update_dialog(

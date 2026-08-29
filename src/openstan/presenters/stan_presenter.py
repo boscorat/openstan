@@ -117,7 +117,9 @@ class StanPresenter(QObject):
         # newer release is found on GitHub.  Network errors are silently ignored.
         # Disabled if the user has opted out via Admin > Privacy settings.
         if AdminPresenter.is_update_check_enabled():
-            self._update_checker = UpdateChecker(parent=self)
+            self._update_checker = UpdateChecker(
+                parent=self, threadpool=self.stan.threadpool
+            )
             self._update_checker.update_available.connect(self._on_update_available)
             self._update_checker.check_async()
 

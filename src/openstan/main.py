@@ -486,6 +486,7 @@ class Stan(QMainWindow):
             queue_model=self.statement_queue_model,
             batch_model=self.batch_model,
             view=self.statement_result_view,
+            threadpool=self.threadpool,
         )
         self.admin_presenter = AdminPresenter(
             model=self.project_model,
