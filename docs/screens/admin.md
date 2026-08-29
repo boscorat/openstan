@@ -1,5 +1,5 @@
 ---
-description: "Project management operations — add, rename, or delete projects in openstan."
+description: "Destructive project operations — delete projects, remove from UI, or reset the application database."
 ---
 
 # Admin

@@ -121,6 +121,25 @@ to the bare-comma form on save. Do not "fix" bare-comma except clauses — they 
 and Ruff-idiomatic. Do not flag `except A, B:` as Python 2 syntax; in Python 3.14 it
 parses as a tuple of exception types, equivalent to `except (A, B):`.
 
+### Commit Messages
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/).
+All commit messages must follow the format:
+
+```
+<type>(<scope>): <description>
+```
+
+Allowed types: `feat`, `fix`, `docs`, `build`, `ci`, `refactor`, `test`, `chore`.
+
+Examples:
+- `feat: add Monzo bank parser support`
+- `fix: prevent crash when importing empty PDF`
+- `docs: update installation instructions`
+- `ci: add changelog generation to release workflow`
+
+The changelog is auto-generated from commit messages on each release.
+
 ---
 
 ## Widget Library

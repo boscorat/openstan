@@ -84,5 +84,6 @@ nav:
       - Admin: screens/admin.md
       - Anonymise PDF: screens/anonymise.md
       - About: screens/about.md
+  - Changelog: https://github.com/boscorat/openstan/blob/main/CHANGELOG.md
   - Privacy Policy: privacy.md
   - Code Signing Policy: codesigning.md

@@ -114,6 +114,103 @@ jobs:
           fi
 
   # ---------------------------------------------------------------------------
+  # Generate changelog from conventional commits
+  # ---------------------------------------------------------------------------
+  #
+  # Produces a changelog body from conventional commit messages between the
+  # current tag and the previous tag.  The output is uploaded as an artifact
+  # so the VirusTotal scan job can prepend it to the release body.
+
+  generate-changelog:
+    name: Generate changelog
+    runs-on: ubuntu-latest
+    needs: validate-version
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Generate changelog body
+        id: changelog
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          # Find the previous tag
+          PREVIOUS_TAG=$(git tag --sort=-v:refname | grep -A1 "^${TAG}$" | tail -1 || true)
+
+          if [ -z "$PREVIOUS_TAG" ] || [ "$PREVIOUS_TAG" = "$TAG" ]; then
+            echo "No previous tag found — generating changelog for all commits"
+            RANGE="HEAD"
+          else
+            echo "Generating changelog from ${PREVIOUS_TAG}..${TAG}"
+            RANGE="${PREVIOUS_TAG}..${TAG}"
+          fi
+
+          # Parse conventional commits into changelog sections
+          FEATURES=""
+          FIXES=""
+          DOCS=""
+          OTHER=""
+
+          while IFS= read -r line; do
+            hash=$(echo "$line" | cut -d' ' -f1)
+            msg=$(echo "$line" | cut -d' ' -f2-)
+
+            case "$msg" in
+              feat\(*\):*|feat:*)
+                FEATURES="${FEATURES}- ${msg} (${hash})"$'\n'
+                ;;
+              fix\(*\):*|fix:*)
+                FIXES="${FIXES}- ${msg} (${hash})"$'\n'
+                ;;
+              docs\(*\):*|docs:*)
+                DOCS="${DOCS}- ${msg} (${hash})"$'\n'
+                ;;
+              *)
+                OTHER="${OTHER}- ${msg} (${hash})"$'\n'
+                ;;
+            esac
+          done < <(git log "$RANGE" --pretty=format:"%h %s" --no-merges 2>/dev/null || git log --pretty=format:"%h %s" --no-merges)
+
+          # Build changelog body
+          CHANGELOG=""
+          if [ -n "$FEATURES" ]; then
+            CHANGELOG="${CHANGELOG}### Added"$'\n'"${FEATURES}"$'\n'
+          fi
+          if [ -n "$FIXES" ]; then
+            CHANGELOG="${CHANGELOG}### Fixed"$'\n'"${FIXES}"$'\n'
+          fi
+          if [ -n "$DOCS" ]; then
+            CHANGELOG="${CHANGELOG}### Documentation"$'\n'"${DOCS}"$'\n'
+          fi
+          if [ -n "$OTHER" ]; then
+            CHANGELOG="${CHANGELOG}### Other Changes"$'\n'"${OTHER}"$'\n'
+          fi
+
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="No notable changes in this release."
+          fi
+
+          # Write to file for artifact upload
+          echo "$CHANGELOG" > /tmp/changelog_body.md
+          echo "Generated changelog:"
+          cat /tmp/changelog_body.md
+
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: changelog-body
+          path: /tmp/changelog_body.md
+          retention-days: 1
+
+  # ---------------------------------------------------------------------------
   # Linux — produces .deb and .rpm using fpm
   # ---------------------------------------------------------------------------
   #
@@ -973,7 +1070,7 @@ jobs:
   scan-with-virustotal:
     name: Scan binaries with VirusTotal
     runs-on: ubuntu-latest
-    needs: [build-linux, build-linux-arm64, build-windows, build-macos]
+    needs: [generate-changelog, build-linux, build-linux-arm64, build-windows, build-macos]
     if: success()  # Only run if all builds succeeded
     permissions:
       contents: write  # Required to download assets from draft releases
@@ -983,6 +1080,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Download changelog artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          name: changelog-body
+          path: /tmp
 
       - name: Download all built binaries from GitHub Release
         env:
@@ -1234,12 +1337,19 @@ jobs:
           set -euo pipefail
 
           RESULTS_FILE="/tmp/vt_scan_results.txt"
+          CHANGELOG_FILE="/tmp/changelog_body.md"
 
           # Fetch current release body
           CURRENT_BODY=$(gh release view "$TAG" \
             --repo "$REPO" \
             --json body \
             --jq '.body' 2>/dev/null || echo "")
+
+          # Read changelog if available
+          CHANGELOG=""
+          if [ -f "$CHANGELOG_FILE" ]; then
+            CHANGELOG=$(cat "$CHANGELOG_FILE")
+          fi
 
           # Generate VirusTotal results table
           generate_vt_table() {
@@ -1265,21 +1375,30 @@ jobs:
           MARKDOWN_EOF
           }
 
-          # Only append table if results exist
+          # Build release body: changelog + VT table
+          NEW_BODY=""
+          if [ -n "$CHANGELOG" ]; then
+            NEW_BODY="${CHANGELOG}"
+          fi
+          if [ -n "$CURRENT_BODY" ]; then
+            NEW_BODY="${NEW_BODY}"$'\n'"${CURRENT_BODY}"
+          fi
           if [ -s "$RESULTS_FILE" ]; then
             VT_TABLE=$(generate_vt_table "$RESULTS_FILE")
-            NEW_BODY="$(printf '%s\n\n%s' "$CURRENT_BODY" "$VT_TABLE")"
-            # Update release with new body
+            NEW_BODY="${NEW_BODY}"$'\n'"${VT_TABLE}"
+          fi
+
+          if [ -n "$NEW_BODY" ]; then
             if gh release edit "$TAG" \
               --repo "$REPO" \
               --notes "$NEW_BODY" 2>/dev/null; then
-              echo "✅ Updated release notes with VirusTotal security scan table"
+              echo "✅ Updated release notes with changelog and security scan table"
             else
-              echo "⚠️  WARNING: Failed to append VirusTotal table to release notes"
-              echo "    Release proceeds without table; check GitHub Actions logs"
+              echo "⚠️  WARNING: Failed to update release notes"
+              echo "    Release proceeds without notes; check GitHub Actions logs"
             fi
           else
-            echo "⚠️  WARNING: No scan results collected; table not appended"
+            echo "⚠️  WARNING: No content to add to release notes"
           fi
 
           exit 0

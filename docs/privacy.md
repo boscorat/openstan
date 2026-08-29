@@ -85,9 +85,10 @@ of openstan.
 
 ## Code signing
 
-Windows installers are code-signed through [SignPath Foundation](https://signpath.org),
-a non-profit organisation that provides free code signing for open-source projects.
-The signing process does not involve any user data.
+Platform installers are code-signed to verify authenticity and integrity.
+Windows installers are signed via [Certum](https://www.certum.eu/) Open Source Code
+Signing. macOS builds are signed with an Apple Developer ID certificate and
+notarized by Apple. The signing process does not involve any user data.
 
 ---
 

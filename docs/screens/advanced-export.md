@@ -49,7 +49,7 @@ If the `config/export/` directory contains no `.toml` files, the panel shows:
 
 ## Creating and modifying export spec TOML files
 
-Export specs are TOML configuration files that define the shape and content of a custom export. For a full guide to creating and editing these files, see the [bank\_statement\_parser guide on adding a new bank](https://boscorat.github.io/bank_statement_parser/guides/new-bank-config/).
+Export specs are TOML configuration files that define the shape and content of a custom export. For a full guide to creating and editing these files, see the [bank\_statement\_parser export documentation](https://boscorat.github.io/bank_statement_parser/latest/guides/exports/).
 
 !!! tip "Where to put spec files"
     Place your `.toml` export spec files in `<project-folder>/config/export/`. openstan rescans this directory each time you open the Export Data panel.
