@@ -209,16 +209,17 @@ class UpdateChecker(QObject):
 
     update_available = Signal(str, str)  # (latest_version, release_url)
 
-    def __init__(self, parent: QObject | None = None) -> None:
+    def __init__(
+        self, parent: QObject | None = None, threadpool: QThreadPool | None = None
+    ) -> None:
         super().__init__(parent)
+        self.threadpool: QThreadPool = threadpool or QThreadPool()
 
     def check_async(self) -> None:
         """Start the background check.  Returns immediately."""
         worker = _UpdateCheckWorker()
         worker.signals.finished.connect(self.update_available)
-        thread_pool = QThreadPool.globalInstance()
-        assert thread_pool is not None, "QThreadPool.globalInstance() returned None"
-        thread_pool.start(worker)
+        self.threadpool.start(worker)
 
     @Slot(str, str)
     def show_update_dialog(
