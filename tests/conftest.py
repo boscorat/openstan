@@ -172,12 +172,17 @@ class OpenStanEnv:
 
 @pytest.fixture(scope="session")
 def bsp_harness() -> Generator[TestHarness]:
-    """Build the bsp reference project using the bundled anonymised PDFs.
+    """Build the bsp reference project using the bundled anonymised good PDFs.
 
     Uses ``skip_bsp_tests=True`` so the harness works whether bsp is installed
     as an editable local path or as a wheel (e.g. on CI).  Tears down on
     session end.
     """
+    if PDF_MODE == "none":
+        pytest.skip(
+            "No PDF fixtures available. Set up symlinks to anonymised PDFs "
+            "for comprehensive testing. See: bank-statement-data/SYMLINK_SETUP.md"
+        )
     with TestHarness(skip_bsp_tests=True) as harness:
         yield harness
 
