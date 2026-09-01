@@ -13,7 +13,7 @@ wheels/
 .DS_Store
 
 # SQLite databases (generated at runtime; may contain sensitive data)
-*.db
+*.db*
 
 # PDF files - Block ALL PDFs (security: no accidental sensitive data commits)
 *.pdf
