@@ -359,6 +359,7 @@ class ProjectPresenter(QObject):
 
     @Slot()
     def open_new_project_wizard(self) -> None:
+        self.view.selection.setCurrentIndex(-1)
         self.view.wizard.page_basic.location_button.setDisabled(True)
         self.view.wizard.page_basic.newProjectID = uuid4().hex
         self.view.wizard.page_basic.id_row.setText(
@@ -420,6 +421,7 @@ class ProjectPresenter(QObject):
 
     @Slot()
     def open_existing_project_wizard(self) -> None:
+        self.view.selection.setCurrentIndex(-1)
         self.view.wizard_existing.page_basic.newProjectID = uuid4().hex
         self.view.wizard_existing.page_basic.id_row.setText(
             self.view.wizard_existing.page_basic.newProjectID
