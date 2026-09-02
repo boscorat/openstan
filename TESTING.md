@@ -165,6 +165,6 @@ uv run pytest tests/ --tb=long
 
 ## Related Documentation
 
-- **Security**: [SECURITY.md](./SECURITY.md)
+- **Security**: [SECURITY.md](./.github/SECURITY.md)
 - **BSP Documentation**: [bank_statement_parser](https://github.com/boscorat/bank_statement_parser)
 - **Test Data**: Private repo [bank-statement-data](https://github.com/boscorat/bank-statement-data)

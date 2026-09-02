@@ -319,7 +319,7 @@ openstan maintainer
 ## Related Files
 
 - `.github/workflows/release.yml` - Main workflow with scan job
-- `SECURITY.md` - Security policy and false positive handling
+- `.github/SECURITY.md` - Security policy and false positive handling
 - `RELEASE.md` - Release documentation for users
 - `AGENTS.md` - CI/CD configuration reference (links to this file)
 
