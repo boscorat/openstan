@@ -331,4 +331,4 @@ For VirusTotal-specific issues:
 
 For openstan-specific issues:
 - File GitHub issue: https://github.com/boscorat/openstan/issues
-- See `SECURITY.md` for complete policy
+- See `.github/SECURITY.md` for complete policy
