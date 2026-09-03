@@ -136,6 +136,11 @@ def _seed_bsp_default_project() -> None:
 
 def _parse_args() -> None:
     """Handle CLI arguments (--version, --help)."""
+    try:
+        openstan_version = importlib.metadata.version("openstan")
+    except importlib.metadata.PackageNotFoundError:
+        openstan_version = "unknown"
+
     parser = argparse.ArgumentParser(
         prog="openstan",
         description="Open source application for bank statement analysis and visualization",
@@ -143,13 +148,13 @@ def _parse_args() -> None:
     parser.add_argument(
         "--version",
         action="version",
-        version=f"%(prog)s {importlib.metadata.version('openstan')}",
+        version=f"%(prog)s {openstan_version}",
     )
-    parser.parse_args()
+    parser.parse_known_args()
 
 
-_seed_bsp_default_project()
 _parse_args()
+_seed_bsp_default_project()
 
 from openstan import main
 
