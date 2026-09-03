@@ -56,9 +56,12 @@ DCONF_PROFILE
 # bank_statement_parser.__file__ == .../bank_statement_parser/__init__.py
 # We derive the path without importing the package yet (avoids module-level
 # side-effects running before env vars are set).
+import argparse
+import importlib.metadata
 import importlib.util as _ilu
 import os
 import shutil
+import sys
 from pathlib import Path
 
 from openstan.paths import _user_data_dir
@@ -132,7 +135,22 @@ def _seed_bsp_default_project() -> None:
         shutil.copy2(src, dst)
 
 
+def _parse_args() -> None:
+    """Handle CLI arguments (--version, --help)."""
+    parser = argparse.ArgumentParser(
+        prog="openstan",
+        description="Open source application for bank statement analysis and visualization",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {importlib.metadata.version('openstan')}",
+    )
+    parser.parse_args()
+
+
 _seed_bsp_default_project()
+_parse_args()
 
 from openstan import main
 

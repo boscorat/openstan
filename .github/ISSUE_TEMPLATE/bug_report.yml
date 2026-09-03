@@ -61,7 +61,7 @@ body:
     id: version
     attributes:
       label: App version
-      description: "Output of `uv run openstan --version` or the version shown in the app."
+      description: "Output of `uv run openstan --version` (or found in the app's About dialog)."
       placeholder: "e.g. 0.2.0"
     validations:
       required: true
