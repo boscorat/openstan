@@ -46,7 +46,7 @@ def _load_bank_names(import_dir: Path) -> list[str]:
 def _update_bug_report_yaml(bank_names: list[str]) -> None:
     """Replace the bank dropdown options in bug_report.yml."""
     yml_path = Path(".github/ISSUE_TEMPLATE/bug_report.yml")
-    content = yml_path.read_text()
+    content = yml_path.read_text(encoding="utf-8")
 
     pattern = r"(# AUTO-GENERATED: bank options start\n)(.*?)(# AUTO-GENERATED: bank options end)"
     options = (
@@ -54,9 +54,14 @@ def _update_bug_report_yaml(bank_names: list[str]) -> None:
         + "\n        - Other / N/A\n        "
     )
     replacement = f"\\1{options}\\3"
-    new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+    new_content, count = re.subn(pattern, replacement, content, flags=re.DOTALL)
 
-    yml_path.write_text(new_content)
+    if count != 1:
+        raise RuntimeError(
+            f"Expected exactly 1 bank-options block in {yml_path}, found {count}"
+        )
+
+    yml_path.write_text(new_content, encoding="utf-8")
     print(f"Updated {yml_path} with {len(bank_names)} banks")
 
 
