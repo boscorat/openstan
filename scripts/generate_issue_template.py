@@ -29,7 +29,7 @@ def _find_import_dir() -> Path:
 
 def _load_bank_names(import_dir: Path) -> list[str]:
     """Return sorted list of bank company names."""
-    banks: list[str] = []
+    banks: set[str] = set()
     for bank_dir in sorted(import_dir.iterdir()):
         if not bank_dir.is_dir() or bank_dir.name.startswith("."):
             continue
@@ -39,8 +39,8 @@ def _load_bank_names(import_dir: Path) -> list[str]:
         with open(companies_toml, "rb") as fh:
             companies: dict[str, dict[str, str]] = tomllib.load(fh)
         for data in companies.values():
-            banks.append(data["company"])
-    return banks
+            banks.add(data["company"])
+    return sorted(banks)
 
 
 def _update_bug_report_yaml(bank_names: list[str]) -> None:
