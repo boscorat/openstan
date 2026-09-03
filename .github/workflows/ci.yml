@@ -115,6 +115,12 @@ jobs:
       - name: Format check (ruff)
         run: uv run ruff format --check .
 
+      - name: Validate issue template bank dropdown
+        run: |
+          uv run python scripts/generate_issue_template.py
+          git diff --exit-code .github/ISSUE_TEMPLATE/bug_report.yml || \
+            (echo "❌ Bank dropdown is out of sync. Run: uv run python scripts/generate_issue_template.py" && exit 1)
+
       - name: Type check (pyrefly)
         run: uv run pyrefly check
 

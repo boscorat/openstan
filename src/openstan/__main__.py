@@ -61,7 +61,6 @@ import importlib.metadata
 import importlib.util as _ilu
 import os
 import shutil
-import sys
 from pathlib import Path
 
 from openstan.paths import _user_data_dir

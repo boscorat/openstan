@@ -49,11 +49,13 @@ body:
       label: Bank
       description: Which bank's statements are involved?
       options:
-        - HSBC
-        - TSB
-        - NatWest
-        - Halifax
+        # AUTO-GENERATED: bank options start
+        - Halifax Bank UK
+        - HSBC Bank UK
+        - NatWest Bank UK
+        - TSB Bank UK
         - Other / N/A
+        # AUTO-GENERATED: bank options end
     validations:
       required: true
 
