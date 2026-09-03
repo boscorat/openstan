@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a Security Vulnerability
+    url: mailto:security@openstan.org
+    about: Do NOT open a public issue for security vulnerabilities
+  - name: Report a Code of Conduct Violation
+    url: mailto:conduct@openstan.org
+    about: Private reporting channel for CoC violations
+  - name: Questions & Help
+    url: https://github.com/boscorat/openstan/discussions
+    about: Ask questions or get help from the community

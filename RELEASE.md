@@ -234,7 +234,7 @@ If the VirusTotal scan job fails (malicious detections found), the draft release
 
 3. **Investigate and fix the binary:**
    - Review the VirusTotal report: https://www.virustotal.com/gui/home/upload
-   - Check [SECURITY.md](SECURITY.md) for false positive policy
+   - Check [SECURITY.md](.github/SECURITY.md) for false positive policy
    - Modify the binary or build process if needed
 
 4. **Re-tag and retry:**

@@ -319,7 +319,7 @@ openstan maintainer
 ## Related Files
 
 - `.github/workflows/release.yml` - Main workflow with scan job
-- `SECURITY.md` - Security policy and false positive handling
+- `.github/SECURITY.md` - Security policy and false positive handling
 - `RELEASE.md` - Release documentation for users
 - `AGENTS.md` - CI/CD configuration reference (links to this file)
 
@@ -331,4 +331,4 @@ For VirusTotal-specific issues:
 
 For openstan-specific issues:
 - File GitHub issue: https://github.com/boscorat/openstan/issues
-- See `SECURITY.md` for complete policy
+- See `.github/SECURITY.md` for complete policy

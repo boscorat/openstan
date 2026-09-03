@@ -283,7 +283,8 @@ See the private repo's [`ANONYMISATION_CHECKLIST.md`](https://github.com/boscora
 
 - **Test data questions** → See [`TESTING.md`](TESTING.md)
 - **PDF anonymisation** → See private repo: [`bank-statement-data/ANONYMISATION_CHECKLIST.md`](https://github.com/boscorat/bank-statement-data)
-- **Security concerns** → Contact maintainers directly (not via Issues)
+- **Security concerns** → Email [security@openstan.org](mailto:security@openstan.org) (do NOT open a public issue)
+- **Code of Conduct violations** → Email [conduct@openstan.org](mailto:conduct@openstan.org)
 - **General contribution** → See [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
 ## Summary
