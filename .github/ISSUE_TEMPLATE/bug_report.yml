@@ -50,8 +50,8 @@ body:
       description: Which bank's statements are involved?
       options:
         # AUTO-GENERATED: bank options start
-        - Halifax Bank UK
         - HSBC Bank UK
+        - Halifax Bank UK
         - NatWest Bank UK
         - TSB Bank UK
         - Other / N/A
