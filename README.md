@@ -12,7 +12,7 @@
 
 Import an entire year of statements, build reports, and export to Excel in under a minute. No subscription. No account. No internet connection required.
 
-![openstan demo](docs/assets/screenshots/dark/statement_results.png)
+![openstan demo — import bank statement PDFs, review parsed transactions, export to Excel](docs/assets/media/openstan_demo.gif)
 
 > Full documentation and download: **[openstan.org](https://openstan.org)**
 
