@@ -60,6 +60,7 @@ class CommitWorkerSignals(QObject):
     step = Signal(str)  # emitted before each bsp call — step description
     finished = Signal()  # all three calls succeeded
     error = Signal(str)  # one call raised — human-readable message
+    warning = Signal(str)  # non-fatal warning (e.g. migration column drops)
 
 
 class CommitWorker(QRunnable):
@@ -115,21 +116,27 @@ class CommitWorker(QRunnable):
     def run(self) -> None:
         try:
             self.signals.step.emit("Updating database…")
-            bsp.update_db(
-                processed_pdfs=self._processed_pdfs,
-                batch_id=self._batch_id,
-                session_id=self._session_id,
-                user_id=self._user_id,
-                path=self._path,
-                company_key=None,
-                account_key=None,
-                pdf_count=self._pdf_count,
-                errors=self._errors,
-                reviews=self._reviews,
-                duration_secs=self._duration_secs,
-                process_time=datetime.now(UTC),
-                project_path=self._project_path,
-            )
+            import warnings
+
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.simplefilter("always")
+                bsp.update_db(
+                    processed_pdfs=self._processed_pdfs,
+                    batch_id=self._batch_id,
+                    session_id=self._session_id,
+                    user_id=self._user_id,
+                    path=self._path,
+                    company_key=None,
+                    account_key=None,
+                    pdf_count=self._pdf_count,
+                    errors=self._errors,
+                    reviews=self._reviews,
+                    duration_secs=self._duration_secs,
+                    process_time=datetime.now(UTC),
+                    project_path=self._project_path,
+                )
+            for w in caught_warnings:
+                self.signals.warning.emit(f"{w.category.__name__}: {w.message}")
 
             self.signals.step.emit("Copying statements…")
             bsp.copy_statements_to_project(
@@ -798,6 +805,7 @@ class StatementResultPresenter(QObject):
         worker.signals.step.connect(self.__on_commit_step)
         worker.signals.finished.connect(self.__on_commit_finished)
         worker.signals.error.connect(self.__on_commit_error)
+        worker.signals.warning.connect(self.__on_commit_warning)
 
         self.threadpool.start(worker)
 
@@ -910,6 +918,11 @@ class StatementResultPresenter(QObject):
         # Notify StanPresenter to hide the results panel, clear the queue, and
         # refresh the queue view.
         self.batch_committed.emit()
+
+    @Slot(str)
+    def __on_commit_warning(self, message: str) -> None:
+        """A non-fatal warning from the commit process (e.g. migration column drops)."""
+        print(f"[commit warning] {message}", file=sys.stderr)
 
     @Slot(str)
     def __on_commit_error(self, message: str) -> None:
