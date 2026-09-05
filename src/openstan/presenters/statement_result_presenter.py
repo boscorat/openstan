@@ -136,7 +136,7 @@ class CommitWorker(QRunnable):
                     project_path=self._project_path,
                 )
             for w in caught_warnings:
-                self.signals.warning.emit(str(w.message))
+                self.signals.warning.emit(f"{w.category.__name__}: {w.message}")
 
             self.signals.step.emit("Copying statements…")
             bsp.copy_statements_to_project(
