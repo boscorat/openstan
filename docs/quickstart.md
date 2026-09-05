@@ -6,6 +6,18 @@ description: "Step-by-step guide to creating your first project, importing bank 
 
 This guide walks you through the full workflow from a fresh installation to your first committed batch of statements.
 
+## Video walkthrough
+
+Prefer watching? These videos walk through the same steps covered below.
+
+[![Quick overview — 2 min](assets/media/youtube_thumbnail_2m.png)](https://youtu.be/h7cJ42BGzkA)
+
+**Quick overview** (2 min) — import, review, commit.
+
+[![Full walkthrough — 12 min](assets/media/youtube_thumbnail_12m.png)](https://youtu.be/zHyPS-NYq28)
+
+**Full walkthrough** (12 min) — includes reports, advanced export, and tips.
+
 ---
 
 ## Step 1 — Launch openstan

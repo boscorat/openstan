@@ -66,6 +66,7 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Quick Start: quickstart.md
+  - Video Tutorials: video-tutorials.md
   - Use Cases:
       - Overview: use-cases/index.md
       - Self Assessment: use-cases/self-assessment.md
