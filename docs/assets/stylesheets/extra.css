@@ -5,13 +5,6 @@
     display: none;
 }
 
-/* YouTube button styling */
-.md-button--primary {
-    background-color: var(--md-primary-fg-color);
-    color: var(--md-primary-bg-color);
-    margin-top: 0.5rem;
-}
-
 /* Theme-aware nav-bar logo.
    The logo partial (docs/overrides/partials/logo.html) renders two <img>
    elements — .stan-logo-light and .stan-logo-dark — at each of the two
