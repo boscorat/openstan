@@ -1381,35 +1381,32 @@ jobs:
           # ── Downloads section (prepended at the very top) ──────────────
           # Fetch all asset names from this release and build a download
           # table so users don't have to hunt through the collapsed Assets UI.
-          ASSETS_JSON=$(gh release view "$TAG" \
+          # Filter to installer assets only (skip NOTICE.txt, checksums, etc.)
+          INSTALLER_ASSETS=$(gh release view "$TAG" \
             --repo "$REPO" \
             --json assets \
-            --jq '.assets[].name' 2>/dev/null || true)
+            --jq '.assets[].name' 2>/dev/null \
+            | grep -E '\.(msi|dmg|deb|rpm)$' || true)
 
-          if [ -n "$ASSETS_JSON" ]; then
+          if [ -n "$INSTALLER_ASSETS" ]; then
             DOWNLOAD_TABLE="## Downloads"$'\n''\n'
             DOWNLOAD_TABLE="${DOWNLOAD_TABLE}| Platform | File |"$'\n'
             DOWNLOAD_TABLE="${DOWNLOAD_TABLE}|----------|------|"$'\n'
 
             while IFS= read -r asset; do
               [ -z "$asset" ] && continue
-              # Skip non-installer assets (NOTICE.txt, checksums, etc.)
-              case "$asset" in
-                *.msi|*.dmg|*.deb|*.rpm) ;;
-                *) continue ;;
-              esac
               URL="https://github.com/${REPO}/releases/download/${TAG}/${asset}"
               case "$asset" in
-                *-Windows.msi)           platform="Windows 10 / 11" ;;
-                *-macOS.dmg)             platform="macOS 12+" ;;
-                *-Linux-Ubuntu-x86_64.deb) platform="Ubuntu / Debian (x86_64)" ;;
-                *-Linux-Ubuntu-arm64.deb)  platform="Ubuntu / Debian (ARM64)" ;;
-                *-Linux-Fedora-x86_64.rpm) platform="Fedora / RHEL (x86_64)" ;;
-                *-Linux-Fedora-arm64.rpm)  platform="Fedora / RHEL (ARM64)" ;;
-                *)                       platform="Unknown" ;;
+                *-Windows.msi)              platform="Windows 10 / 11" ;;
+                *-macOS.dmg)                platform="macOS 12+" ;;
+                *-Linux-Ubuntu-x86_64.deb)  platform="Ubuntu / Debian (x86_64)" ;;
+                *-Linux-Ubuntu-arm64.deb)   platform="Ubuntu / Debian (ARM64)" ;;
+                *-Linux-Fedora-x86_64.rpm)  platform="Fedora / RHEL (x86_64)" ;;
+                *-Linux-Fedora-arm64.rpm)   platform="Fedora / RHEL (ARM64)" ;;
+                *)                          platform="Unknown" ;;
               esac
               DOWNLOAD_TABLE="${DOWNLOAD_TABLE}| ${platform} | [\`${asset}\`](${URL}) |"$'\n'
-            done <<< "$ASSETS_JSON"
+            done <<< "$INSTALLER_ASSETS"
 
             DOWNLOAD_TABLE="${DOWNLOAD_TABLE}"$'\n'"---"$'\n''\n'
             NEW_BODY="${DOWNLOAD_TABLE}"
