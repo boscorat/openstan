@@ -10,7 +10,7 @@ openstan is distributed as a self-contained native installer for each supported 
 
 ## Download
 
-All installers for the latest release are available on the [GitHub Releases](https://github.com/boscorat/openstan/releases/latest) page. Direct links by platform:
+All installers for the latest release are available on the [GitHub Releases](https://github.com/boscorat/openstan/releases/latest) page.
 
 | Platform | Installer | Download |
 |----------|-----------|----------|
@@ -53,7 +53,7 @@ All installers for the latest release are available on the [GitHub Releases](htt
 
 ## Linux (Debian / Ubuntu)
 
-Download the `.deb` package from the [latest release](https://github.com/boscorat/openstan/releases/latest) and install it:
+Download the `.deb` package from the [latest release](https://github.com/boscorat/openstan/releases/latest) matching your system architecture (x86_64 or ARM64) and install it:
 
 ```bash
 sudo apt install ./openstan-*.deb
@@ -71,7 +71,7 @@ The `.deb` package declares `libxcb-cursor0` as a runtime dependency; `apt` will
 
 ## Linux (Fedora / RHEL / CentOS)
 
-Download the `.rpm` package from the [latest release](https://github.com/boscorat/openstan/releases/latest) and install it:
+Download the `.rpm` package from the [latest release](https://github.com/boscorat/openstan/releases/latest) matching your system architecture (x86_64 or ARM64) and install it:
 
 ```bash
 sudo dnf install ./openstan-*.rpm
