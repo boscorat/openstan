@@ -132,13 +132,20 @@ Follow this checklist before promoting from draft to published:
 
 - [ ] **Windows .msi submission (WDSI portal)**
   - [ ] Go to https://www.microsoft.com/en-us/wdsi/filesubmission
-  - [ ] Sign in with your Microsoft account
-  - [ ] Select "Software" → "Incorrect detection" → "Clean software"
-  - [ ] Upload the .msi file
-  - [ ] **Allow 24–48 hours for Microsoft to review**
-  - [ ] Once approved, SmartScreen warnings will be cleared
+  - [ ] Sign in with your Microsoft account (personal account works; no enterprise license required)
+  - [ ] When prompted, select **"Software developer"** as your persona
+  - [ ] Fill in the submission form:
+    - **Product**: Select "Microsoft Defender SmartScreen"
+    - **Company Name**: Enter your company/developer name
+    - **File**: Upload the signed `.msi` file (max 50 MB)
+    - **What do you believe this file is?**: Select "Incorrectly detected as malware/malicious"
+    - **Additional information**: Describe that this is a clean, code-signed installer for open-source software
+  - [ ] Complete the CAPTCHA verification
+  - [ ] **Allow 24–48 hours for Microsoft to review** (medium priority for standard submissions)
+  - [ ] Track status at https://www.microsoft.com/en-us/wdsi/submissionhistory
+  - [ ] Once approved ("Closed" status), SmartScreen warnings will be cleared
   
-  *Note: This step is critical if the Windows installer is to be widely distributed. SmartScreen reputation builds over time with downloads; without WDSI submission, Windows may initially warn users about the unsigned binary.*
+  *Note: This step is critical if the Windows installer is to be widely distributed. SmartScreen reputation builds over time with downloads; without WDSI submission, Windows may initially warn users about the unsigned binary. Sole developers can use this portal — enterprise licenses are not required.*
 
 ### No Breaking Changes?
 
@@ -246,9 +253,11 @@ If the VirusTotal scan job fails (malicious detections found), the draft release
 
 ### Microsoft WDSI submission rejected
 
+- Check submission status at https://www.microsoft.com/en-us/wdsi/submissionhistory
 - Review Microsoft's feedback in the submission portal
 - Common rejections: unsigned binary, wrong certificate, or binary has malware signatures (unlikely, but antivirus false positives happen)
-- Resubmit or contact Microsoft support if clarification is needed
+- If rejected, you can resubmit with additional information or corrections
+- Use the developer contact form provided with submission results to reach Microsoft if needed
 - Do **not** publish the release until WDSI clears it
 
 ### Release was published but should have been draft
