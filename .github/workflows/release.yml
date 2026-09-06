@@ -1422,7 +1422,9 @@ jobs:
 
           # ── Previous release body (if any) ─────────────────────────────
           if [ -n "$CURRENT_BODY" ]; then
-            NEW_BODY="${NEW_BODY}"$'\n'"${CURRENT_BODY}"
+            # Avoid duplicating auto-generated sections on workflow re-runs.
+            CLEAN_BODY=$(printf "%s" "$CURRENT_BODY" | sed -E '/^## Downloads$/,/^---$/d; /^## Security Scan Results$/,/^---$/d')
+            NEW_BODY="${NEW_BODY}"$'\n'"${CLEAN_BODY}"
           fi
 
           # ── VirusTotal security scan table ─────────────────────────────
