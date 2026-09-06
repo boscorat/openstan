@@ -145,7 +145,7 @@ Follow this checklist before promoting from draft to published:
   - [ ] Track status at https://www.microsoft.com/en-us/wdsi/submissionhistory
   - [ ] Once approved ("Closed" status), SmartScreen warnings will be cleared
   
-  *Note: This step is critical if the Windows installer is to be widely distributed. SmartScreen reputation builds over time with downloads; without WDSI submission, Windows may initially warn users about the unsigned binary. Sole developers can use this portal — enterprise licenses are not required.*
+  *Note: This step is critical if the Windows installer is to be widely distributed. SmartScreen reputation builds over time with downloads; without WDSI submission, Windows may initially warn users due to low SmartScreen reputation even for signed installers. Sole developers can use this portal — enterprise licenses are not required.*
 
 ### No Breaking Changes?
 
