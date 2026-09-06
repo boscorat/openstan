@@ -8,9 +8,24 @@ openstan is distributed as a self-contained native installer for each supported 
 
 ---
 
+## Download
+
+All installers for the latest release are available on the [GitHub Releases](https://github.com/boscorat/openstan/releases/latest) page. Direct links by platform:
+
+| Platform | Installer | Download |
+|----------|-----------|----------|
+| Windows 10 / 11 | `.msi` | [Download](https://github.com/boscorat/openstan/releases/latest) |
+| macOS 12+ (Intel & Apple Silicon) | `.dmg` | [Download](https://github.com/boscorat/openstan/releases/latest) |
+| Ubuntu / Debian (x86_64) | `.deb` | [Download](https://github.com/boscorat/openstan/releases/latest) |
+| Ubuntu / Debian (ARM64) | `.deb` | [Download](https://github.com/boscorat/openstan/releases/latest) |
+| Fedora / RHEL (x86_64) | `.rpm` | [Download](https://github.com/boscorat/openstan/releases/latest) |
+| Fedora / RHEL (ARM64) | `.rpm` | [Download](https://github.com/boscorat/openstan/releases/latest) |
+
+---
+
 ## Windows
 
-1. Download the latest `openstan-<version>.msi` from the [GitHub Releases](https://github.com/boscorat/openstan/releases) page.
+1. Download the `.msi` installer from the [latest release](https://github.com/boscorat/openstan/releases/latest).
 2. Double-click the `.msi` file to launch the installer.
 3. Follow the on-screen prompts. openstan is installed per-user by default (no administrator rights needed).
 4. Launch **openstan** from the Start menu or desktop shortcut.
@@ -25,7 +40,7 @@ openstan is distributed as a self-contained native installer for each supported 
 
 ## macOS
 
-1. Download the latest `openstan-<version>.dmg` from the [GitHub Releases](https://github.com/boscorat/openstan/releases) page.
+1. Download the `.dmg` disk image from the [latest release](https://github.com/boscorat/openstan/releases/latest).
 2. Open the `.dmg` and drag **openstan** into your `Applications` folder.
 3. Double-click to launch openstan. The app is signed and notarized by Apple, so Gatekeeper will trust it automatically.
 
@@ -38,10 +53,10 @@ openstan is distributed as a self-contained native installer for each supported 
 
 ## Linux (Debian / Ubuntu)
 
-Download the latest `openstan-<version>.deb` from the [GitHub Releases](https://github.com/boscorat/openstan/releases) page and install it:
+Download the `.deb` package from the [latest release](https://github.com/boscorat/openstan/releases/latest) and install it:
 
 ```bash
-sudo apt install ./openstan-<version>.deb
+sudo apt install ./openstan-*.deb
 ```
 
 After installation, launch openstan from your application menu, or run `openstan` in a terminal.
@@ -56,10 +71,10 @@ The `.deb` package declares `libxcb-cursor0` as a runtime dependency; `apt` will
 
 ## Linux (Fedora / RHEL / CentOS)
 
-Download the latest `openstan-<version>.rpm` from the [GitHub Releases](https://github.com/boscorat/openstan/releases) page and install it:
+Download the `.rpm` package from the [latest release](https://github.com/boscorat/openstan/releases/latest) and install it:
 
 ```bash
-sudo dnf install ./openstan-<version>.rpm
+sudo dnf install ./openstan-*.rpm
 ```
 
 Both x86_64 and ARM64 packages are available.

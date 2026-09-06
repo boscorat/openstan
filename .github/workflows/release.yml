@@ -1375,14 +1375,57 @@ jobs:
           MARKDOWN_EOF
           }
 
-          # Build release body: changelog + VT table
+          # Build release body: downloads + changelog + existing body + VT table
           NEW_BODY=""
-          if [ -n "$CHANGELOG" ]; then
-            NEW_BODY="${CHANGELOG}"
+
+          # ── Downloads section (prepended at the very top) ──────────────
+          # Fetch all asset names from this release and build a download
+          # table so users don't have to hunt through the collapsed Assets UI.
+          ASSETS_JSON=$(gh release view "$TAG" \
+            --repo "$REPO" \
+            --json assets \
+            --jq '.assets[].name' 2>/dev/null || true)
+
+          if [ -n "$ASSETS_JSON" ]; then
+            DOWNLOAD_TABLE="## Downloads"$'\n''\n'
+            DOWNLOAD_TABLE="${DOWNLOAD_TABLE}| Platform | File |"$'\n'
+            DOWNLOAD_TABLE="${DOWNLOAD_TABLE}|----------|------|"$'\n'
+
+            while IFS= read -r asset; do
+              [ -z "$asset" ] && continue
+              # Skip non-installer assets (NOTICE.txt, checksums, etc.)
+              case "$asset" in
+                *.msi|*.dmg|*.deb|*.rpm) ;;
+                *) continue ;;
+              esac
+              URL="https://github.com/${REPO}/releases/download/${TAG}/${asset}"
+              case "$asset" in
+                *-Windows.msi)           platform="Windows 10 / 11" ;;
+                *-macOS.dmg)             platform="macOS 12+" ;;
+                *-Linux-Ubuntu-x86_64.deb) platform="Ubuntu / Debian (x86_64)" ;;
+                *-Linux-Ubuntu-arm64.deb)  platform="Ubuntu / Debian (ARM64)" ;;
+                *-Linux-Fedora-x86_64.rpm) platform="Fedora / RHEL (x86_64)" ;;
+                *-Linux-Fedora-arm64.rpm)  platform="Fedora / RHEL (ARM64)" ;;
+                *)                       platform="Unknown" ;;
+              esac
+              DOWNLOAD_TABLE="${DOWNLOAD_TABLE}| ${platform} | [\`${asset}\`](${URL}) |"$'\n'
+            done <<< "$ASSETS_JSON"
+
+            DOWNLOAD_TABLE="${DOWNLOAD_TABLE}"$'\n'"---"$'\n''\n'
+            NEW_BODY="${DOWNLOAD_TABLE}"
           fi
+
+          # ── Changelog ──────────────────────────────────────────────────
+          if [ -n "$CHANGELOG" ]; then
+            NEW_BODY="${NEW_BODY}${CHANGELOG}"
+          fi
+
+          # ── Previous release body (if any) ─────────────────────────────
           if [ -n "$CURRENT_BODY" ]; then
             NEW_BODY="${NEW_BODY}"$'\n'"${CURRENT_BODY}"
           fi
+
+          # ── VirusTotal security scan table ─────────────────────────────
           if [ -s "$RESULTS_FILE" ]; then
             VT_TABLE=$(generate_vt_table "$RESULTS_FILE")
             NEW_BODY="${NEW_BODY}"$'\n'"${VT_TABLE}"

@@ -69,14 +69,14 @@ This matters. You are dealing with sensitive financial data. It should stay on y
 
 ## Download
 
-Pre-built installers are available on the [Releases](https://github.com/boscorat/openstan/releases) page:
+Pre-built installers are available on the [latest release](https://github.com/boscorat/openstan/releases/latest):
 
 | Platform | Installer |
 |---|---|
-| Windows 10 / 11 | `.msi` |
-| macOS 12+ (Intel & Apple Silicon) | `.dmg` |
-| Ubuntu / Debian | `.deb` |
-| Fedora / RHEL / CentOS | `.rpm` |
+| Windows 10 / 11 | [`.msi`](https://github.com/boscorat/openstan/releases/latest) |
+| macOS 12+ (Intel & Apple Silicon) | [`.dmg`](https://github.com/boscorat/openstan/releases/latest) |
+| Ubuntu / Debian (x86_64 & ARM64) | [`.deb`](https://github.com/boscorat/openstan/releases/latest) |
+| Fedora / RHEL (x86_64 & ARM64) | [`.rpm`](https://github.com/boscorat/openstan/releases/latest) |
 
 No Python installation required. See [Installation](https://openstan.org/installation/) for full instructions.
 
