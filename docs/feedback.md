@@ -23,16 +23,37 @@ address if you are happy for us to contact you for follow-up.
 ></iframe>
 <script src="https://opnform.com/widgets/opnform-sdk.min.js"></script>
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  function syncDarkMode() {
-    var isDark = document.body.getAttribute("data-md-color-scheme") === "slate";
-    var form = opnform.get("openstan-feedback-ejuved");
-    if (form) form.setDarkMode(isDark);
+(function () {
+  function schemeElement() {
+    if (document.body && document.body.hasAttribute("data-md-color-scheme")) {
+      return document.body;
+    }
+    return document.documentElement;
   }
-  opnform.once("ready", syncDarkMode);
-  new MutationObserver(syncDarkMode).observe(document.body, {
+
+  function syncDarkMode() {
+    var el = schemeElement();
+    var isDark = el.getAttribute("data-md-color-scheme") === "slate";
+
+    if (!window.opnform || typeof window.opnform.get !== "function") {
+      return;
+    }
+
+    var form = window.opnform.get("openstan-feedback-ejuved");
+    if (form && typeof form.setDarkMode === "function") {
+      form.setDarkMode(isDark);
+    }
+  }
+
+  syncDarkMode();
+
+  if (window.opnform && typeof window.opnform.once === "function") {
+    window.opnform.once("ready", syncDarkMode);
+  }
+
+  new MutationObserver(syncDarkMode).observe(schemeElement(), {
     attributes: true,
     attributeFilter: ["data-md-color-scheme"],
   });
-});
+})();
 </script>
