@@ -17,6 +17,7 @@ _WEBSITE_URL = "https://openstan.org"
 _GITHUB_URL = "https://github.com/boscorat/openstan"
 _LICENSE_URL = "https://www.gnu.org/licenses/lgpl-3.0.html"
 _BSP_GITHUB_URL = "https://github.com/boscorat/bank_statement_parser"
+_FEEDBACK_URL = "https://openstan.org/feedback"
 _COPYRIGHT = "Copyright \u00a9 2025 Jason Farrar"
 
 
@@ -75,6 +76,12 @@ class AboutDialog(StanDialog):
         github_label.setTextFormat(Qt.TextFormat.RichText)
         github_label.setAccessibleName("openstan GitHub repository")
 
+        feedback_label = StanLabel(f'<a href="{_FEEDBACK_URL}">Give Feedback</a>')
+        feedback_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        feedback_label.setOpenExternalLinks(True)
+        feedback_label.setTextFormat(Qt.TextFormat.RichText)
+        feedback_label.setAccessibleName("Give feedback on openstan")
+
         # ── Powered-by ────────────────────────────────────────────────────
         powered_by_label = StanMutedLabel(
             f"Powered by bank\\_statement\\_parser {_bsp_version()}"
@@ -113,6 +120,7 @@ class AboutDialog(StanDialog):
         layout.addWidget(version_label)
         layout.addWidget(website_label)
         layout.addWidget(github_label)
+        layout.addWidget(feedback_label)
         layout.addSpacing(4)
         layout.addWidget(powered_by_label)
         layout.addWidget(bsp_label)

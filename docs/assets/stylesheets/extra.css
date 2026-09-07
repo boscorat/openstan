@@ -17,4 +17,10 @@
 [data-md-color-scheme=slate] .stan-logo-light          { display: none !important; }
 [data-md-color-scheme=slate] .stan-logo-dark           { display: block !important; }
 
+/* Feedback form iframe — responsive height on small screens */
+@media (max-width: 600px) {
+    iframe[title="openstan feedback form"] {
+        min-height: 900px !important;
+    }
+}
 
