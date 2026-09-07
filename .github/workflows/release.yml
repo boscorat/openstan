@@ -1420,7 +1420,12 @@ jobs:
           # ── Previous release body (if any) ─────────────────────────────
           if [ -n "$CURRENT_BODY" ]; then
             # Avoid duplicating auto-generated sections on workflow re-runs.
-            CLEAN_BODY=$(printf "%s" "$CURRENT_BODY" | sed -E '/^## Downloads$/,/^---$/d; /^## Security Scan Results$/,/^---$/d')
+            CLEAN_BODY=$(awk '
+              /^## (Downloads|Security Scan Results)$/ { skipping=1; next }
+              skipping && /^---$/ { skipping=0; next }
+              skipping && /^## / { skipping=0 }
+              !skipping { print }
+            ' <<<"$CURRENT_BODY")
             NEW_BODY="${NEW_BODY}"$'\n'"${CLEAN_BODY}"
           fi
 
