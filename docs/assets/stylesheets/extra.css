@@ -19,8 +19,8 @@
 
 /* Feedback form iframe — responsive height on small screens */
 @media (max-width: 600px) {
-  iframe[title="openstan feedback form"] {
-    min-height: 900px;
-  }
+    iframe[title="openstan feedback form"] {
+        min-height: 900px !important;
+    }
 }
 
