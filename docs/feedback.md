@@ -14,7 +14,7 @@ address if you are happy for us to contact you for follow-up.
 
 <iframe
   id="openstan-feedback-ejuved"
-  src="https://opnform.com/forms/openstan-feedback-ejuved?embed=true"
+  src="https://opnform.com/forms/openstan-feedback-ejuved?embed=true&darkMode=auto"
   style="border:none;width:100%;min-height:700px;"
   loading="lazy"
   title="openstan feedback form"
