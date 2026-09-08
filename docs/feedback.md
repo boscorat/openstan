@@ -20,4 +20,5 @@ address if you are happy for us to contact you for follow-up.
   title="openstan feedback form"
   referrerpolicy="no-referrer"
   sandbox="allow-forms allow-scripts allow-same-origin"
+  allowtransparency="true"
 ></iframe>
