@@ -21,39 +21,3 @@ address if you are happy for us to contact you for follow-up.
   referrerpolicy="no-referrer"
   sandbox="allow-forms allow-scripts allow-same-origin"
 ></iframe>
-<script src="https://opnform.com/widgets/opnform-sdk.min.js"></script>
-<script>
-(function () {
-  function schemeElement() {
-    if (document.body && document.body.hasAttribute("data-md-color-scheme")) {
-      return document.body;
-    }
-    return document.documentElement;
-  }
-
-  function syncDarkMode() {
-    var el = schemeElement();
-    var isDark = el.getAttribute("data-md-color-scheme") === "slate";
-
-    if (!window.opnform || typeof window.opnform.get !== "function") {
-      return;
-    }
-
-    var form = window.opnform.get("openstan-feedback-ejuved");
-    if (form && typeof form.setDarkMode === "function") {
-      form.setDarkMode(isDark);
-    }
-  }
-
-  if (window.opnform && typeof window.opnform.once === "function") {
-    window.opnform.once("ready", syncDarkMode);
-  } else {
-    document.addEventListener("DOMContentLoaded", syncDarkMode);
-  }
-
-  new MutationObserver(syncDarkMode).observe(schemeElement(), {
-    attributes: true,
-    attributeFilter: ["data-md-color-scheme"],
-  });
-})();
-</script>
