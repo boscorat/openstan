@@ -45,10 +45,10 @@ address if you are happy for us to contact you for follow-up.
     }
   }
 
-  syncDarkMode();
-
   if (window.opnform && typeof window.opnform.once === "function") {
     window.opnform.once("ready", syncDarkMode);
+  } else {
+    document.addEventListener("DOMContentLoaded", syncDarkMode);
   }
 
   new MutationObserver(syncDarkMode).observe(schemeElement(), {
