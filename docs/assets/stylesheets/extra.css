@@ -17,12 +17,14 @@
 [data-md-color-scheme=slate] .stan-logo-light          { display: none !important; }
 [data-md-color-scheme=slate] .stan-logo-dark           { display: block !important; }
 
-/* Feedback form iframe — transparent background and color-scheme: auto
+/* Feedback form iframe — transparent background and color-scheme: light dark
    to prevent Chrome from forcing a white background when the parent page
-   uses dark scheme.  See: https://stackoverflow.com/questions/69591128 */
+   uses dark scheme.  The color-scheme: light dark tells Chrome the iframe
+   supports both schemes, so it won't force a white background.
+   See: https://stackoverflow.com/questions/69591128 */
 #openstan-feedback-ejuved {
     background-color: transparent !important;
-    color-scheme: auto;
+    color-scheme: light dark;
 }
 
 /* Feedback form iframe — responsive height on small screens */
