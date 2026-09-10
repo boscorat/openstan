@@ -25,12 +25,12 @@ respond within 7 days.
 
 ## Request a new bank
 
-Don't see your bank? You can [request it on GitHub](https://github.com/boscorat/bank_statement_parser/issues/new?template=new-bank-request.yml)
-or vote on existing requests in
-[GitHub Discussions](https://github.com/boscorat/openstan/discussions) under
-the **Adding a New Bank** category — request a new bank, discuss bank support,
+Don't see your bank? [Start a discussion](https://github.com/boscorat/openstan/discussions/categories/adding-a-new-bank)
+in the **Adding a New Bank** category — request a new bank, discuss bank support,
 or ask how to add a bank configuration yourself. Vote on existing requests to
-help us prioritise.
+help us prioritise. For formal requests, use the
+[New Bank Request](https://github.com/boscorat/bank_statement_parser/issues/new?template=new-bank-request.yml)
+template on GitHub.
 
 New banks are added via [TOML configuration files](https://boscorat.github.io/bank_statement_parser/latest/guides/new-bank-config/)
 — no coding required.
@@ -41,7 +41,7 @@ New banks are added via [TOML configuration files](https://boscorat.github.io/ba
 
 | Platform | What we post | Link |
 |----------|-------------|------|
-| **GitHub Discussions** | Release announcements, feature discussions | [Announcements](https://github.com/boscorat/openstan/discussions) |
+| **GitHub Discussions** | Release announcements, feature discussions | [Announcements](https://github.com/boscorat/openstan/discussions/categories/announcements) |
 | **LinkedIn** | Release announcements, use cases, industry insights | [openstan on LinkedIn](https://linkedin.com/company/openstan) |
 | **Bluesky** | Quick updates, tips, open-source community | [@openstan.org on Bluesky](https://bsky.app/profile/openstan.org) |
 | **YouTube** | Video tutorials and walkthroughs | [openstan on YouTube](https://youtube.com/@openstan) |
