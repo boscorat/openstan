@@ -110,6 +110,19 @@ All four must pass before opening a pull request. See [CONTRIBUTING.md](CONTRIBU
 
 ---
 
+## Community
+
+| Channel | Purpose |
+|---------|---------|
+| [GitHub Discussions](https://github.com/boscorat/openstan/discussions) | Questions, support, ideas, bank requests |
+| [LinkedIn](https://linkedin.com/company/openstan) | Release announcements, use cases |
+| [Bluesky](https://bsky.app/profile/openstan.org) | Quick updates, tips |
+| [YouTube](https://youtube.com/@openstan) | Video tutorials |
+
+See [Community & Support](https://openstan.org/community/) for full details.
+
+---
+
 ## License
 
 LGPL-3.0-or-later — see [LICENSE](LICENSE).
