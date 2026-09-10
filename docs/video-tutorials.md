@@ -8,9 +8,9 @@ description: "Video tutorials for openstan — watch quickstart walkthroughs and
 
 A fast overview of the core workflow: create a project, import PDFs, review and commit.
 
-[![Quick Start](assets/media/youtube_thumbnail_2m.png)](https://youtu.be/h7cJ42BGzkA)
+[![Quick Start](assets/media/youtube_thumbnail_2m.png)](https://youtu.be/6llok5CWK4s)
 
-[Watch on YouTube](https://youtu.be/h7cJ42BGzkA){ .md-button .md-button--primary }
+[Watch on YouTube](https://youtu.be/6llok5CWK4s){ .md-button .md-button--primary }
 
 ---
 
@@ -18,6 +18,6 @@ A fast overview of the core workflow: create a project, import PDFs, review and 
 
 The complete tutorial covering reports, advanced export, and tips for getting the most out of openstan.
 
-[![Full Walkthrough](assets/media/youtube_thumbnail_12m.png)](https://youtu.be/zHyPS-NYq28)
+[![Full Walkthrough](assets/media/youtube_thumbnail_12m.png)](https://youtu.be/fRcoZB54FKQ)
 
-[Watch on YouTube](https://youtu.be/zHyPS-NYq28){ .md-button .md-button--primary }
+[Watch on YouTube](https://youtu.be/fRcoZB54FKQ){ .md-button .md-button--primary }
