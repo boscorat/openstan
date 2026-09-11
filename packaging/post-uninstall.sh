@@ -9,11 +9,14 @@
 
 set -e
 
-# If another openstan version directory exists, this is an upgrade — skip cleanup.
-# The new package's post-install.sh will handle desktop integration.
-if ls -dt /usr/lib/openstan-* >/dev/null 2>&1; then
-    exit 0
-fi
+# If another openstan version directory exists with a valid binary,
+# this is an upgrade — skip cleanup.  The new package's post-install.sh
+# will handle desktop integration.
+for _d in /usr/lib/openstan-*; do
+    if [ -d "$_d/openstan" ] && [ -x "$_d/openstan/openstan" ]; then
+        exit 0
+    fi
+done
 
 rm -f /usr/bin/openstan
 rm -f /usr/share/applications/openstan.desktop
