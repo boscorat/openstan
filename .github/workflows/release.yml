@@ -318,6 +318,7 @@ jobs:
             --url "https://openstan.org"
             --description "Open source bank statement analysis and visualization"
             --license "LGPL-3.0-or-later"
+            --replaces openstan
             --after-install  packaging/post-install.sh
             --after-remove   packaging/post-uninstall.sh
             --chdir dist
@@ -452,6 +453,7 @@ jobs:
             --url "https://openstan.org"
             --description "Open source bank statement analysis and visualization"
             --license "LGPL-3.0-or-later"
+            --replaces openstan
             --after-install  packaging/post-install.sh
             --after-remove   packaging/post-uninstall.sh
             --chdir dist
