@@ -6,14 +6,16 @@
   <script data-goatcounter="{{ config.extra.goatcounter_url }}/count"
           async src="//gc.zgo.at/count.js"></script>
   {% endif %}
+  {% if config.extra.statcounter_project %}
   <script type="text/javascript">
-  var sc_project=13354789;
+  var sc_project={{ config.extra.statcounter_project }};
   var sc_invisible=1;
   var sc_security="15dbcfe9";
   </script>
   <script type="text/javascript"
   src="https://www.statcounter.com/counter/counter.js"
   async></script>
+  {% endif %}
 {% endblock %}
 
 {% block extrahead %}

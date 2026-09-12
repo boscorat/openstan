@@ -61,6 +61,7 @@ extra_css:
 
 extra:
   goatcounter_url: !ENV [GOATCOUNTER_URL, '']
+  statcounter_project: !ENV [STATCOUNTER_PROJECT_ID, '']
 
 nav:
   - Home: index.md
