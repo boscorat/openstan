@@ -463,6 +463,16 @@ class StatementResultPresenter(QObject):
             else:
                 self.failure_model.add_row(row)
 
+        # Re-run the debug worker for any non-success rows that lack complete
+        # debug data (e.g. the worker was cancelled or failed in a prior session).
+        has_incomplete_debug = any(
+            r.debug_status not in ("done", "error")
+            for r in rows
+            if r.result != "SUCCESS"
+        )
+        if has_incomplete_debug and self.project_path is not None:
+            self.__start_debug_worker(batch_id)
+
     # ---------------------------------------------------------------------------
     # Public: import lifecycle — called by StanPresenter
     # ---------------------------------------------------------------------------
@@ -670,9 +680,14 @@ class StatementResultPresenter(QObject):
     ) -> None:
         """Persist debug result for one row and update the open dialog if any."""
         status = "done" if debug_json_path is not None else "error"
-        self.result_model.update_debug_info(
+        ok, msg = self.result_model.update_debug_info(
             result_id, status, debug_json_path, debug_excel_path
         )
+        if not ok:
+            print(
+                f"WARNING: update_debug_info failed for {result_id}: {msg}",
+                file=sys.stderr,
+            )
 
         self._debug_done_count += 1
 
