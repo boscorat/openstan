@@ -630,7 +630,12 @@ class StatementResultPresenter(QObject):
     # ---------------------------------------------------------------------------
 
     def __start_debug_worker(self, batch_id: str) -> None:
-        """Collect all non-success rows and start DebugWorker off-thread."""
+        """Collect non-success rows that need debug work and start DebugWorker.
+
+        Only rows whose ``debug_status`` is not already ``"done"`` or
+        ``"error"`` are re-processed.  This prevents overwriting valid
+        debug paths from a previous run (e.g. on session restore).
+        """
         if self.project_path is None:
             print(
                 "WARNING: Cannot start debug worker — project path is not set.",
@@ -647,20 +652,33 @@ class StatementResultPresenter(QObject):
         n_success = self.success_model.row_count
         non_success_ids = all_result_ids[n_success:]
 
-        # Mark all non-success rows as 'pending' in the DB
-        for rid in non_success_ids:
+        # Only process rows that still need debug work — skip rows that
+        # already completed successfully in a prior session.
+        needs_debug = [
+            (rid, row)
+            for rid, row in zip(non_success_ids, non_success)
+            if row.debug_status not in ("done", "error")
+        ]
+        if not needs_debug:
+            return
+
+        debug_ids = [rid for rid, _ in needs_debug]
+        debug_rows = [row for _, row in needs_debug]
+
+        # Mark only the incomplete rows as 'pending' in the DB
+        for rid in debug_ids:
             self.result_model.update_debug_info(rid, "pending", None)
 
         self._debug_cancel = threading.Event()
         self._debug_worker_done = False
         self._debug_done_count = 0
-        self._debug_total_count = len(non_success)
+        self._debug_total_count = len(debug_rows)
 
         self.__update_debug_button_label()
 
         worker = DebugWorker(
-            rows=non_success,
-            result_ids=non_success_ids,
+            rows=debug_rows,
+            result_ids=debug_ids,
             batch_id=batch_id,
             project_path=self.project_path,
             cancel_event=self._debug_cancel,
