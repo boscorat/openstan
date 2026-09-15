@@ -667,7 +667,12 @@ class StatementResultPresenter(QObject):
 
         # Mark only the incomplete rows as 'pending' in the DB
         for rid in debug_ids:
-            self.result_model.update_debug_info(rid, "pending", None)
+            ok, msg = self.result_model.update_debug_info(rid, "pending", None)
+            if not ok:
+                print(
+                    f"WARNING: update_debug_info(pending) failed for {rid}: {msg}",
+                    file=sys.stderr,
+                )
 
         self._debug_cancel = threading.Event()
         self._debug_worker_done = False
