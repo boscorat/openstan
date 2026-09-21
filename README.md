@@ -32,6 +32,17 @@ Import an entire year of statements, build reports, and export to Excel in under
 
 ---
 
+## 📖 Documentation
+
+Full user guide, installation instructions, video tutorials, and use-case guides available at **[openstan.org](https://openstan.org)**.
+
+- **[Quick Start](https://openstan.org/quickstart/)** — Create your first project and import statements in 5 minutes
+- **[Installation](https://openstan.org/installation/)** — Download and install for Windows, macOS, or Linux
+- **[Use Cases](https://openstan.org/use-cases/)** — Self-assessment, probate, multi-account tracking, small business, conveyancing
+- **[Feature Guides](https://openstan.org/screens/)** — Detailed walkthroughs of every screen and feature
+
+---
+
 ## Supported banks
 
 | Bank | Supported account types |

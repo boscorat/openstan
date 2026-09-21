@@ -31,3 +31,13 @@ Click the **About** button in the top-right corner of the application title bar.
 | **Licence** | Link to the full LGPL v3.0 or later licence text. |
 
 All links open in your system's default web browser.
+
+---
+
+## Related Topics
+
+- [Community & Support](../community.md) – Get help and connect with other users
+- [Code Signing Policy](../codesigning.md) – Trust and security information
+- [Privacy Policy](../privacy.md) – Data handling and privacy practices
+- [Contributing Guide](../CONTRIBUTING.md) – Help improve openstan
+- [Admin Panel](admin.md) – Manage projects and settings

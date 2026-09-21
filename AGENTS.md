@@ -448,3 +448,25 @@ All screenshots in `docs/` follow this pattern:
 
 Do not use inline `style` attributes or JavaScript for theme-conditional images —
 the fragment + CSS approach is sufficient and consistent across all pages.
+
+---
+
+## Documentation Contribution Guidelines
+
+**All documentation contributions must follow the standards in `docs/CONTRIBUTING.md`.**
+
+This includes:
+- Frontmatter `description` field requirements (150–160 characters, unique, search-optimized)
+- Page structure (H1, H2, H3 hierarchy)
+- Internal linking (3–5 links per ~1,000 words)
+- Image alt-text and theme-variant conventions
+- SEO best practices for discoverability
+
+**Key rule:** Every `.md` file in `docs/` (except drafts and includes) must include a `description:` field in frontmatter. This field powers:
+- Google Search result snippets (SERP)
+- Open Graph meta tags (social media previews)
+- Twitter Card summaries
+
+**Quick reference:** Run `uv run zensical build` locally and inspect `site/your-page/index.html` to verify the `<meta property="og:description">` tag contains your custom description, not the generic site description.
+
+See `docs/CONTRIBUTING.md` for the complete contribution guide, SEO checklist, and examples.

@@ -150,3 +150,21 @@ To upgrade to a newer version, download the new installer and run it — it will
 All platform installers are code-signed to verify authenticity and integrity.
 See the [Code signing policy](codesigning.md) for full details on Windows, macOS,
 and the build process.
+
+---
+
+## Next Steps
+
+- **[Quick Start](quickstart.md)** – Create your first project and import statements (5 minutes)
+- **[Use Cases](use-cases/index.md)** – See how openstan works for your scenario
+- **[Video Tutorials](video-tutorials.md)** – Watch visual walkthroughs
+- **[Community & Support](community.md)** – Get help if you run into issues
+
+---
+
+## Troubleshooting
+
+- **Linux users:** [Read the installation section](installation.md#linux-debian-ubuntu) for required Qt system libraries
+- **Code signing issues:** [See the Code Signing Policy](codesigning.md)
+- **Bank not supported:** [Request a new bank parser configuration](https://github.com/boscorat/bank_statement_parser/issues/new?template=new-bank-request.yml)
+- **Other questions:** [Browse GitHub Discussions](https://github.com/boscorat/openstan/discussions)

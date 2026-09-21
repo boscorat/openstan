@@ -71,3 +71,13 @@ A gap is reported whenever the end date of one statement and the start date of t
 
 !!! tip "Gaps are informational"
     Gaps do not prevent exporting or reporting. They are shown as a convenience to help you identify any statements you may have forgotten to import.
+
+---
+
+## Related Topics
+
+- [Project Management](project-management.md) – Create and switch between projects
+- [Import Statements](import-statements.md) – Add statements to your project
+- [Export Data](export-data.md) – Export project data when imports are complete
+- [Run Reports](run-reports.md) – Analyze project transactions
+- [Multi-Account Tracking Use Case](../use-cases/multi-account-tracking.md) – Combine multiple bank accounts

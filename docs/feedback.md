@@ -18,6 +18,16 @@ address if you are happy for us to contact you for follow-up.
   style="border:none;width:100%;min-height:700px;"
   loading="lazy"
   title="openstan feedback form"
-  referrerpolicy="no-referrer"
-  sandbox="allow-forms allow-scripts allow-same-origin"
-></iframe>
+   referrerpolicy="no-referrer"
+   sandbox="allow-forms allow-scripts allow-same-origin"
+ ></iframe>
+
+---
+
+## Other Ways to Connect
+
+- **[GitHub Discussions](https://github.com/boscorat/openstan/discussions)** – Questions, feature requests, and support
+- **[GitHub Issues](https://github.com/boscorat/openstan/issues)** – Report bugs and request features
+- **[Community & Support](community.md)** – Find all channels for connecting with the openstan community
+- **[LinkedIn](https://linkedin.com/company/openstan)** – Follow for release announcements and updates
+- **[Contributing Guide](CONTRIBUTING.md)** – Help improve openstan documentation and code

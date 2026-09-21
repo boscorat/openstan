@@ -86,3 +86,13 @@ The footer bar at the bottom of the window shows contextual session information:
 - **Right**: Application copyright notice.
 
 The [Admin dialog](admin.md) is accessible via the **Admin** button in the top-right corner of the title bar.
+
+---
+
+## Related Topics
+
+- [Project Info](project-info.md) – View project statistics and account breakdowns
+- [Import Statements](import-statements.md) – Add bank statement PDFs to a project
+- [Export Data](export-data.md) – Export transactions to Excel, CSV, or JSON
+- [Admin Panel](admin.md) – Delete projects and manage settings
+- [Quick Start](../quickstart.md) – Create your first project

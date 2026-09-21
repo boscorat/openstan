@@ -87,6 +87,7 @@ nav:
       - Anonymise PDF: screens/anonymise.md
       - About: screens/about.md
   - Changelog: https://github.com/boscorat/openstan/blob/main/CHANGELOG.md
+  - Contributing: CONTRIBUTING.md
   - Privacy Policy: privacy.md
   - Code Signing Policy: codesigning.md
   - Community & Support: community.md

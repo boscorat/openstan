@@ -53,3 +53,13 @@ Export specs are TOML configuration files that define the shape and content of a
 
 !!! tip "Where to put spec files"
     Place your `.toml` export spec files in `<project-folder>/config/export/`. openstan rescans this directory each time you open the Export Data panel.
+
+---
+
+## Related Topics
+
+- [Export Data](export-data.md) – Standard exports to Excel, CSV, or JSON
+- [Run Reports](run-reports.md) – Build reports before custom export
+- [Project Management](project-management.md) – Manage projects and folders
+- [Small Business Use Case](../use-cases/small-business.md) – Export for accountants
+- [Bank Statement Parser Documentation](https://boscorat.github.io/bank_statement_parser/latest/guides/exports/) – Complete export configuration guide
