@@ -70,3 +70,13 @@ Use this to create anonymised versions of PDFs that are safe to share or attach 
 
 !!! info "A project must be active"
     The button is only useful when a project is open. If no project is selected, an error dialog is shown.
+
+---
+
+## Related Topics
+
+- [Project Management](project-management.md) – Create and manage projects
+- [Anonymise PDF](anonymise.md) – Redact PDFs for safe sharing
+- [About Screen](about.md) – Version and license information
+- [Privacy Policy](../privacy.md) – Data handling practices
+- [Community & Support](../community.md) – Report issues or ask questions

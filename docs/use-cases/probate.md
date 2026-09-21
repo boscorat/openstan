@@ -103,8 +103,16 @@ When reviewing bank statements in an estate context:
 
 ---
 
-## More Use Cases
+## Related Use Cases
 
-[Conveyancing](conveyancing.md) — source of funds verification.
-[Self Assessment](self-assessment.md) — personal tax return preparation.
-[All use cases](index.md).
+- [Conveyancing](conveyancing.md) – Trace funds and verify source of deposits
+- [Self Assessment](self-assessment.md) – Prepare final tax return for deceased
+- [Multi-Account Tracking](multi-account-tracking.md) – Combine multiple accounts
+- [All use cases](index.md) – Explore how openstan works for different scenarios
+
+## Next Steps
+
+- **[Installation](../installation.md)** – Download and install openstan
+- **[Quick Start](../quickstart.md)** – 5-minute setup guide
+- **[Import Statements](../screens/import-statements.md)** – Import estate bank statements
+- **[Export Data](../screens/export-data.md)** – Export for the probate accounts

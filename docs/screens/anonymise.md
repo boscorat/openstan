@@ -145,3 +145,13 @@ Both files are created automatically when the project is first initialised or co
 
 !!! note "Keep config files out of source control"
     These files may contain substrings of real sort codes or account numbers used as matching patterns. Treat them as sensitive and exclude them from any repository you share.
+
+---
+
+## Related Topics
+
+- [Import Results](import-results.md) – Review parsed transactions and debug output
+- [Admin Panel](admin.md) – Access the Anonymise tool from the Admin dialog
+- [Privacy Policy](../privacy.md) – How openstan handles your financial data
+- [Code Signing](../codesigning.md) – Trust and security verification
+- [About Screen](about.md) – Version and license information

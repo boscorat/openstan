@@ -82,8 +82,16 @@ running totals.
 
 ---
 
-## More Use Cases
+## Related Use Cases
 
-[Self Assessment](self-assessment.md) — personal tax alongside business.
-[Multi-Account Tracking](multi-account-tracking.md) — personal finance.
-[All use cases](index.md).
+- [Self Assessment](self-assessment.md) – Combine personal and business income at tax time
+- [Multi-Account Tracking](multi-account-tracking.md) – Track multiple business accounts
+- [Probate & Estate Admin](probate.md) – Manage business succession
+- [All use cases](index.md) – Explore how openstan works for different scenarios
+
+## Next Steps
+
+- **[Installation](../installation.md)** – Download and install openstan
+- **[Quick Start](../quickstart.md)** – 5-minute setup guide
+- **[Export Data](../screens/export-data.md)** – Export for your bookkeeper
+- **[Run Reports](../screens/run-reports.md)** – Build business reports and summaries

@@ -84,8 +84,16 @@ Once your statements are in Excel:
 
 ---
 
-## More Use Cases
+## Related Use Cases
 
-[Probate](probate.md) — estate bank statement analysis.
-[Multi-Account Tracking](multi-account-tracking.md) — personal finance.
-[All use cases](index.md).
+- [Probate & Estate Admin](probate.md) – Manage deceased's accounts and fund flows
+- [Multi-Account Tracking](multi-account-tracking.md) – Track multiple accounts and sources
+- [Self Assessment](self-assessment.md) – Personal finance analysis
+- [All use cases](index.md) – Explore how openstan works for different scenarios
+
+## Next Steps
+
+- **[Installation](../installation.md)** – Download and install openstan
+- **[Quick Start](../quickstart.md)** – 5-minute setup guide
+- **[Import Statements](../screens/import-statements.md)** – Import buyer's statements
+- **[Export Data](../screens/export-data.md)** – Export findings for compliance review

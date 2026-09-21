@@ -92,8 +92,16 @@ Self Assessment deductions:
 
 ---
 
-## More Use Cases
+## Related Use Cases
 
-[Multi-Account Tracking](multi-account-tracking.md) — combining statements from multiple accounts.
-[Small Business](small-business.md) — ongoing bookkeeping, not just year-end.
-[All use cases](index.md).
+- [Small Business](small-business.md) – Track business expenses throughout the year
+- [Multi-Account Tracking](multi-account-tracking.md) – Combine multiple bank accounts and credit cards
+- [Probate & Estate Admin](probate.md) – Manage deceased's accounts and verify fund flows
+- [All use cases](index.md) – Explore how openstan works for different scenarios
+
+## Next Steps
+
+- **[Installation](../installation.md)** – Download and install openstan
+- **[Quick Start](../quickstart.md)** – 5-minute walkthrough to get started
+- **[Export Data](../screens/export-data.md)** – Export for your tax return
+- **[Run Reports](../screens/run-reports.md)** – Build custom tax reports

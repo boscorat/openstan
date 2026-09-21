@@ -82,8 +82,16 @@ them into openstan, and everything stays on your machine.
 
 ---
 
-## More Use Cases
+## Related Use Cases
 
-[Self Assessment](self-assessment.md) — year-end tax preparation.
-[Small Business](small-business.md) — business account tracking.
-[All use cases](index.md).
+- [Self Assessment](self-assessment.md) – Track personal finances for tax returns
+- [Small Business](small-business.md) – Track business accounts and expenses
+- [Conveyancing](conveyancing.md) – Trace funds and deposits for property transactions
+- [All use cases](index.md) – Explore how openstan works for different scenarios
+
+## Next Steps
+
+- **[Installation](../installation.md)** – Download and install openstan
+- **[Quick Start](../quickstart.md)** – 5-minute walkthrough
+- **[Project Management](../screens/project-management.md)** – Manage multiple accounts
+- **[Export Data](../screens/export-data.md)** – Export combined dataset to Excel

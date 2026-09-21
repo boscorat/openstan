@@ -142,3 +142,13 @@ The report **Title** and **Subtitle** are shown above the table.
 - Use **Group By** + **Aggregations** together to produce summary reports (e.g. total spend by category per month).
 - Turn off **Live updates** if your dataset is large and you want to make several changes before running.
 - Save frequently used report configurations with descriptive names so you can reload them quickly.
+
+---
+
+## Related Topics
+
+- [Export Data](export-data.md) – Export filtered results to Excel, CSV, or JSON
+- [Project Management](project-management.md) – Create and switch between projects
+- [Self-Assessment Use Case](../use-cases/self-assessment.md) – Generate tax-ready reports from statements
+- [Small Business Use Case](../use-cases/small-business.md) – Build business transaction summaries
+- [Advanced Export](advanced-export.md) – Create spec-driven custom exports with TOML

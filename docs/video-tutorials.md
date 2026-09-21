@@ -21,3 +21,12 @@ The complete tutorial covering reports, advanced export, and tips for getting th
 [![Full Walkthrough](assets/media/youtube_thumbnail_12m.png)](https://youtu.be/fRcoZB54FKQ)
 
 [Watch on YouTube](https://youtu.be/fRcoZB54FKQ){ .md-button .md-button--primary }
+
+---
+
+## Next Steps
+
+- **[Quick Start Guide](quickstart.md)** – Step-by-step written guide to get you started
+- **[Installation](installation.md)** – Download and install openstan
+- **[Use Cases](use-cases/index.md)** – Explore how openstan works for different scenarios
+- **[Feature Guides](screens/project-management.md)** – Detailed walkthroughs of every screen and tool

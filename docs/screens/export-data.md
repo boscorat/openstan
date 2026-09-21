@@ -77,3 +77,13 @@ See the [Advanced Export](advanced-export.md) screen guide for documentation on 
 Export behaviour is controlled by TOML configuration files. The `bank_statement_parser` library handles the underlying export mechanics.
 
 For a comprehensive guide to creating and modifying export TOML config files, see the [bank\_statement\_parser export documentation](https://boscorat.github.io/bank_statement_parser/latest/guides/exports/).
+
+---
+
+## Related Topics
+
+- [Advanced Export](advanced-export.md) – Create spec-driven custom exports with TOML
+- [Run Reports](run-reports.md) – Build and analyze reports before exporting
+- [Import Results](import-results.md) – Review transactions before committing
+- [Self-Assessment Use Case](../use-cases/self-assessment.md) – Export for tax returns
+- [Small Business Use Case](../use-cases/small-business.md) – Export for accountants
