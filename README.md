@@ -39,7 +39,7 @@ Full user guide, installation instructions, video tutorials, and use-case guides
 - **[Quick Start](https://openstan.org/quickstart/)** — Create your first project and import statements in 5 minutes
 - **[Installation](https://openstan.org/installation/)** — Download and install for Windows, macOS, or Linux
 - **[Use Cases](https://openstan.org/use-cases/)** — Self-assessment, probate, multi-account tracking, small business, conveyancing
-- **[Feature Guides](https://openstan.org/screens/)** — Detailed walkthroughs of every screen and feature
+- **[Feature Guides](https://openstan.org/screens/project-management/)** — Detailed walkthroughs of every screen and feature
 
 ---
 

@@ -116,7 +116,7 @@
      ]
    }
    </script>
-    {% if page.canonical_url != config.site_url and page.canonical_url != (config.site_url ~ '/') %}
+    {% if page.canonical_url and page.canonical_url != config.site_url and page.canonical_url != (config.site_url ~ '/') and page.title %}
    <script type="application/ld+json">
    {
      "@context": "https://schema.org",
