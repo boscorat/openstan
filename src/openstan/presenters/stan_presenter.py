@@ -68,6 +68,7 @@ class StanPresenter(QObject):
         self.nav_view.button_reports.clicked.connect(
             lambda: self.__navigate_to(self.stan.nav_idx_reports)
         )
+        self.nav_view.button_anonymise.clicked.connect(self._open_anonymise)
 
         # Safety net: keep button highlights in sync if the stack index
         # changes outside the normal nav flow (e.g. project switch).
@@ -453,6 +454,11 @@ class StanPresenter(QObject):
     # ---------------------------------------------------------------------------
     # Admin
     # ---------------------------------------------------------------------------
+
+    @Slot()
+    def _open_anonymise(self) -> None:
+        """Open the Anonymise PDF dialog for the currently active project."""
+        self.stan.admin_presenter.open_anonymise_tool()
 
     @Slot()
     def open_admin_dialog(self) -> None:

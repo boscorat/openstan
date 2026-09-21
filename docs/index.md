@@ -44,6 +44,7 @@ Import an entire year of statements, build reports, and export to Excel in under
 - **Export** to Excel, CSV, or JSON — either as a flat transactions table or a full star-schema dataset (accounts, calendar, statements, transactions, balances, gaps).
 - **Build reports** with a no-code report builder: filter, group, and aggregate your transactions, save named configurations, and export results.
 - **Advanced export** — spec-driven custom exports via TOML files with per-account and date-range filtering.
+- **Anonymise** bank statement PDFs for safe sharing with AI, accountants, or bug reports — all processing happens locally.
 
 ---
 
@@ -73,6 +74,7 @@ New banks can be added by anyone via a [TOML configuration file](https://boscora
 2. Follow the [Quick Start guide](quickstart.md) to create your first project and import your first statements.
 3. Browse the [Screens](screens/project-management.md) reference for a guide to every panel and option.
 4. Explore [Use Cases](use-cases/index.md) for ideas specific to your workflow.
+5. Learn about [Redaction & Anonymisation](redaction/index.md) to share statements safely.
 
 ---
 
@@ -86,6 +88,7 @@ New banks can be added by anyone via a [TOML configuration file](https://boscora
 | [Project Info](screens/project-info.md) | View transaction counts and account breakdowns |
 | [Run Reports](screens/run-reports.md) | Filter, group, and aggregate transactions |
 | [Export Data](screens/export-data.md) | Export to Excel, CSV, or JSON |
+| [Anonymise PDF](screens/anonymise.md) | Redact bank statement PDFs for safe sharing |
 | [Admin](screens/admin.md) | Manage banks and statement configurations |
 
 ---

@@ -349,6 +349,13 @@ class ProjectNavView(StanWidget):
             QKeySequence("Alt+R"),
             "Build and preview custom summary reports with grouping, aggregation, date filters, and live preview.",
         )
+        self.button_anonymise = self.__make_button(
+            "Anonymise Statements",
+            "shield.svg",
+            "Anonymise bank statement PDFs for safe sharing (Alt+A)",
+            QKeySequence("Alt+A"),
+            "Produce redacted copies of bank statement PDFs suitable for sharing with AI, accountants, or bug reports.",
+        )
 
         # Mutually exclusive checked state
         self._group = QButtonGroup(self)
@@ -365,6 +372,7 @@ class ProjectNavView(StanWidget):
         layout.addWidget(self.button_import)
         layout.addWidget(self.button_export)
         layout.addWidget(self.button_reports)
+        layout.addWidget(self.button_anonymise)
         self.setLayout(layout)
         self.setMaximumHeight(44)
 

@@ -75,6 +75,10 @@ nav:
       - Multi-Account Tracking: use-cases/multi-account-tracking.md
       - Small Business: use-cases/small-business.md
       - Conveyancing: use-cases/conveyancing.md
+  - Redaction & Anonymisation:
+      - Overview: redaction/index.md
+      - Use Cases: redaction/use-cases.md
+      - Reference: screens/anonymise.md
   - Screens:
       - Project Management: screens/project-management.md
       - Import Statements: screens/import-statements.md
@@ -84,7 +88,6 @@ nav:
       - Advanced Export: screens/advanced-export.md
       - Run Reports: screens/run-reports.md
       - Admin: screens/admin.md
-      - Anonymise PDF: screens/anonymise.md
       - About: screens/about.md
   - Changelog: https://github.com/boscorat/openstan/blob/main/CHANGELOG.md
   - Contributing: CONTRIBUTING.md
