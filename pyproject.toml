@@ -33,7 +33,7 @@ dev = [
     "pytest>=9.0.0",
     "ruff>=0.14.14",
     "zensical>=0.0.24",
-    "zensical-blog @ git+https://github.com/knu2xs/zensical-blog.git",
+    "zensical-blog @ git+https://github.com/knu2xs/zensical-blog.git@305e30a8442ceee371ad300314f0a3deb4436cd4",
 ]
 # build group: convenience for running cx_freeze_setup.py locally without
 # needing to pass --with flags.  The release CI does NOT use this group —

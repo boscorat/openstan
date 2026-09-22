@@ -577,7 +577,7 @@ dev = [
     { name = "pytest", specifier = ">=9.0.0" },
     { name = "ruff", specifier = ">=0.14.14" },
     { name = "zensical", specifier = ">=0.0.24" },
-    { name = "zensical-blog", git = "https://github.com/knu2xs/zensical-blog.git" },
+    { name = "zensical-blog", git = "https://github.com/knu2xs/zensical-blog.git?rev=305e30a8442ceee371ad300314f0a3deb4436cd4" },
 ]
 
 [[package]]
@@ -1099,7 +1099,7 @@ wheels = [
 [[package]]
 name = "zensical-blog"
 version = "0.1.0"
-source = { git = "https://github.com/knu2xs/zensical-blog.git#305e30a8442ceee371ad300314f0a3deb4436cd4" }
+source = { git = "https://github.com/knu2xs/zensical-blog.git?rev=305e30a8442ceee371ad300314f0a3deb4436cd4#305e30a8442ceee371ad300314f0a3deb4436cd4" }
 dependencies = [
     { name = "click" },
     { name = "python-frontmatter" },

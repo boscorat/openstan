@@ -27,4 +27,4 @@ examples/
 docs/includes/supported_banks.md
 
 # zensical-blog generator state
-docs/.bloggen/
+.bloggen/
