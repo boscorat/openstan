@@ -55,6 +55,14 @@ plugins:
       sitemap_filename: sitemap.xml
       changefreq: monthly
       priority: 0.8
+  - zensical_blog:
+      blog_dir: blog
+      posts_dir: blog/posts
+      drafts: hide
+      excerpt_marker: "<!-- more -->"
+      enable_tags: true
+      enable_categories: true
+      enable_archive_landing: true
 
 extra_css:
   - assets/stylesheets/extra.css
@@ -68,6 +76,7 @@ nav:
   - Installation: installation.md
   - Quick Start: quickstart.md
   - Video Tutorials: video-tutorials.md
+  - Blog: blog/index.md
   - Use Cases:
       - Overview: use-cases/index.md
       - Self Assessment: use-cases/self-assessment.md
