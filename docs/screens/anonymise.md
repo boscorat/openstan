@@ -10,8 +10,9 @@ The **Anonymise PDF** tool lets you produce redacted copies of bank statement PD
 
 ## Opening the tool
 
-The Anonymise tool can be opened from two places:
+The Anonymise tool can be opened from three places:
 
+- **Nav bar** → **Anonymise Statements** button (Alt+A) — the primary entry point.
 - **Admin dialog** → *Anonymise PDF* section → **Open Anonymise Tool** button.
 - **Debug Info dialog** → **Anonymise** button on any REVIEW or FAILURE row — the tool opens pre-loaded with that statement's PDF path.
 
