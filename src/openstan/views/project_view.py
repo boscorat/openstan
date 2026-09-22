@@ -356,6 +356,7 @@ class ProjectNavView(StanWidget):
             QKeySequence("Alt+A"),
             "Produce redacted copies of bank statement PDFs suitable for sharing with AI, accountants, or bug reports.",
         )
+        self.button_anonymise.setCheckable(False)
 
         # Mutually exclusive checked state
         self._group = QButtonGroup(self)

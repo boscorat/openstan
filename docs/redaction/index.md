@@ -1,5 +1,5 @@
 ---
-description: "Anonymise and redact bank statement PDFs for safe sharing with AI, accountants, or bookkeepers. 100% offline, no data leaves your machine."
+description: "Anonymise and redact bank statement PDFs before sharing with AI assistants, accountants, or bookkeepers. 100% offline — no data leaves your machine."
 ---
 
 # Redaction & Anonymisation

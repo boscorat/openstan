@@ -1,5 +1,5 @@
 ---
-description: "Real-world use cases for anonymising bank statement PDFs — sharing with AI assistants, accountants, bookkeepers, and compliance teams."
+description: "Real-world use cases for anonymising bank statement PDFs — sharing with AI assistants, sending to accountants, bug reports, and compliance requirements."
 ---
 
 # Redaction Use Cases
