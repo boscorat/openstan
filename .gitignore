@@ -28,3 +28,6 @@ docs/includes/supported_banks.md
 
 # zensical-blog generator state
 .bloggen/
+
+# Zensical build output
+site/
