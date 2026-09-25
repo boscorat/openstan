@@ -19,12 +19,11 @@ if sys.platform not in ("darwin", "win32"):
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QThreadPool
-from PySide6.QtWidgets import QApplication
 
 from openstan.updater import (
-    _parse_version,
-    _current_version,
     UpdateChecker,
+    _current_version,
+    _parse_version,
 )
 
 
@@ -130,7 +129,6 @@ class TestUpdateChecker:
     ) -> None:
         """check_async() starts a worker on the thread pool."""
         checker = UpdateChecker(threadpool=threadpool)
-        initial_active = threadpool.activeThreadCount()
 
         # Mock the worker run to avoid actual network call
         with patch("openstan.updater.QThreadPool.start"):
@@ -148,8 +146,4 @@ class TestUpdateChecker:
         # This should not raise any exception
         # We don't actually show the dialog, just verify the method can be called
         # (the dialog creation would require a QWidget parent in a real scenario)
-        try:
-            # Just test that the method signature is correct and doesn't error
-            assert hasattr(checker, "show_update_dialog")
-        except Exception as e:
-            pytest.fail(f"show_update_dialog raised: {e}")
+        assert hasattr(checker, "show_update_dialog")

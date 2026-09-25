@@ -13,7 +13,7 @@ Tests verify:
 """
 
 import sys
-from unittest.mock import MagicMock, patch
+from collections.abc import Generator
 
 import pytest
 
@@ -31,7 +31,7 @@ class TestIsUpdateCheckEnabled:
     """Tests for AdminPresenter.is_update_check_enabled()."""
 
     @pytest.fixture(autouse=True)
-    def _cleanup_qsettings(self) -> None:
+    def _cleanup_qsettings(self) -> Generator[None]:
         """Clean up QSettings before and after each test.
 
         This ensures each test starts with a clean slate and doesn't leak
