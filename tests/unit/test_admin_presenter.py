@@ -12,16 +12,9 @@ Tests verify:
 - Type coercion handles both string and bool stored values
 """
 
-import sys
 from collections.abc import Generator
 
 import pytest
-
-if sys.platform not in ("darwin", "win32"):
-    import os
-
-    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-
 from PySide6.QtCore import QSettings
 
 from openstan.presenters.admin_presenter import AdminPresenter

@@ -3,21 +3,12 @@ test_updater.py — unit tests for UpdateChecker and version parsing.
 
 Tests cover:
 - Version string parsing and comparison logic
-- UpdateChecker signal emission when a newer version is available
-- Silent failure on network errors
 - Edge cases with version strings (prefixes, pre-release tags, etc.)
 """
 
-import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-if sys.platform not in ("darwin", "win32"):
-    import os
-
-    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-
 from PySide6.QtCore import QThreadPool
 
 from openstan.updater import (
@@ -71,8 +62,9 @@ class TestParseVersion:
     def test_parse_version_prerelease_strips_suffix(self) -> None:
         """Pre-release suffixes are stripped, so versions with/without suffix are equal.
 
-        This is intentional: release versions always sort higher because the
-        pre-release suffix (a9, rc1, etc.) is discarded during parsing.
+        Because pre-release suffixes (a9, rc1, etc.) are discarded during parsing,
+        a pre-release version and its corresponding release version parse to the
+        same tuple and compare as equal.
         """
         v_rc = _parse_version("1.0.0rc1")
         v_rel = _parse_version("1.0.0")
@@ -123,27 +115,39 @@ class TestUpdateChecker:
         checker = UpdateChecker(threadpool=threadpool)
         assert hasattr(checker, "update_available")
 
-    @patch("openstan.updater._UpdateCheckWorker.run")
     def test_update_checker_check_async_starts_worker(
-        self, mock_run: MagicMock, threadpool: QThreadPool
+        self, threadpool: QThreadPool
     ) -> None:
         """check_async() starts a worker on the thread pool."""
         checker = UpdateChecker(threadpool=threadpool)
 
-        # Mock the worker run to avoid actual network call
-        with patch("openstan.updater.QThreadPool.start"):
+        # Mock threadpool.start to verify it's called with a QRunnable
+        with patch.object(threadpool, "start") as mock_start:
             checker.check_async()
 
-        # We can't easily test thread pool state, so we just verify the method exists
-        assert hasattr(checker, "check_async")
+            # Assert threadpool.start() was called exactly once with a QRunnable
+            mock_start.assert_called_once()
+            args, _ = mock_start.call_args
+            # The first argument should be a QRunnable (the worker)
+            assert args[0] is not None  # Verify a worker was passed
 
     def test_update_checker_show_update_dialog_no_crash(
         self, threadpool: QThreadPool
     ) -> None:
-        """show_update_dialog doesn't crash with valid inputs."""
+        """show_update_dialog() constructs and executes the update dialog."""
         checker = UpdateChecker(threadpool=threadpool)
 
-        # This should not raise any exception
-        # We don't actually show the dialog, just verify the method can be called
-        # (the dialog creation would require a QWidget parent in a real scenario)
-        assert hasattr(checker, "show_update_dialog")
+        # Patch _UpdateDialog to avoid creating real widgets
+        with patch("openstan.updater._UpdateDialog") as mock_dialog_class:
+            mock_dialog = MagicMock()
+            mock_dialog_class.return_value = mock_dialog
+
+            # Call the method with required arguments
+            checker.show_update_dialog(
+                latest_version="2.0.0", release_url="https://example.com/releases/2.0.0"
+            )
+
+            # Verify the dialog was created
+            mock_dialog_class.assert_called_once()
+            # Verify exec() was called to show it
+            mock_dialog.exec.assert_called_once()
