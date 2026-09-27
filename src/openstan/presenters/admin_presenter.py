@@ -53,7 +53,15 @@ class AdminPresenter(QObject):
     def is_update_check_enabled() -> bool:
         """Return True (default) unless the user has explicitly disabled the check."""
         settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
-        return bool(settings.value(_KEY_UPDATE_CHECK, defaultValue=True, type=bool))
+        # Avoid PySide6's type=bool quirk: when key doesn't exist, it returns
+        # False instead of honoring defaultValue. Retrieve as-is and convert manually.
+        raw = settings.value(_KEY_UPDATE_CHECK)
+        if raw is None:
+            return True  # Default: enable update check
+        # Handle string or bool stored values
+        if isinstance(raw, str):
+            return raw.lower() in ("true", "1")
+        return bool(raw)
 
     def refresh_combos(self) -> None:
         """Repopulate both project combo boxes from the current model data.
