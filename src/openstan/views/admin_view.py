@@ -163,7 +163,7 @@ class AdminView(StanDialog):
         lbl_privacy_info = StanLabel(
             "On startup, openstan checks for a newer release by querying the "
             "GitHub Releases API (HTTPS). No personal data is transmitted. "
-            "Check below to enable this check."
+            "Use the checkbox below to enable or disable this check."
         )
         lbl_privacy_info.setWordWrap(True)
 
