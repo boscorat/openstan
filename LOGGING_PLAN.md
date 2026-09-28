@@ -62,6 +62,16 @@ Implement a unified, centralized logging infrastructure across all three project
 `pyrefly check` shows only 2 pre-existing errors unrelated to logging
 (`tests/test_docs.py: generate_docs`, optional `bank_statement_anonymiser` import).
 
+**Third round (3 comments — all accepted):**
+1. `get_logger()` no longer overrides consumer-configured loggers: removed unconditional
+   `propagate = True` and guarded `setLevel` with `if logger.level == logging.NOTSET`
+   so consumer configuration is preserved.
+2. `get_verbosity()` return type changed from `str` to `Verbosity` (Literal).
+3. `reset_verbosity()` fixture return type corrected to `Iterator[None]`.
+4. Added `TestConsumerConfiguration` tests (16 total in test_logging_config.py).
+
+**Verification:** `ruff check` ✅, `ruff format --check` ✅, `pytest tests/` 294 passed ✅.
+
 **What Was Done:**
 1. Created `logging_config.py` with `get_logger()` factory function
    - Supports "normal" (INFO) and "verbose" (DEBUG) verbosity levels
