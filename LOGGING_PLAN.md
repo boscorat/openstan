@@ -46,10 +46,21 @@ Implement a unified, centralized logging infrastructure across all three project
    (no per-function signature in heading, consistent with all 40+ entries); the
    `name` argument is documented in the `get_logger` docstring/Args section.
 
-**Verification:** `ruff check` ✅, `ruff format --check` ✅, `pytest tests/` 278 passed ✅,
+**Second round (6 comments — all assessed):**
+1. `exc_info=exc` → fixed to `exc_info=(type(exc), exc, exc.__traceback__)` (explicit tuple,
+   no reliance on `sys.exc_info()`).
+2. `Literal["normal", "verbose"]` type added to `_VERBOSITY` and `set_verbosity` param.
+3. `AGENTS.md` logging section updated: "no `logging` module" → describes `get_logger()` factory.
+4. `tests/test_logging_config.py` created — 14 unit tests covering logger caching, default
+   verbosity, switching, invalid values, and propagation.
+5. BLE001 `# noqa` comments **not** restored: ruff 0.16.7 does not flag bare `except Exception`
+   in this context; adding `# noqa: BLE001` triggers RUF100 (unused noqa directive).
+   Reviewer concern was based on incorrect ruff behavior assumption. No action required.
+6. Missing unit tests for `logging_config` — addressed by new test file.
+
+**Verification:** `ruff check` ✅, `ruff format --check` ✅, `pytest tests/` 292 passed ✅,
 `pyrefly check` shows only 2 pre-existing errors unrelated to logging
 (`tests/test_docs.py: generate_docs`, optional `bank_statement_anonymiser` import).
-Manual check: verbosity switching applies to new + existing loggers; invalid values ignored.
 
 **What Was Done:**
 1. Created `logging_config.py` with `get_logger()` factory function
