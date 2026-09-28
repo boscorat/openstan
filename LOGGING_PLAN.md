@@ -12,19 +12,44 @@ Implement a unified, centralized logging infrastructure across all three project
 
 ### Phase 1: bank_statement_parser Logging
 
-**Status:** ✅ COMPLETED
+**Status:** ✅ COMPLETED + REVIEW FEEDBACK ADDRESSED (PR #224)
 
 **Worktree:** `/Users/boscorat/repos/bank_statement_parser-logging`
+
+**PR:** #224 — `feat: implement logging infrastructure for bank_statement_parser`
 
 **Objective:** Implement logging infrastructure in bank_statement_parser
 
 **Deliverables:**
 - ✅ `src/bank_statement_parser/modules/logging_config.py` — Logger factory and configuration
 - ✅ Replace `print()` calls in `statements.py`, `debug.py`, `database.py` with logging
-- ✅ Export `get_logger` from `__init__.py`
+- ✅ Export `get_logger`, `set_verbosity`, `get_verbosity` from `__init__.py`
+- ✅ Regenerated `docs/reference/python-api.md` via `scripts/generate_docs.py` (adds verbosity helpers)
 - ⏳ Update `AGENTS.md` with logging documentation
 - ⏳ Create `docs/guides/debugging.md` — Debug mode usage guide
 - ⏳ Create `docs/guides/troubleshooting.md` — Common issues
+
+**Review feedback addressed (PR #224, 7 Copilot comments — all accepted):**
+1. `logging_config.get_logger()` now applies current verbosity level on creation
+   (`INFO`/`DEBUG`), not just to pre-existing loggers; `__all__` extended.
+2. `database.py` and `debug.py` now use `get_logger(__name__)` instead of
+   `logging.getLogger()` for consistent verbosity handling.
+3. `set_verbosity` / `get_verbosity` exported from package root (`bsp.set_verbosity`,
+   `bsp.get_verbosity`) so consumers don't import private submodules.
+4. `_handle_parquet_write_error()` now logs with `exc_info=exc` to preserve tracebacks;
+   stale `traceback.print_exc()` in `Statement` config-failure path replaced with
+   `logger.exception(...)`; removed now-unused `sys` import; helper docstring fixed.
+5. Module docstring no longer claims the CLI configures console handlers — library
+   configures no handlers; that is the caller's responsibility.
+6. `docs/reference/python-api.md` regenerated: new `bsp.get_verbosity()` /
+   `bsp.set_verbosity()` entries. Headings keep the generator-wide `bsp.name()` style
+   (no per-function signature in heading, consistent with all 40+ entries); the
+   `name` argument is documented in the `get_logger` docstring/Args section.
+
+**Verification:** `ruff check` ✅, `ruff format --check` ✅, `pytest tests/` 278 passed ✅,
+`pyrefly check` shows only 2 pre-existing errors unrelated to logging
+(`tests/test_docs.py: generate_docs`, optional `bank_statement_anonymiser` import).
+Manual check: verbosity switching applies to new + existing loggers; invalid values ignored.
 
 **What Was Done:**
 1. Created `logging_config.py` with `get_logger()` factory function
@@ -182,10 +207,20 @@ Example:
 
 ### Phase 1 (bank_statement_parser)
 
-- [ ] Should `debug.py` module's functions also log their progress, or remain silent?
-- [ ] Are there other `print()` calls outside the identified modules to convert?
-- [ ] Should CLI mode default to console-only logging, or file + console?
-- [ ] How should the logger handle the case where `bank_statement_parser` is used as a library without consumer setup?
+- [x] Should `debug.py` module's functions also log their progress, or remain silent?
+  → Log: `DEBUG` on debug-file-written, `logger.exception` on failure.
+- [x] Are there other `print()` calls outside the identified modules to convert?
+  → Yes — `forex.py`, `db_migration.py`, `paths.py`, `build_datamart.py`,
+  `housekeeping.py`, `data.py` still use `print()`; `cli.py` prints are intentional
+  user-facing output. Phase 1 stays scoped to `statements`/`debug`/`database`;
+  remainder deferred to a follow-up issue.
+- [x] Should CLI mode default to console-only logging, or file + console?
+  → Neither yet: CLI configures no logging handlers (uses `print()`); handler setup
+  is the consuming application's responsibility per `logging_config` docstring.
+- [x] How should the logger handle the case where `bank_statement_parser` is used as a library without consumer setup?
+  → `get_logger()` sets `propagate=True` with preset level (`INFO` normal / `DEBUG`
+  verbose); records flow to the root logger (default last-resort `WARNING` to stderr
+  if the consumer configures nothing).
 
 ### Phase 2 (uk-bank-statement-anonymiser)
 
