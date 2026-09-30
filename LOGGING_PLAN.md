@@ -245,9 +245,9 @@ Example:
 
 ### Phase 2 (uk-bank-statement-anonymiser)
 
-- [ ] Should we create `mkdocs.yml` and docs/ structure, or keep README-only for now?
-- [ ] How detailed should PDF encoding/font troubleshooting guide be?
-- [ ] Should anonymiser expose a `get_logger()` factory identical to bank_statement_parser?
+- [x] Should we create `mkdocs.yml` and docs/ structure, or keep README-only for now?
+- [x] How detailed should PDF encoding/font troubleshooting guide be?
+- [x] Should anonymiser expose a `get_logger()` factory identical to bank_statement_parser?
 
 ### Phase 3 (openstan)
 
