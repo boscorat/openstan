@@ -3,7 +3,7 @@
 ## Print Statements to Replace
 
 ### 1. main.py (15+ locations)
-**File:** `/home/boscorat/repos/openstan.worktrees/logging/src/openstan/main.py`
+**File:** `src/openstan/main.py`
 - Lines 97-135: `_detect_scheme_via_dbus()` — 5 print statements (diagnostics)
 - Lines 146-154: `_apply_palette()` — 3 print statements (theme application)
 - Lines 255-276: App startup messages — 8 print statements (platform detection)
@@ -12,7 +12,7 @@
 **Strategy:** Migrate to `logger.debug()` for diagnostics
 
 ### 2. presenters/statement_result_presenter.py (20+ locations)
-**File:** `/home/boscorat/repos/openstan.worktrees/logging/src/openstan/presenters/statement_result_presenter.py`
+**File:** `src/openstan/presenters/statement_result_presenter.py`
 - Multiple print() with `file=sys.stderr`
 - Batch commit/rollback operations
 - Debug worker output
@@ -21,23 +21,23 @@
 **Strategy:** Use `logger.error()` + `logger.info()` for milestones
 
 ### 3. presenters/user_presenter.py (2 locations)
-**File:** `/home/boscorat/repos/openstan.worktrees/logging/src/openstan/presenters/user_presenter.py`
+**File:** `src/openstan/presenters/user_presenter.py`
 - User creation failures
 
 **Strategy:** Use `logger.error()`
 
 ### 4. presenters/stan_presenter.py (1 location)
-**File:** `/home/boscorat/repos/openstan.worktrees/logging/src/openstan/presenters/stan_presenter.py`
+**File:** `src/openstan/presenters/stan_presenter.py`
 - Line 160: `print("Session ended.")`
 
 **Strategy:** Use `logger.info()`
 
 ### 5. models/statement_result_model.py
-**File:** `/home/boscorat/repos/openstan.worktrees/logging/src/openstan/models/statement_result_model.py`
+**File:** `src/openstan/models/statement_result_model.py`
 - TBD (check for print statements)
 
 ### 6. models/batch_model.py
-**File:** `/home/boscorat/repos/openstan.worktrees/logging/src/openstan/models/batch_model.py`
+**File:** `src/openstan/models/batch_model.py`
 - TBD (check for print statements)
 
 ---
@@ -45,7 +45,7 @@
 ## Files to Create
 
 ### 1. logging_manager.py
-**Location:** `/home/boscorat/repos/openstan.worktrees/logging/src/openstan/logging_manager.py`
+**Location:** `src/openstan/logging_manager.py`
 
 **Responsibilities:**
 - Logger factory function `get_logger(name: str) -> logging.Logger`
@@ -59,7 +59,7 @@ __all__ = ["LoggingManager", "get_logger", "set_verbosity", "get_verbosity"]
 ```
 
 ### 2. views/log_viewer_dialog.py
-**Location:** `/home/boscorat/repos/openstan.worktrees/logging/src/openstan/views/log_viewer_dialog.py`
+**Location:** `src/openstan/views/log_viewer_dialog.py`
 
 **Class:** `LogViewerDialog(StanDialog)`
 - Read-only text display
@@ -74,7 +74,7 @@ __all__ = ["LoggingManager", "get_logger", "set_verbosity", "get_verbosity"]
 ## Files to Modify
 
 ### 1. views/admin_view.py
-**Location:** `/home/boscorat/repos/openstan.worktrees/logging/src/openstan/views/admin_view.py`
+**Location:** `src/openstan/views/admin_view.py`
 **Current:** Lines 25-193
 
 **Changes:**
@@ -96,7 +96,7 @@ __all__ = ["LoggingManager", "get_logger", "set_verbosity", "get_verbosity"]
   - Persisted to QSettings `logging/verbosity`
 
 ### 2. presenters/admin_presenter.py
-**Location:** `/home/boscorat/repos/openstan.worktrees/logging/src/openstan/presenters/admin_presenter.py`
+**Location:** `src/openstan/presenters/admin_presenter.py`
 **Current:** Lines 1-254
 
 **Changes:**
@@ -126,7 +126,7 @@ __all__ = ["LoggingManager", "get_logger", "set_verbosity", "get_verbosity"]
   - Read QSettings `logging/verbosity` and update checkbox
 
 ### 3. presenters/stan_presenter.py
-**Location:** `/home/boscorat/repos/openstan.worktrees/logging/src/openstan/presenters/stan_presenter.py`
+**Location:** `src/openstan/presenters/stan_presenter.py`
 **Current:** Lines 162-199
 
 **Changes:**
@@ -148,7 +148,7 @@ __all__ = ["LoggingManager", "get_logger", "set_verbosity", "get_verbosity"]
   ```
 
 ### 4. main.py
-**Location:** `/home/boscorat/repos/openstan.worktrees/logging/src/openstan/main.py`
+**Location:** `src/openstan/main.py`
 **Current:** Lines 1-60 (imports & startup)
 
 **Changes:**
@@ -176,7 +176,7 @@ __all__ = ["LoggingManager", "get_logger", "set_verbosity", "get_verbosity"]
   ```
 
 ### 5. __init__.py (openstan package)
-**Location:** `/home/boscorat/repos/openstan.worktrees/logging/src/openstan/__init__.py`
+**Location:** `src/openstan/__init__.py`
 
 **Changes:**
 - Export from logging_manager (if public API intended):

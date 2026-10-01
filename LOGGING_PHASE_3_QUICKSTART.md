@@ -38,7 +38,7 @@ Ready to begin? Here's the 2-minute setup:
 
 ### Step 1: Set up DEV branch
 ```bash
-cd /home/boscorat/repos/openstan.worktrees/logging
+cd <openstan-repo>
 git checkout logging
 git pull origin logging
 git checkout -b logging-phase3-A-DEV logging
@@ -108,15 +108,14 @@ git push origin --delete logging-phase3-A-DEV
 All three planning documents are in the repo root:
 
 ```
-/home/boscorat/repos/openstan.worktrees/logging/
+<openstan-repo>/
 ├── LOGGING_PLAN.md                    # Overall plan (phases 1-4)
 ├── LOGGING_PLAN_PHASE_3.md            # Detailed Phase 3 spec ← USE THIS
 ├── LOGGING_PHASE_3_GIT_WORKFLOW.md    # Git workflow guide ← USE THIS
 ├── src/openstan/
 │   ├── logging_manager.py             # (to create in Part A.1)
-│   ├── dialogs/
-│   │   └── log_viewer_dialog.py        # (to create in Part A.2)
 │   ├── views/
+│   │   ├── log_viewer_dialog.py        # (created in Part A.2)
 │   │   └── admin_view.py              # (to update in Part B.1)
 │   ├── presenters/
 │   │   ├── admin_presenter.py         # (to update in Part B.2)
