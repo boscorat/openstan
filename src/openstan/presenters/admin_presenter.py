@@ -9,7 +9,14 @@ from PySide6.QtCore import QObject, QSettings, Qt, Slot
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from openstan.components import StanErrorMessage, StanInfoMessage
+from openstan.logging_manager import (
+    get_app_log_path,
+    get_project_log_path,
+    get_verbosity,
+    set_verbosity,
+)
 from openstan.paths import Paths
+from openstan.views.log_viewer_dialog import LogViewerDialog
 
 if TYPE_CHECKING:
     from openstan.main import Stan
@@ -44,6 +51,20 @@ class AdminPresenter(QObject):
         self.view.button_empty_db.clicked.connect(self.empty_gui_db)
         self.view.button_open_anonymise.clicked.connect(self.open_anonymise_tool)
         self.view.check_update_check.stateChanged.connect(self.update_check_changed)
+
+        # Wire logging controls
+        self.view.button_view_app_log.clicked.connect(self.view_app_log)
+        self.view.button_view_project_log.clicked.connect(self.view_project_log)
+        self.view.check_verbose_logging.stateChanged.connect(self.toggle_verbosity)
+
+        # Initialize verbosity checkbox from current setting
+        current_verbosity = get_verbosity()
+        self.view.check_verbose_logging.blockSignals(True)
+        self.view.check_verbose_logging.setChecked(current_verbosity == "verbose")
+        self.view.check_verbose_logging.blockSignals(False)
+
+        # Initialize project log button state (disabled if no project)
+        self.view.button_view_project_log.setEnabled(bool(self.stan.current_project_id))
 
     # ---------------------------------------------------------------------------
     # Public helpers
@@ -252,3 +273,40 @@ class AdminPresenter(QObject):
             dialog=dlg, project_paths=project_paths, threadpool=self.stan.threadpool
         )
         dlg.exec()
+
+    @Slot()
+    def view_app_log(self) -> None:
+        """Open the log viewer displaying the application log."""
+        dlg = LogViewerDialog(parent=self.view)
+        dlg.show_log(get_app_log_path())
+        dlg.exec()
+
+    @Slot()
+    def view_project_log(self) -> None:
+        """Open the log viewer displaying the current project log."""
+        if self.stan.current_project_paths is None:
+            StanErrorMessage(parent=self.view).showMessage(
+                "No project is currently selected."
+            )
+            return
+
+        dlg = LogViewerDialog(parent=self.view)
+        dlg.show_log(get_project_log_path(self.stan.current_project_paths.root))
+        dlg.exec()
+
+    @Slot(int)
+    def toggle_verbosity(self, state: Qt.CheckState) -> None:
+        """Update verbosity setting when checkbox changes."""
+        enabled = state == Qt.CheckState.Checked
+        new_level = "verbose" if enabled else "normal"
+        set_verbosity(new_level)
+
+    def update_project_log_button_state(self, enabled: bool) -> None:
+        """Enable or disable the 'View Project Log' button.
+
+        Called by stan_presenter when project selection changes.
+
+        Args:
+            enabled: True if a project is selected, False otherwise
+        """
+        self.view.button_view_project_log.setEnabled(enabled)
