@@ -211,15 +211,18 @@ def _add_handler_to_all_loggers(
 
 
 def _remove_handler_from_all_loggers(
-    handler: logging.Handler | None,
+    handler: logging.Handler | None, close_handler: bool = True
 ) -> None:
     """Remove a handler from openstan logger and all library loggers.
 
     Ensures handlers are removed from all loggers that might have them
-    attached, then closes the handler.
+    attached, then optionally closes the handler.
 
     Args:
         handler: The handler to remove, or None.
+        close_handler: If True, close the handler after removal. Set to False
+            if the handler will be reused (e.g., app handler reattached after
+            project log switch).
     """
     if not handler:
         return
@@ -233,7 +236,8 @@ def _remove_handler_from_all_loggers(
     if _lib_anonymiser_logger and handler in _lib_anonymiser_logger.handlers:
         _lib_anonymiser_logger.removeHandler(handler)
 
-    handler.close()
+    if close_handler:
+        handler.close()
 
 
 def initialize(verbosity: Verbosity | None = None) -> None:
@@ -312,8 +316,8 @@ def switch_to_app_log() -> None:
     if _current_context == "app":
         return  # Already on app log
 
-    # Remove project handler from ALL loggers
-    _remove_handler_from_all_loggers(_project_log_handler)
+    # Remove project handler from ALL loggers (and close it)
+    _remove_handler_from_all_loggers(_project_log_handler, close_handler=True)
     _project_log_handler = None
 
     # Ensure app handler is present on ALL loggers
@@ -347,12 +351,12 @@ def switch_to_project_log(project_root: Path) -> None:
     ):
         return
 
-    # Remove app handler from ALL loggers (keep it alive in memory for switch_to_app_log)
+    # Remove app handler from ALL loggers (keep it alive for switch_to_app_log)
     if _app_log_handler:
-        _remove_handler_from_all_loggers(_app_log_handler)
+        _remove_handler_from_all_loggers(_app_log_handler, close_handler=False)
 
-    # Remove old project handler
-    _remove_handler_from_all_loggers(_project_log_handler)
+    # Remove old project handler (and close it)
+    _remove_handler_from_all_loggers(_project_log_handler, close_handler=True)
 
     # Create new project handler and attach to ALL loggers
     _project_log_handler = _create_rotating_file_handler(project_log_path)
