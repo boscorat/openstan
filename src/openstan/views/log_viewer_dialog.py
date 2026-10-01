@@ -115,6 +115,9 @@ class LogViewerDialog(StanDialog):
         Loads the last 500 lines of the log file. If the file contains more
         lines, displays a truncation notice.
 
+        Handles encoding errors gracefully by replacing invalid bytes with
+        a placeholder character.
+
         Args:
             log_path: Path to the log file to display.
         """
@@ -132,8 +135,9 @@ class LogViewerDialog(StanDialog):
                 self._truncation_label.hide()
                 return
 
-            # Read file and get last N lines
-            with open(self._log_path, "r", encoding="utf-8") as f:
+            # Read file with encoding error handling
+            # Use 'replace' to handle non-UTF-8 bytes gracefully
+            with open(self._log_path, "r", encoding="utf-8", errors="replace") as f:
                 lines = f.readlines()
 
             # Check if we need to truncate

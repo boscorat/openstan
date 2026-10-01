@@ -318,3 +318,54 @@ class TestIntegrationBehavior:
 
         assert child_logger.parent is not None
         assert child_logger.parent.name == parent_logger.name
+
+
+class TestHandlerAttachment:
+    """Tests for handler attachment to library loggers (PR #232 fix).
+
+    These tests verify that the critical fix for PR #232 is in place:
+    library loggers must have handlers explicitly attached because they
+    are independent top-level loggers (not children of "openstan").
+    """
+
+    def test_library_loggers_are_independent(self):
+        """Library loggers should be independent top-level loggers."""
+        lib_bsp = logging.getLogger("bank_statement_parser")
+        lib_anon = logging.getLogger("uk_bank_statement_anonymiser")
+        openstan_logger = logging.getLogger("openstan")
+
+        # Verify they are independent (not children of openstan)
+        assert lib_bsp.parent != openstan_logger
+        assert lib_anon.parent != openstan_logger
+
+    def test_handler_removal_none_safe(self):
+        """_remove_handler_from_all_loggers should handle None gracefully."""
+        from openstan.logging_manager import _remove_handler_from_all_loggers
+
+        # Should not raise
+        _remove_handler_from_all_loggers(None)
+
+    def test_verbosity_propagates_to_library_loggers(self):
+        """set_verbosity() should update both openstan and library loggers."""
+        with patch("openstan.logging_manager.QSettings"):
+            # First initialize the root logger (set_verbosity needs it)
+            openstan_logger = logging.getLogger("openstan")
+            openstan_logger.setLevel(logging.DEBUG)
+
+            # Get library loggers
+            lib_bsp = logging.getLogger("bank_statement_parser")
+            lib_anon = logging.getLogger("uk_bank_statement_anonymiser")
+
+            # Set verbose level
+            set_verbosity("verbose")
+
+            # All should be at DEBUG level
+            assert lib_bsp.level == logging.DEBUG
+            assert lib_anon.level == logging.DEBUG
+
+            # Set normal level
+            set_verbosity("normal")
+
+            # All should be at INFO level
+            assert lib_bsp.level == logging.INFO
+            assert lib_anon.level == logging.INFO

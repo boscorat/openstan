@@ -53,6 +53,16 @@
 - Verbosity level management (reading from QSettings)
 - Rotating file handler setup (10 MB, 5 backups)
 
+**Handler Attachment Strategy (CRITICAL FIX):**
+- Library loggers (`bank_statement_parser`, `uk_bank_statement_anonymiser`) are 
+  independent top-level loggers that do NOT inherit from the "openstan" logger
+- Handlers MUST be explicitly attached to library loggers, or their logs are
+  silently dropped (they propagate to Python's root logger which has no handlers)
+- Use `_add_handler_to_all_loggers()` to attach handlers to both openstan and
+  library loggers when initializing or switching context
+- Use `_remove_handler_from_all_loggers()` to remove handlers from all loggers
+  during context switches or re-initialization (prevents resource leaks)
+
 **Exports (for openstan/__init__.py):**
 ```python
 __all__ = ["LoggingManager", "get_logger", "set_verbosity", "get_verbosity"]

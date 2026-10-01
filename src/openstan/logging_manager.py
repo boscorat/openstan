@@ -10,7 +10,12 @@ cleanup of stale project log files.
 
 **Key Design:**
 - Single root logger `"openstan"` with cascade to dependency libraries
+- Handler attachment strategy: handlers are attached to BOTH the openstan logger
+  AND library loggers (bank_statement_parser, uk_bank_statement_anonymiser).
+  This is necessary because library loggers are top-level independent loggers
+  that do not propagate to openstan's logger hierarchy.
 - Context switching via `switch_to_app_log()` and `switch_to_project_log()`
+  Handlers are added/removed from ALL loggers (openstan + libraries) together.
 - Verbosity levels: "normal" (INFO) and "verbose" (DEBUG)
 - Persistence via `QSettings` (so settings survive app restarts)
 - Platform-aware log directories (Windows/macOS/Linux)
@@ -59,6 +64,12 @@ _root_logger: logging.Logger | None = None
 _app_log_handler: logging.handlers.RotatingFileHandler | None = None
 _project_log_handler: logging.handlers.RotatingFileHandler | None = None
 _current_context: Literal["app", "project", "none"] = "none"
+
+# Library loggers (top-level, not children of "openstan")
+# These must have handlers attached explicitly since they don't inherit
+# from the openstan logger hierarchy
+_lib_bank_parser_logger: logging.Logger | None = None
+_lib_anonymiser_logger: logging.Logger | None = None
 
 
 def _user_data_dir() -> Path:
@@ -119,6 +130,10 @@ def set_verbosity(level: Verbosity) -> None:
     Updates the root logger and all dependency library loggers, and persists
     the setting to QSettings so it survives app restarts.
 
+    IMPORTANT: This function does NOT attach handlers. Handlers must be
+    attached separately in initialize() and during context switches.
+    This function only sets the verbosity LEVEL for each logger.
+
     Args:
         level: "normal" (INFO) or "verbose" (DEBUG).
 
@@ -136,6 +151,7 @@ def set_verbosity(level: Verbosity) -> None:
         _root_logger.setLevel(log_level)
 
     # Cascade to dependency library loggers
+    # Note: These are top-level loggers, not children of "openstan"
     for lib_name in ("bank_statement_parser", "uk_bank_statement_anonymiser"):
         lib_logger = logging.getLogger(lib_name)
         lib_logger.setLevel(log_level)
@@ -169,15 +185,55 @@ def _create_rotating_file_handler(
     return handler
 
 
-def _remove_handler(handler: logging.handlers.RotatingFileHandler | None) -> None:
-    """Safely remove a handler from the root logger.
+def _add_handler_to_all_loggers(
+    handler: logging.handlers.RotatingFileHandler,
+) -> None:
+    """Add a handler to openstan logger and all library loggers.
+
+    This is necessary because library loggers (bank_statement_parser,
+    uk_bank_statement_anonymiser) are top-level independent loggers that do not
+    inherit from the openstan logger hierarchy. Without explicit handler
+    attachment, library logs would propagate to Python's root logger
+    (which has no handlers) and be silently dropped.
+
+    Args:
+        handler: The handler to attach to all loggers.
+    """
+    if _root_logger and handler not in _root_logger.handlers:
+        _root_logger.addHandler(handler)
+
+    # Attach to library loggers
+    if _lib_bank_parser_logger and handler not in _lib_bank_parser_logger.handlers:
+        _lib_bank_parser_logger.addHandler(handler)
+
+    if _lib_anonymiser_logger and handler not in _lib_anonymiser_logger.handlers:
+        _lib_anonymiser_logger.addHandler(handler)
+
+
+def _remove_handler_from_all_loggers(
+    handler: logging.Handler | None,
+) -> None:
+    """Remove a handler from openstan logger and all library loggers.
+
+    Ensures handlers are removed from all loggers that might have them
+    attached, then closes the handler.
 
     Args:
         handler: The handler to remove, or None.
     """
-    if handler and _root_logger:
+    if not handler:
+        return
+
+    if _root_logger and handler in _root_logger.handlers:
         _root_logger.removeHandler(handler)
-        handler.close()
+
+    if _lib_bank_parser_logger and handler in _lib_bank_parser_logger.handlers:
+        _lib_bank_parser_logger.removeHandler(handler)
+
+    if _lib_anonymiser_logger and handler in _lib_anonymiser_logger.handlers:
+        _lib_anonymiser_logger.removeHandler(handler)
+
+    handler.close()
 
 
 def initialize(verbosity: Verbosity | None = None) -> None:
@@ -186,6 +242,12 @@ def initialize(verbosity: Verbosity | None = None) -> None:
     Sets up the root logger with file handlers, clears application.log,
     and applies verbosity settings from QSettings (or provided verbosity).
 
+    Handler attachment strategy:
+    - Handlers are attached to BOTH the "openstan" logger AND library loggers
+    - This is necessary because library loggers are independent top-level
+      loggers that do not inherit from the openstan hierarchy
+    - Without explicit handler attachment, library logs would be silently dropped
+
     Should be called once at app startup, before QApplication creation.
 
     Args:
@@ -193,15 +255,27 @@ def initialize(verbosity: Verbosity | None = None) -> None:
             If not provided, reads from QSettings (default "normal").
     """
     global _root_logger, _app_log_handler, _current_context
+    global _lib_bank_parser_logger, _lib_anonymiser_logger
 
     # Create root logger
+
     _root_logger = logging.getLogger("openstan")
     _root_logger.propagate = False  # Don't propagate to root logger
     _root_logger.setLevel(logging.DEBUG)  # Logger accepts DEBUG; handlers filter
 
+    # Initialize library loggers (top-level, independent)
+    _lib_bank_parser_logger = logging.getLogger("bank_statement_parser")
+    _lib_bank_parser_logger.propagate = False
+    _lib_bank_parser_logger.setLevel(logging.DEBUG)
+
+    _lib_anonymiser_logger = logging.getLogger("uk_bank_statement_anonymiser")
+    _lib_anonymiser_logger.propagate = False
+    _lib_anonymiser_logger.setLevel(logging.DEBUG)
+
     # Remove any existing handlers (in case of re-init)
+    # This prevents resource leaks from file handles staying open
     for handler in _root_logger.handlers[:]:
-        _root_logger.removeHandler(handler)
+        _remove_handler_from_all_loggers(handler)
 
     # Initialize app log handler and clear the file
     app_log_path = get_app_log_path()
@@ -213,7 +287,8 @@ def initialize(verbosity: Verbosity | None = None) -> None:
 
     # Create fresh app log handler
     _app_log_handler = _create_rotating_file_handler(app_log_path)
-    _root_logger.addHandler(_app_log_handler)
+    # Attach to ALL loggers (openstan + libraries)
+    _add_handler_to_all_loggers(_app_log_handler)
     _current_context = "app"
 
     # Set initial verbosity from QSettings (or override)
@@ -228,7 +303,8 @@ def initialize(verbosity: Verbosity | None = None) -> None:
 def switch_to_app_log() -> None:
     """Switch logging context to application.log.
 
-    Removes project log handler (if active) and ensures app log handler is active.
+    Removes project log handler (if active) from all loggers (openstan +
+    libraries) and ensures app log handler is active on all loggers.
     Subsequent logs will flow to application.log.
     """
     global _project_log_handler, _current_context
@@ -236,17 +312,13 @@ def switch_to_app_log() -> None:
     if _current_context == "app":
         return  # Already on app log
 
-    # Remove project handler
-    _remove_handler(_project_log_handler)
+    # Remove project handler from ALL loggers
+    _remove_handler_from_all_loggers(_project_log_handler)
     _project_log_handler = None
 
-    # Ensure app handler is present
-    if (
-        _root_logger
-        and _app_log_handler
-        and _app_log_handler not in _root_logger.handlers
-    ):
-        _root_logger.addHandler(_app_log_handler)
+    # Ensure app handler is present on ALL loggers
+    if _app_log_handler:
+        _add_handler_to_all_loggers(_app_log_handler)
 
     _current_context = "app"
     logger = logging.getLogger(__name__)
@@ -256,8 +328,9 @@ def switch_to_app_log() -> None:
 def switch_to_project_log(project_root: Path) -> None:
     """Switch logging context to project.log.
 
-    Removes app log handler and creates a new project log handler for the
-    given project. Subsequent logs will flow to project.log.
+    Removes app log handler from all loggers (openstan + libraries) and creates
+    a new project log handler for the given project. Subsequent logs will flow
+    to project.log from all loggers.
 
     Args:
         project_root: Root directory of the project.
@@ -274,17 +347,16 @@ def switch_to_project_log(project_root: Path) -> None:
     ):
         return
 
-    # Remove app handler (keep it alive in memory for switch_to_app_log)
-    if _root_logger and _app_log_handler:
-        _root_logger.removeHandler(_app_log_handler)
+    # Remove app handler from ALL loggers (keep it alive in memory for switch_to_app_log)
+    if _app_log_handler:
+        _remove_handler_from_all_loggers(_app_log_handler)
 
     # Remove old project handler
-    _remove_handler(_project_log_handler)
+    _remove_handler_from_all_loggers(_project_log_handler)
 
-    # Create new project handler
+    # Create new project handler and attach to ALL loggers
     _project_log_handler = _create_rotating_file_handler(project_log_path)
-    if _root_logger:
-        _root_logger.addHandler(_project_log_handler)
+    _add_handler_to_all_loggers(_project_log_handler)
 
     _current_context = "project"
     logger = logging.getLogger(__name__)

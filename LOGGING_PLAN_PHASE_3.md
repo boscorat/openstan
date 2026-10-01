@@ -77,6 +77,14 @@ cleanup_old_project_logs() -> None
 - Use `QSettings("openstan", "openstan")` for persistence
 - Root logger name: `"openstan"` (so all `openstan.*` loggers inherit from it)
 - Library logger names: `"bank_statement_parser"`, `"uk_bank_statement_anonymiser"`
+- **Handler Attachment Strategy (CRITICAL):**
+  - Handlers must be attached to BOTH the "openstan" logger AND library loggers
+  - Library loggers are top-level independent loggers (not children of "openstan")
+  - Without explicit handler attachment, library logs propagate to Python's root
+    logger (which has no handlers) and are silently dropped
+  - Attach handlers via `_add_handler_to_all_loggers()` helper
+  - Remove handlers via `_remove_handler_from_all_loggers()` helper
+  - This applies to ALL context switches (app ↔ project logs)
 - Log format: `%(asctime)s | %(levelname)-8s | %(name)s | %(message)s`
 - No handlers configured in library; all file/stream setup in this module
 - Platform paths:
@@ -85,6 +93,8 @@ cleanup_old_project_logs() -> None
   - Windows: `%APPDATA%\openstan\application.log`
 - Use `pathlib.Path` for all path operations
 - Use `logging.handlers.RotatingFileHandler` for rotation
+- Resource Leak Prevention: Remove existing handlers during re-initialization to
+  prevent file handles from staying open if `initialize()` is called multiple times
 
 **PR Title:** `feat: implement logging_manager for centralized log orchestration`
 
