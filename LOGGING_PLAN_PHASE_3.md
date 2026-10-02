@@ -4,9 +4,34 @@
 
 Phase 3 integrates logging infrastructure across openstan to consume and display logs from the application and dependent libraries (`bank_statement_parser`, `uk-bank-statement-anonymiser`). Users can view logs via the admin dialog, toggle verbose mode, and logs automatically route to the correct file (app vs. project context).
 
-**Status:** READY FOR EXECUTION  
+**Status:** ✅ PART A COMPLETE & MERGED TO LOGGING BRANCH  
 **Total Effort:** ~12-15 hours (code) + 2-3 hours (docs) across multiple PRs  
 **Branch Strategy:** `logging` (base) → `logging-phase3-<part>-DEV` (feature) → `logging` (PR + merge) → `master` (final PR)
+
+---
+
+## Progress Summary
+
+### Part A: Foundation ✅ COMPLETE
+- **Status:** Merged to `logging` branch (PR #232)
+- **Commits:** 3 (foundation + critical fixes + handler safety)
+- **Files:** `logging_manager.py` (407 lines), `log_viewer_dialog.py` (170 lines), `test_logging_manager.py` (408 lines)
+- **Tests:** 31 new + 175 existing = 206/206 pass ✅
+- **Key Achievements:**
+  - ✅ Critical fix: Library loggers now receive handlers (prevents silent log loss)
+  - ✅ Resource leak prevention: Handler cleanup on re-initialization
+  - ✅ UTF-8 robustness: Log viewer gracefully handles non-UTF-8 bytes
+  - ✅ Handler lifecycle: Explicit control with `close_handler` parameter
+  - ✅ Documentation: Handler attachment strategy documented in plan and code
+- **Verification:** ruff ✅, pyrefly ✅, pytest ✅
+
+### Part B: Admin UI — READY TO START
+- **Status:** Pending (Part A merged; ready for Part B DEV branch)
+- **Deliverables:** Logging UI sections in admin_view.py, admin_presenter.py, stan_presenter.py
+- **Estimated Effort:** 3-4 hours
+
+### Parts C-G: Pending
+- **Status:** Planned (await Part B completion)
 
 ---
 
@@ -27,21 +52,33 @@ Phase 3 integrates logging infrastructure across openstan to consume and display
 
 ## Implementation Parts (15 Steps)
 
-### Part A: Foundation — Logging Manager & Dialog
+### Part A: Foundation — Logging Manager & Dialog ✅ COMPLETE
 
-#### **Part A.1: Create `src/openstan/logging_manager.py`**
+**Status:** Merged to `logging` branch via PR #232  
+**Commits:** 3 (foundation + critical fixes + handler safety)  
+**Tests:** 31 new + 175 existing = 206/206 pass ✅  
+**Key Achievements:**
+- Core logging orchestrator with handler attachment strategy for library loggers
+- Log viewer with UTF-8 encoding resilience
+- Resource leak prevention and handler lifecycle management
+- Comprehensive unit tests covering verbosity, paths, and handler attachment
+
+#### **Part A.1: Create `src/openstan/logging_manager.py`** ✅ COMPLETE
 
 **Objective:** Central orchestrator for logging configuration, context switching, and cleanup.
 
 **Deliverables:**
-- [ ] Logger factory with verbosity levels (INFO/DEBUG)
-- [ ] Initialize application.log to platform-specific directory (XDG/macOS/Windows)
-- [ ] Clear application.log on app startup
-- [ ] Context switching: app ↔ project logs
-- [ ] 10 MB rotation + 5 backups for both app and project logs
-- [ ] 30-day project log cleanup (file mod time based)
-- [ ] QSettings persistence for verbosity ("normal" / "verbose")
-- [ ] Cascade verbosity to library loggers (`bank_statement_parser`, `uk_bank_statement_anonymiser`)
+- [x] Logger factory with verbosity levels (INFO/DEBUG)
+- [x] Initialize application.log to platform-specific directory (XDG/macOS/Windows)
+- [x] Clear application.log on app startup
+- [x] Context switching: app ↔ project logs
+- [x] 10 MB rotation + 5 backups for both app and project logs
+- [x] 30-day project log cleanup (file mod time based)
+- [x] QSettings persistence for verbosity ("normal" / "verbose")
+- [x] Cascade verbosity to library loggers (`bank_statement_parser`, `uk_bank_statement_anonymiser`)
+- [x] **CRITICAL FIX:** Explicit handler attachment to library loggers (prevents silent log loss)
+- [x] Resource leak prevention on re-initialization
+- [x] Handler lifecycle management with explicit `close_handler` parameter
 
 **Key Methods:**
 ```python
@@ -100,20 +137,23 @@ cleanup_old_project_logs() -> None
 
 ---
 
-#### **Part A.2: Create `src/openstan/dialogs/log_viewer_dialog.py`**
+#### **Part A.2: Create `src/openstan/views/log_viewer_dialog.py`** ✅ COMPLETE
 
 **Objective:** Read-only modal dialog to display logs with privacy warnings.
 
+**Location Note:** Implemented in `src/openstan/views/log_viewer_dialog.py` (not `dialogs/`) to match existing architecture where all dialogs live in `views/`.
+
 **Deliverables:**
-- [ ] Inherit from `StanDialog` with `make_scrollable()`
-- [ ] Privacy warning banner at top (markdown enabled)
-- [ ] Current log file path display
-- [ ] Load up to 500 lines from log file (most recent lines)
-- [ ] Show "Showing last 500 lines..." notice if file truncated
-- [ ] Refresh button (reload from disk)
-- [ ] Copy button (copy all displayed text to clipboard)
-- [ ] Close button (dismiss dialog)
-- [ ] Read-only QPlainTextEdit for log display
+- [x] Inherit from `StanDialog` with `make_scrollable()`
+- [x] Privacy warning banner at top (markdown enabled)
+- [x] Current log file path display
+- [x] Load up to 500 lines from log file (most recent lines)
+- [x] Show "Showing last 500 lines..." notice if file truncated
+- [x] Refresh button (reload from disk)
+- [x] Copy button (copy all displayed text to clipboard)
+- [x] Close button (dismiss dialog)
+- [x] Read-only QPlainTextEdit for log display
+- [x] **UTF-8 error handling:** Gracefully handle non-UTF-8 bytes with `errors='replace'`
 
 **Class Structure:**
 ```python
@@ -609,9 +649,11 @@ After all 7 parts are merged into `logging`:
 ## Checkpoints & Decision Points
 
 ### After Part A
-- [ ] logging_manager.py working correctly?
-- [ ] log_viewer_dialog.py displaying logs?
-- Proceed to Part B? Yes / No / Iterate
+- [x] logging_manager.py working correctly? ✅ YES (with critical handler attachment fix)
+- [x] log_viewer_dialog.py displaying logs? ✅ YES (with UTF-8 error handling)
+- [x] All unit tests passing? ✅ YES (206/206)
+- [x] Merged to `logging` branch? ✅ YES (PR #232)
+- **Status:** READY FOR PART B
 
 ### After Part B
 - [ ] Admin UI sections visible and wired?
@@ -657,6 +699,88 @@ After all 7 parts are merged into `logging`:
 
 ---
 
+## Part A: Completion Report
+
+### Summary
+**Part A (Foundation)** has been successfully completed and merged to the `logging` branch.
+
+### Commits Merged
+1. **refactor: address PR #232 review feedback** (2333da0)
+   - Added 28 unit tests for logging_manager
+   - Fixed hardcoded paths in documentation
+   - Moved log_viewer_dialog to views/ (architectural consistency)
+
+2. **fix: address critical logging issues in PR #232 review** (e5e4cb6)
+   - **CRITICAL:** Implemented explicit handler attachment to library loggers
+   - Added resource leak prevention (handler cleanup on re-init)
+   - Implemented UTF-8 encoding error handling in log viewer
+   - Updated documentation with handler attachment strategy
+   - Added 3 new unit tests for handler attachment verification
+
+3. **fix: prevent handler reuse after close in app/project log switching** (e1ce93e)
+   - Added explicit `close_handler` parameter to handler removal function
+   - Prevents fragile implicit handler reopening
+   - Ensures safe handler reuse across context switches
+
+### Test Results
+- **Total Tests:** 206/206 pass ✅
+  - 31 new tests (logging_manager + handler attachment)
+  - 175 existing tests (all passing)
+- **Coverage:** verbosity validation, path resolution (platform-specific), logger factory, handler attachment, cleanup behavior
+- **Verification:** ruff ✅, pyrefly ✅, pytest ✅
+
+### Key Learnings & Fixes
+
+#### 1. Critical Issue: Library Logger Handler Attachment
+**Problem:** Library loggers (`bank_statement_parser`, `uk_bank_statement_anonymiser`) are independent top-level loggers. Setting their verbosity level but not attaching handlers resulted in logs propagating to Python's root logger (no handlers) and being silently dropped.
+
+**Solution:** 
+- Created `_add_handler_to_all_loggers()` helper to attach handlers to both openstan AND library loggers
+- Created `_remove_handler_from_all_loggers()` helper to manage handler removal
+- Updated `initialize()`, `switch_to_app_log()`, `switch_to_project_log()` to manage handlers on all loggers
+- Stored library logger references as module globals for proper lifecycle management
+
+**Impact:** Library diagnostics (parser failures, anonymiser errors, warnings) now flow to log files instead of being silently lost.
+
+#### 2. Resource Leak: Handlers Not Closed on Re-initialization
+**Problem:** If `initialize()` is called multiple times (e.g., during testing or configuration changes), old handlers remain open, causing file handle leaks.
+
+**Solution:** Added handler removal loop in `initialize()` that explicitly closes all existing handlers before creating fresh ones.
+
+#### 3. Fragile Handler Reuse After Close
+**Problem:** When switching from app log to project log, the app handler was closed. When switching back, we relied on implicit file reopening, which is fragile and not guaranteed.
+
+**Solution:** Added explicit `close_handler` parameter:
+- `close_handler=False` when removing app handler during project switch (keeps file open for reuse)
+- `close_handler=True` when removing project handler (closes and disposes)
+- Re-init always closes handlers to prevent leaks
+
+#### 4. UTF-8 Encoding Crash in Log Viewer
+**Problem:** Log files with non-UTF-8 bytes would crash the viewer when trying to read and display.
+
+**Solution:** Changed file open to use `errors='replace'` parameter, which replaces invalid bytes with placeholder character instead of crashing.
+
+### Architecture Decisions Validated
+- ✅ Global verbosity (QSettings) works correctly
+- ✅ Cascade to libraries functions (with proper handler attachment)
+- ✅ Platform-specific log paths resolve correctly
+- ✅ Handler rotation at 10 MB works
+- ✅ Cleanup on app closure (hook in place)
+- ✅ Scrollable dialog with privacy warning works
+
+### Files Modified
+- `src/openstan/logging_manager.py` (407 lines)
+- `src/openstan/views/log_viewer_dialog.py` (170 lines)
+- `tests/unit/test_logging_manager.py` (408 lines, new)
+- `src/openstan/views/__init__.py` (added LogViewerDialog export)
+- `LOGGING_PLAN_PHASE_3.md` (updated implementation notes with handler strategy)
+- `QUICK_REFERENCE.md` (added handler attachment strategy section)
+
+### Next Steps
+**Part B: Admin UI** is ready to start. The foundation is solid and the handler attachment issue (which would have cascaded to every context, creating difficult bugs) has been resolved early.
+
+---
+
 ## Questions? Issues?
 
 If you encounter blockers or have questions while implementing a part:
@@ -666,4 +790,4 @@ If you encounter blockers or have questions while implementing a part:
 
 ---
 
-**Ready to start Part A? Let me know when you want to begin, and I'll help you set up the DEV branch and start implementing!**
+**Part A complete! Ready to start Part B (Admin UI Extensions). Let me know when you want to begin!**
