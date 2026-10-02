@@ -296,7 +296,6 @@ class AdminPresenter(QObject):
         dlg.exec()
 
     @Slot(int)
-    @Slot(int)
     def toggle_verbosity(self, state: int) -> None:
         """Update verbosity setting when checkbox changes."""
         enabled = bool(state)
