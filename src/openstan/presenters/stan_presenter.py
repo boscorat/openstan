@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -6,6 +7,7 @@ from bank_statement_parser import ProjectPaths
 from PySide6.QtCore import QObject, Slot
 
 from openstan.components import StanButton
+from openstan.logging_manager import switch_to_app_log, switch_to_project_log
 from openstan.models.statement_result_model import ResultRow
 from openstan.presenters.admin_presenter import AdminPresenter
 from openstan.presenters.project_presenter import get_project_info
@@ -15,6 +17,8 @@ if TYPE_CHECKING:
     from PySide6.QtSql import QSqlRecord
 
     from openstan.main import Stan
+
+_logger = logging.getLogger(__name__)
 
 
 class StanPresenter(QObject):
@@ -171,6 +175,21 @@ class StanPresenter(QObject):
         # Show welcome panel when no projects exist
         if not has_projects:
             self.__navigate_to(self.stan.nav_idx_welcome)
+
+        # Update admin dialog project log button state
+        if hasattr(self.stan, "admin_presenter") and self.stan.admin_presenter:
+            self.stan.admin_presenter.update_project_log_button_state(selected_project)
+
+        # Switch logging context: app log if no project, project log if project selected
+        if selected_project and self.stan.current_project_paths:
+            switch_to_project_log(self.stan.current_project_paths.root)
+            _logger.info(
+                f"Switched to project log: {self.stan.current_project_name} "
+                f"(ID: {self.stan.current_project_id})"
+            )
+        else:
+            switch_to_app_log()
+            _logger.info("Switched to application log")
 
         if not selected_project:
             return
