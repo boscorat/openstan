@@ -5,7 +5,7 @@ import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QObject, QSettings, Qt, Slot
+from PySide6.QtCore import QObject, QSettings, Slot
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from openstan.components import StanErrorMessage, StanInfoMessage
@@ -138,11 +138,12 @@ class AdminPresenter(QObject):
     # ---------------------------------------------------------------------------
 
     @Slot(int)
-    def update_check_changed(self, state: Qt.CheckState) -> None:
+    def update_check_changed(self, state: int) -> None:
         """Persist the update-check preference whenever the checkbox changes."""
-        enabled = state == Qt.CheckState.Checked
+        enabled = bool(state)
         settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
         settings.setValue(_KEY_UPDATE_CHECK, enabled)
+        settings.sync()
 
     @Slot()
     def delete_project(self) -> None:
@@ -295,9 +296,10 @@ class AdminPresenter(QObject):
         dlg.exec()
 
     @Slot(int)
-    def toggle_verbosity(self, state: Qt.CheckState) -> None:
+    @Slot(int)
+    def toggle_verbosity(self, state: int) -> None:
         """Update verbosity setting when checkbox changes."""
-        enabled = state == Qt.CheckState.Checked
+        enabled = bool(state)
         new_level = "verbose" if enabled else "normal"
         set_verbosity(new_level)
 
