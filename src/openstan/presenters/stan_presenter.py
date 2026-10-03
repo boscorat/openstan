@@ -26,6 +26,9 @@ class StanPresenter(QObject):
         super().__init__()
         self.stan: Stan = stan
 
+        # State for logging guard: track previous project to avoid logging on no-change
+        self._previous_project_id: str | None = None
+
         # presenters
         self.project_presenter = self.stan.project_presenter
         self.session_presenter = self.stan.session_presenter
@@ -181,9 +184,11 @@ class StanPresenter(QObject):
             self.stan.admin_presenter.update_project_log_button_state(selected_project)
 
         if not selected_project:
-            # No project selected: switch to app log and return
-            switch_to_app_log()
-            _logger.info("Switched to application log")
+            # No project selected: switch to app log if not already there
+            if self._previous_project_id is not None:
+                switch_to_app_log()
+                _logger.info("Switched to application log")
+                self._previous_project_id = None
             return
 
         self.statement_queue_presenter.projectID = self.stan.current_project_id
@@ -208,12 +213,14 @@ class StanPresenter(QObject):
         )
         self.run_reports_presenter.load_project(self.stan.current_project_paths.root)
 
-        # Switch logging context to project log (NOW we have current_project_paths set correctly)
-        switch_to_project_log(self.stan.current_project_paths.root)
-        _logger.info(
-            f"Switched to project log: {self.stan.current_project_name} "
-            f"(ID: {self.stan.current_project_id})"
-        )
+        # Switch logging context to project log (only log on actual project change)
+        if self.stan.current_project_id != self._previous_project_id:
+            switch_to_project_log(self.stan.current_project_paths.root)
+            _logger.info(
+                f"Switched to project log: {self.stan.current_project_name} "
+                f"(ID: {self.stan.current_project_id})"
+            )
+            self._previous_project_id = self.stan.current_project_id
 
         # Refresh project info panel and update nav button visibility.
         self.__refresh_project_info()
