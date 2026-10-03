@@ -367,26 +367,70 @@ def switch_to_project_log(project_root: Path) -> None:
     logger.info("Logging context switched to project.log: %s", project_log_path)
 
 
-def cleanup_old_project_logs() -> None:
+def cleanup_old_project_logs() -> int:
     """Delete project.log files older than 30 days.
 
-    This function scans for project.log files across the user's projects
-    and removes any that haven't been modified in >30 days. Should be called
-    on app closure to avoid startup delays.
+    Scans ~/.local/share/openstan/projects/ for all project.log files and
+    removes any that haven't been modified in >30 days. Called on app closure.
 
-    Currently, this is a placeholder that logs the operation. In future,
-    it could scan known project locations or use file system watching.
+    Returns:
+        Number of project.log files deleted.
+
+    Notes:
+        - Silent on errors (doesn't raise); logs warnings instead
+        - Graceful if projects directory doesn't exist yet
+        - Each project subdirectory's project.log is checked independently
     """
+    import time
+
     logger = logging.getLogger(__name__)
     logger.debug("Running 30-day project log cleanup")
 
-    # Note: Since we don't have a central registry of project locations,
-    # cleanup is best-effort when projects are selected/loaded. This function
-    # serves as a hook for future enhancements (e.g., scanning ~/.local/share/
-    # for project directories, or maintaining a registry).
+    deleted_count = 0
+    projects_dir = get_app_log_path().parent / "projects"
 
-    # For now, log that cleanup was attempted
-    logger.debug("Project log cleanup complete")
+    # If projects directory doesn't exist, nothing to clean up
+    if not projects_dir.exists():
+        logger.debug("Projects directory does not exist; skipping cleanup")
+        return 0
+
+    try:
+        current_time = time.time()
+        thirty_days_seconds = 30 * 24 * 60 * 60
+
+        # Scan all subdirectories in ~/.local/share/openstan/projects/
+        for project_dir in projects_dir.iterdir():
+            if not project_dir.is_dir():
+                continue
+
+            project_log = project_dir / "project.log"
+            if not project_log.exists():
+                continue
+
+            # Check file modification time
+            try:
+                file_mtime = project_log.stat().st_mtime
+                file_age_seconds = current_time - file_mtime
+
+                if file_age_seconds > thirty_days_seconds:
+                    project_log.unlink()
+                    deleted_count += 1
+                    logger.debug(
+                        f"Deleted stale project log: {project_log} "
+                        f"({file_age_seconds / (24 * 60 * 60):.1f} days old)"
+                    )
+            except (OSError, ValueError) as e:
+                logger.warning(f"Failed to check/delete {project_log}: {e}. Skipping.")
+                continue
+
+    except Exception as e:  # noqa: BLE001
+        logger.warning(
+            f"Project log cleanup encountered an error: {e}. "
+            "Some old logs may not have been deleted, but app shutdown continues."
+        )
+
+    logger.debug(f"Project log cleanup complete: {deleted_count} files deleted")
+    return deleted_count
 
 
 def get_logger(name: str) -> logging.Logger:
