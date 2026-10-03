@@ -176,22 +176,14 @@ class StanPresenter(QObject):
         if not has_projects:
             self.__navigate_to(self.stan.nav_idx_welcome)
 
-        # Update admin dialog project log button state
+        # Update admin dialog project log button state (early: only needs selected_project)
         if hasattr(self.stan, "admin_presenter") and self.stan.admin_presenter:
             self.stan.admin_presenter.update_project_log_button_state(selected_project)
 
-        # Switch logging context: app log if no project, project log if project selected
-        if selected_project and self.stan.current_project_paths:
-            switch_to_project_log(self.stan.current_project_paths.root)
-            _logger.info(
-                f"Switched to project log: {self.stan.current_project_name} "
-                f"(ID: {self.stan.current_project_id})"
-            )
-        else:
+        if not selected_project:
+            # No project selected: switch to app log and return
             switch_to_app_log()
             _logger.info("Switched to application log")
-
-        if not selected_project:
             return
 
         self.statement_queue_presenter.projectID = self.stan.current_project_id
@@ -215,6 +207,13 @@ class StanPresenter(QObject):
             self.stan.current_project_paths.root
         )
         self.run_reports_presenter.load_project(self.stan.current_project_paths.root)
+
+        # Switch logging context to project log (NOW we have current_project_paths set correctly)
+        switch_to_project_log(self.stan.current_project_paths.root)
+        _logger.info(
+            f"Switched to project log: {self.stan.current_project_name} "
+            f"(ID: {self.stan.current_project_id})"
+        )
 
         # Refresh project info panel and update nav button visibility.
         self.__refresh_project_info()
