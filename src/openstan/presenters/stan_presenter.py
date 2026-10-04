@@ -7,6 +7,7 @@ from bank_statement_parser import ProjectPaths
 from PySide6.QtCore import QObject, Slot
 
 from openstan.components import StanButton
+from openstan.logging_manager import initialize as initialize_logging
 from openstan.logging_manager import switch_to_app_log, switch_to_project_log
 from openstan.models.statement_result_model import ResultRow
 from openstan.presenters.admin_presenter import AdminPresenter
@@ -107,6 +108,11 @@ class StanPresenter(QObject):
                 self.stan.error_db_lock.showMessage(
                     f"{msg}\nThe application will close shortly."
                 )
+
+        # Initialize logging with session ID (after session is created)
+        session_id = self.stan.sessionID or "00000000-0000-0000-0000-000000000000"
+        initialize_logging(session_id)
+        _logger.info(f"Logging initialized for session {session_id}")
 
         # Update footer label with username
         self.footer_view.labelUser.setText(f"##### User: {self.stan.username}")
@@ -215,7 +221,9 @@ class StanPresenter(QObject):
 
         # Switch logging context to project log (only log on actual project change)
         if self.stan.current_project_id != self._previous_project_id:
-            switch_to_project_log(self.stan.current_project_paths.root)
+            switch_to_project_log(
+                self.stan.current_project_paths.root, self.stan.sessionID
+            )
             _logger.info(
                 f"Switched to project log: {self.stan.current_project_name} "
                 f"(ID: {self.stan.current_project_id})"

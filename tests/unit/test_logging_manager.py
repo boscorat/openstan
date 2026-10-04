@@ -16,7 +16,6 @@ import pytest
 from PySide6.QtCore import QSettings
 
 from openstan.logging_manager import (
-    cleanup_old_project_logs,
     get_app_log_path,
     get_logger,
     get_project_log_path,
@@ -152,26 +151,30 @@ class TestGetAppLogPath:
 
     def test_get_app_log_path_returns_path_object(self):
         """Should return a Path object."""
-        result = get_app_log_path()
+        session_id = "550e8400-e29b-41d4-a716-446655440000"
+        result = get_app_log_path(session_id)
         assert isinstance(result, Path)
 
-    def test_get_app_log_path_ends_with_application_log(self):
-        """Should end with 'application.log'."""
-        result = get_app_log_path()
-        assert result.name == "application.log"
+    def test_get_app_log_path_ends_with_session_uuid(self):
+        """Should end with the session UUID as filename."""
+        session_id = "550e8400-e29b-41d4-a716-446655440000"
+        result = get_app_log_path(session_id)
+        assert result.name == f"{session_id}.log"
 
     @patch.dict(os.environ, {"APPDATA": "C:\\Users\\Test\\AppData\\Roaming"})
     @patch("sys.platform", "win32")
     def test_get_app_log_path_windows(self):
         """Windows path should use APPDATA."""
-        result = get_app_log_path()
+        session_id = "550e8400-e29b-41d4-a716-446655440000"
+        result = get_app_log_path(session_id)
         assert "openstan" in str(result)
-        assert "application.log" in str(result)
+        assert session_id in str(result)
 
     @patch("sys.platform", "darwin")
     def test_get_app_log_path_macos(self):
         """macOS path should use Library/Application Support."""
-        result = get_app_log_path()
+        session_id = "550e8400-e29b-41d4-a716-446655440000"
+        result = get_app_log_path(session_id)
         result_str = str(result)
         assert "openstan" in result_str
         # Should be under home directory
@@ -185,10 +188,11 @@ class TestGetAppLogPath:
     @patch("sys.platform", "linux")
     def test_get_app_log_path_linux(self):
         """Linux path should use .local/share."""
-        result = get_app_log_path()
+        session_id = "550e8400-e29b-41d4-a716-446655440000"
+        result = get_app_log_path(session_id)
         result_str = str(result)
         assert "openstan" in result_str
-        assert "application.log" in result_str
+        assert session_id in result_str
 
 
 class TestGetProjectLogPath:
@@ -197,27 +201,31 @@ class TestGetProjectLogPath:
     def test_get_project_log_path_returns_path_object(self):
         """Should return a Path object."""
         project_root = Path("/path/to/project")
-        result = get_project_log_path(project_root)
+        session_id = "550e8400-e29b-41d4-a716-446655440000"
+        result = get_project_log_path(project_root, session_id)
         assert isinstance(result, Path)
 
-    def test_get_project_log_path_ends_with_project_log(self):
-        """Should end with 'project.log'."""
+    def test_get_project_log_path_ends_with_session_uuid(self):
+        """Should end with the session UUID as filename."""
         project_root = Path("/path/to/project")
-        result = get_project_log_path(project_root)
-        assert result.name == "project.log"
+        session_id = "550e8400-e29b-41d4-a716-446655440000"
+        result = get_project_log_path(project_root, session_id)
+        assert result.name == f"{session_id}.log"
 
     def test_get_project_log_path_under_project_root(self):
         """Should place log file in project root directory."""
         project_root = Path("/path/to/my_project")
-        result = get_project_log_path(project_root)
+        session_id = "550e8400-e29b-41d4-a716-446655440000"
+        result = get_project_log_path(project_root, session_id)
         assert result.parent == project_root
 
     def test_get_project_log_path_with_string_input(self):
         """Should accept string paths too."""
         project_root_str = "/path/to/project"
-        result = get_project_log_path(project_root_str)  # type: ignore
+        session_id = "550e8400-e29b-41d4-a716-446655440000"
+        result = get_project_log_path(project_root_str, session_id)  # type: ignore
         assert isinstance(result, Path)
-        assert result.name == "project.log"
+        assert result.name == f"{session_id}.log"
 
 
 class TestGetLogger:
@@ -243,22 +251,6 @@ class TestGetLogger:
         logger1 = get_logger("cached.logger")
         logger2 = get_logger("cached.logger")
         assert logger1 is logger2
-
-
-class TestCleanupOldProjectLogs:
-    """Tests for cleanup_old_project_logs() function."""
-
-    def test_cleanup_old_project_logs_does_not_crash(self):
-        """Should complete without raising exceptions."""
-        # This is a placeholder cleanup function; ensure it doesn't crash
-        try:
-            cleanup_old_project_logs()
-        except OSError as e:
-            pytest.fail(f"cleanup_old_project_logs() raised {type(e).__name__}: {e}")
-
-    def test_cleanup_old_project_logs_is_callable(self):
-        """Should be callable."""
-        assert callable(cleanup_old_project_logs)
 
 
 class TestLoggingLevelConstants:

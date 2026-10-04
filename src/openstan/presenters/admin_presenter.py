@@ -277,14 +277,14 @@ class AdminPresenter(QObject):
 
     @Slot()
     def view_app_log(self) -> None:
-        """Open the log viewer displaying the application log."""
+        """Open the log viewer displaying the current session's application log."""
         dlg = LogViewerDialog(parent=self.view)
-        dlg.show_log(get_app_log_path())
+        dlg.show_log(get_app_log_path(self.stan.sessionID))
         dlg.exec()
 
     @Slot()
     def view_project_log(self) -> None:
-        """Open the log viewer displaying the current project log."""
+        """Open the log viewer displaying the current session's project log."""
         if self.stan.current_project_paths is None:
             StanErrorMessage(parent=self.view).showMessage(
                 "No project is currently selected."
@@ -292,7 +292,11 @@ class AdminPresenter(QObject):
             return
 
         dlg = LogViewerDialog(parent=self.view)
-        dlg.show_log(get_project_log_path(self.stan.current_project_paths.root))
+        dlg.show_log(
+            get_project_log_path(
+                self.stan.current_project_paths.root, self.stan.sessionID
+            )
+        )
         dlg.exec()
 
     @Slot(int)
