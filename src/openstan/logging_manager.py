@@ -1,12 +1,16 @@
 """Centralized logging orchestration for openstan and dependent libraries.
 
-Manages logger initialization, context switching (app ↔ project logs), verbosity
-levels, and log cleanup. All file I/O handlers are configured here; libraries
-configure no handlers themselves (by design).
+Manages logger initialization, context switching (app ↔ project logs), and verbosity
+levels. All file I/O handlers are configured here; libraries configure no handlers
+themselves (by design).
 
-This module provides a factory function `get_logger()` for creating loggers,
-context switching between app and project logs, verbosity control, and automatic
-cleanup of stale project log files.
+**Session-Based Architecture:**
+Each application session gets its own log files, named by session UUID:
+- App log: ~/.local/share/openstan/<session_uuid>.log
+- Project log: <project_root>/<session_uuid>.log
+
+This isolates logs by session, preserves audit trails, and eliminates cleanup complexity.
+Previous session logs remain on disk and are discoverable by session ID.
 
 **Key Design:**
 - Single root logger `"openstan"` with cascade to dependency libraries
@@ -16,11 +20,12 @@ cleanup of stale project log files.
   that do not propagate to openstan's logger hierarchy.
 - Context switching via `switch_to_app_log()` and `switch_to_project_log()`
   Handlers are added/removed from ALL loggers (openstan + libraries) together.
+- Session ID required for all logging operations (passed at initialization)
 - Verbosity levels: "normal" (INFO) and "verbose" (DEBUG)
 - Persistence via `QSettings` (so settings survive app restarts)
 - Platform-aware log directories (Windows/macOS/Linux)
 - 10 MB file rotation with 5 backups
-- 30-day retention cleanup for project logs (runs on app closure)
+- No automatic cleanup (logs preserved for audit trail)
 """
 
 import logging
@@ -33,7 +38,6 @@ from typing import Literal
 from PySide6.QtCore import QSettings
 
 __all__: list[str] = [
-    "cleanup_old_project_logs",
     "get_app_log_path",
     "get_logger",
     "get_project_log_path",
@@ -71,6 +75,9 @@ _current_context: Literal["app", "project", "none"] = "none"
 _lib_bank_parser_logger: logging.Logger | None = None
 _lib_anonymiser_logger: logging.Logger | None = None
 
+# Session tracking: current session UUID for log file naming
+_current_session_id: str | None = None
+
 
 def _user_data_dir() -> Path:
     """Return platform-appropriate user data directory for logs.
@@ -89,25 +96,31 @@ def _user_data_dir() -> Path:
     return base / "openstan"
 
 
-def get_app_log_path() -> Path:
-    """Get the application log file path.
+def get_app_log_path(session_id: str) -> Path:
+    """Get the application log file path for the given session.
+
+    Args:
+        session_id: Unique session identifier (UUID format).
 
     Returns:
-        Path to application.log in platform-specific user data directory.
+        Path to session log file in platform-specific user data directory.
+        Example: ~/.local/share/openstan/550e8400-e29b-41d4-a716-446655440000.log
     """
-    return _user_data_dir() / "application.log"
+    return _user_data_dir() / f"{session_id}.log"
 
 
-def get_project_log_path(project_root: Path) -> Path:
-    """Get the project log file path.
+def get_project_log_path(project_root: Path, session_id: str) -> Path:
+    """Get the project log file path for the given session.
 
     Args:
         project_root: Root directory of the project.
+        session_id: Unique session identifier (UUID format).
 
     Returns:
-        Path to project.log in the project root directory.
+        Path to session log file in the project root directory.
+        Example: /path/to/project/550e8400-e29b-41d4-a716-446655440000.log
     """
-    return Path(project_root) / "project.log"
+    return Path(project_root) / f"{session_id}.log"
 
 
 def get_verbosity() -> Verbosity:
@@ -240,11 +253,15 @@ def _remove_handler_from_all_loggers(
         handler.close()
 
 
-def initialize(verbosity: Verbosity | None = None) -> None:
-    """Initialize logging infrastructure on app startup.
+def initialize(session_id: str, verbosity: Verbosity | None = None) -> None:
+    """Initialize logging infrastructure for a session.
 
-    Sets up the root logger with file handlers, clears application.log,
-    and applies verbosity settings from QSettings (or provided verbosity).
+    Sets up the root logger with file handlers for the current session and
+    applies verbosity settings from QSettings (or provided verbosity).
+
+    Each session gets its own log files, named by session UUID:
+    - App log: ~/.local/share/openstan/<session_id>.log
+    - Project log: created on-demand when project selected
 
     Handler attachment strategy:
     - Handlers are attached to BOTH the "openstan" logger AND library loggers
@@ -252,14 +269,17 @@ def initialize(verbosity: Verbosity | None = None) -> None:
       loggers that do not inherit from the openstan hierarchy
     - Without explicit handler attachment, library logs would be silently dropped
 
-    Should be called once at app startup, before QApplication creation.
+    Should be called once per session, after session is created in the database.
 
     Args:
+        session_id: Unique session identifier (UUID format). Used in log filenames.
         verbosity: Optional override for initial verbosity level.
             If not provided, reads from QSettings (default "normal").
     """
-    global _root_logger, _app_log_handler, _current_context
+    global _root_logger, _app_log_handler, _current_context, _current_session_id
     global _lib_bank_parser_logger, _lib_anonymiser_logger
+
+    _current_session_id = session_id
 
     # Create root logger
 
@@ -281,15 +301,11 @@ def initialize(verbosity: Verbosity | None = None) -> None:
     for handler in _root_logger.handlers[:]:
         _remove_handler_from_all_loggers(handler)
 
-    # Initialize app log handler and clear the file
-    app_log_path = get_app_log_path()
+    # Initialize app log handler for this session (don't clear previous sessions)
+    app_log_path = get_app_log_path(session_id)
     app_log_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Clear existing app log
-    if app_log_path.exists():
-        app_log_path.unlink()
-
-    # Create fresh app log handler
+    # Create fresh app log handler (don't delete previous session logs)
     _app_log_handler = _create_rotating_file_handler(app_log_path)
     # Attach to ALL loggers (openstan + libraries)
     _add_handler_to_all_loggers(_app_log_handler)
@@ -301,15 +317,15 @@ def initialize(verbosity: Verbosity | None = None) -> None:
     set_verbosity(verbosity)
 
     logger = logging.getLogger(__name__)
-    logger.info("Logging initialized: app log = %s", app_log_path)
+    logger.info("Logging initialized for session %s", session_id)
 
 
 def switch_to_app_log() -> None:
-    """Switch logging context to application.log.
+    """Switch logging context to current session's application log.
 
     Removes project log handler (if active) from all loggers (openstan +
     libraries) and ensures app log handler is active on all loggers.
-    Subsequent logs will flow to application.log.
+    Subsequent logs will flow to the session's app log file.
     """
     global _project_log_handler, _current_context
 
@@ -326,24 +342,25 @@ def switch_to_app_log() -> None:
 
     _current_context = "app"
     logger = logging.getLogger(__name__)
-    logger.info("Logging context switched to application.log")
+    logger.info("Logging context switched to application log")
 
 
-def switch_to_project_log(project_root: Path) -> None:
-    """Switch logging context to project.log.
+def switch_to_project_log(project_root: Path, session_id: str) -> None:
+    """Switch logging context to current session's project log.
 
     Removes app log handler from all loggers (openstan + libraries) and creates
     a new project log handler for the given project. Subsequent logs will flow
-    to project.log from all loggers.
+    to the session's project log file.
 
     Args:
         project_root: Root directory of the project.
+        session_id: Current session identifier (UUID format).
     """
     global _project_log_handler, _current_context
 
-    project_log_path = get_project_log_path(project_root)
+    project_log_path = get_project_log_path(project_root, session_id)
 
-    # If already on this project, do nothing
+    # If already on this project's log, do nothing
     if (
         _current_context == "project"
         and _project_log_handler
@@ -364,73 +381,7 @@ def switch_to_project_log(project_root: Path) -> None:
 
     _current_context = "project"
     logger = logging.getLogger(__name__)
-    logger.info("Logging context switched to project.log: %s", project_log_path)
-
-
-def cleanup_old_project_logs() -> int:
-    """Delete project.log files older than 30 days.
-
-    Scans ~/.local/share/openstan/projects/ for all project.log files and
-    removes any that haven't been modified in >30 days. Called on app closure.
-
-    Returns:
-        Number of project.log files deleted.
-
-    Notes:
-        - Silent on errors (doesn't raise); logs warnings instead
-        - Graceful if projects directory doesn't exist yet
-        - Each project subdirectory's project.log is checked independently
-    """
-    import time
-
-    logger = logging.getLogger(__name__)
-    logger.debug("Running 30-day project log cleanup")
-
-    deleted_count = 0
-    projects_dir = get_app_log_path().parent / "projects"
-
-    # If projects directory doesn't exist, nothing to clean up
-    if not projects_dir.exists():
-        logger.debug("Projects directory does not exist; skipping cleanup")
-        return 0
-
-    try:
-        current_time = time.time()
-        thirty_days_seconds = 30 * 24 * 60 * 60
-
-        # Scan all subdirectories in ~/.local/share/openstan/projects/
-        for project_dir in projects_dir.iterdir():
-            if not project_dir.is_dir():
-                continue
-
-            project_log = project_dir / "project.log"
-            if not project_log.exists():
-                continue
-
-            # Check file modification time
-            try:
-                file_mtime = project_log.stat().st_mtime
-                file_age_seconds = current_time - file_mtime
-
-                if file_age_seconds > thirty_days_seconds:
-                    project_log.unlink()
-                    deleted_count += 1
-                    logger.debug(
-                        f"Deleted stale project log: {project_log} "
-                        f"({file_age_seconds / (24 * 60 * 60):.1f} days old)"
-                    )
-            except (OSError, ValueError) as e:
-                logger.warning(f"Failed to check/delete {project_log}: {e}. Skipping.")
-                continue
-
-    except Exception as e:  # noqa: BLE001
-        logger.warning(
-            f"Project log cleanup encountered an error: {e}. "
-            "Some old logs may not have been deleted, but app shutdown continues."
-        )
-
-    logger.debug(f"Project log cleanup complete: {deleted_count} files deleted")
-    return deleted_count
+    logger.info("Logging context switched to project log: %s", project_log_path)
 
 
 def get_logger(name: str) -> logging.Logger:

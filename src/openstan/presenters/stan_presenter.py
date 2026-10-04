@@ -108,6 +108,19 @@ class StanPresenter(QObject):
                     f"{msg}\nThe application will close shortly."
                 )
 
+        # Initialize logging with session ID (after session is created)
+        if self.stan.sessionID:
+            from openstan.logging_manager import initialize as initialize_logging
+
+            initialize_logging(self.stan.sessionID)
+        else:
+            # Fallback: use all-zeros UUID if session creation somehow failed
+            from openstan.logging_manager import initialize as initialize_logging
+
+            initialize_logging("00000000-0000-0000-0000-000000000000")
+
+        _logger.info(f"Logging initialized for session {self.stan.sessionID}")
+
         # Update footer label with username
         self.footer_view.labelUser.setText(f"##### User: {self.stan.username}")
 
@@ -215,7 +228,9 @@ class StanPresenter(QObject):
 
         # Switch logging context to project log (only log on actual project change)
         if self.stan.current_project_id != self._previous_project_id:
-            switch_to_project_log(self.stan.current_project_paths.root)
+            switch_to_project_log(
+                self.stan.current_project_paths.root, self.stan.sessionID
+            )
             _logger.info(
                 f"Switched to project log: {self.stan.current_project_name} "
                 f"(ID: {self.stan.current_project_id})"
