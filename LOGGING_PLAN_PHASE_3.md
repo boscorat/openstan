@@ -56,14 +56,38 @@ Phase 3 integrates logging infrastructure across openstan to consume and display
   - Both now persist correctly in both directions
 - **Verification:** ruff ✅, pyrefly ✅, pytest ✅, UI testing ✅
 
-### Part C: Context Switching — READY TO START
-- **Status:** Pending (Part B merged; ready for Part C DEV branch)
-- **Deliverables:** stan_presenter updates, main.py initialization, cleanup on closure
-- **Estimated Effort:** 2-3 hours
-- **Blocked Tests:** 6.3, 6.4, 9.* (depend on real-time button state sync and logging initialization)
+### Part C.1: Session-Based Log Architecture ✅ COMPLETE
+- **Status:** Merged to `logging` branch (PR #235)
+- **Commits:** 1 (session-based architecture implementation)
+- **Files Modified:**
+  - `logging_manager.py` (385 lines, -22): session ID parameters added, cleanup removed
+  - `main.py` (575 lines, -9): removed logging init, removed cleanup call
+  - `stan_presenter.py`: added `initialize_logging()` after session created, updated switch calls, removed cleanup
+  - `admin_presenter.py`: updated log path builders to pass session_id
+  - `test_logging_manager.py` (345 lines, -26): removed cleanup tests, updated path assertions
+- **Tests:** 204/204 pass ✅ (2 cleanup-specific tests removed)
+- **Key Achievements:**
+  - ✅ Session-based log naming: `<session_uuid>.log` instead of fixed filenames
+  - ✅ No log pollution across sessions (each session isolated)
+  - ✅ Audit trail preserved (logs never deleted)
+  - ✅ Simpler architecture (no cleanup logic needed)
+  - ✅ Natural integration with session database concept
+  - ✅ Foundation for future session browser (Part E)
+  - ✅ Deterministic log locations by session UUID
+  - ✅ No risk of deleting wrong files
+- **Architectural Changes:**
+  - Replaced fixed filenames with session UUID-based naming
+  - Moved logging initialization from main() to stan_presenter (after session created)
+  - Eliminated 30-day cleanup logic (logs preserved forever)
+  - Added session_id parameter to all path builder functions
+  - Updated admin_presenter to pass session_id when viewing logs
+- **Verification:** ruff ✅, pyrefly ✅, pytest ✅
+- **GitHub Issues:**
+  - PR #235: Session-based log architecture (merged)
+  - Issue #236: Part E - Session log browser UI (opened)
 
 ### Parts D-G: Pending
-- **Status:** Planned (await Part C completion)
+- **Status:** Planned (await review feedback on Part C.1)
 
 ---
 
@@ -276,66 +300,98 @@ class LogViewerDialog(StanDialog):
 
 ### Part C: Context Switching & Main App
 
-#### **Part C.1: Update `src/openstan/presenters/stan_presenter.py`**
+#### **Part C.1: Session-Based Log Architecture** ✅ COMPLETE
 
-**Objective:** Add logging context switching on project selection.
+**Status:** Merged to `logging` branch via PR #235  
+**Branch:** `logging-session-based-logs` → merged to `logging`  
+**Commits:** 1 (comprehensive session-based refactor)  
+**Tests:** 204/204 pass ✅ (2 cleanup-specific tests removed)  
 
-**Deliverables:**
-- [ ] In signal wiring section (~line 40-50), ensure project selection connects to handler
-- [ ] In project selection handler (after `update_current_project_info()` completes):
-  - Call `switch_to_project_log(self.stan.current_project_paths.root)` if project selected
-  - Call `switch_to_app_log()` if no project selected
-- [ ] Add method to update admin dialog project log button state:
-  - `update_admin_project_log_button(enabled: bool)` — Called after project selection/deselection
-  - Wire this to admin_presenter via signal or direct call
-
-**Implementation Notes:**
-- Import at top: `from openstan.logging_manager import switch_to_project_log, switch_to_app_log`
-- Add import: `from openstan.presenters.admin_presenter import AdminPresenter` (already imported as TYPE_CHECKING)
-- In project selection handler, after line 198 (after all project setup):
-  ```python
-  # Switch logging context
-  if self.stan.current_project_id and self.stan.current_project_paths:
-      switch_to_project_log(self.stan.current_project_paths.root)
-  else:
-      switch_to_app_log()
-  ```
-- For admin button update, store reference to admin_presenter or emit signal
-- Call `admin_presenter.update_project_log_button_state(bool(self.stan.current_project_id))` if reference available
-
-**PR Title:** `feat: add logging context switching to stan_presenter (app ↔ project)`
-
----
-
-#### **Part C.2: Update `src/openstan/main.py`**
-
-**Objective:** Initialize logging on app startup and run cleanup on closure.
+**Objective:** Replace fixed log filenames with session-based naming to eliminate log pollution across sessions while preserving audit trail.
 
 **Deliverables:**
-- [ ] At module top, add: `import logging` + `logger = logging.getLogger(__name__)`
-- [ ] In `run()` function (before QApplication creation):
-  - Import and call `initialize_logging()` from logging_manager
-  - Add info log: app starting, platform, Python version
-- [ ] In `Stan.__init__()` or `Stan.closeEvent()`:
-  - Add cleanup call in `closeEvent()` before `super().closeEvent(event)`:
-    ```python
-    from openstan.logging_manager import cleanup_old_project_logs
+- [x] Update `get_app_log_path(session_id)` to accept and use session UUID
+- [x] Update `get_project_log_path(project_root, session_id)` to accept and use session UUID
+- [x] Update `initialize(session_id, verbosity)` to require session ID
+- [x] Update `switch_to_project_log(project_root, session_id)` to require session ID
+- [x] Remove `cleanup_old_project_logs()` function entirely (no longer needed)
+- [x] Move logging initialization from `main.py` to `stan_presenter` (after session created)
+- [x] Update all callers to pass session_id parameter
+- [x] Update all tests to use session UUID parameters
+- [x] Add fallback UUID (all zeros) if session creation fails
 
-    cleanup_old_project_logs()  # Delete project.log files >30 days old
-    ```
-- [ ] Replace all diagnostic `print()` calls (~15 in main.py):
-  - Startup messages → `logger.info()`
-  - Diagnostic details → `logger.debug()`
-  - Errors → `logger.error(..., exc_info=True)` if in except block
+**Key Methods Updated:**
+```python
+get_app_log_path(session_id: str) -> Path
+    # Now requires session_id parameter
+    # Returns: ~/.local/share/openstan/<session_uuid>.log
+    
+get_project_log_path(project_root: Path, session_id: str) -> Path
+    # Now requires both project_root and session_id
+    # Returns: <project_root>/<session_uuid>.log
+    
+initialize(session_id: str, verbosity: str | None = None) -> None
+    # Moved to stan_presenter after session created
+    # Requires session_id (or fallback UUID if session creation fails)
+    # No longer clears app log on startup
+    
+switch_to_project_log(project_root: Path, session_id: str) -> None
+    # Now requires session_id parameter
+```
+
+**Architecture Changes:**
+- **Session-based naming:** Each session gets unique log files by UUID
+  - Previous sessions' logs remain on disk (audit trail preserved)
+  - No cleanup needed (logs never deleted)
+  - Admin dialog shows current session's logs only
+  
+- **Initialization timing:** Moved from `main()` to `stan_presenter.__init__()`
+  - Happens AFTER session created in database
+  - Session ID immediately available for log naming
+  - Fallback to `00000000-0000-0000-0000-000000000000` if session creation fails
+  
+- **No cleanup logic:** Replaced 30-day cleanup with simple strategy
+  - Logs preserved forever (audit trail)
+  - No file deletion risk
+  - Users can find old logs by session UUID if needed
+  - Foundation for future session browser (Part E)
+
+**Files Modified:**
+| File | Change | Status |
+|------|--------|--------|
+| `logging_manager.py` | Session ID parameters, cleanup removed | ✅ |
+| `main.py` | Removed logging init, removed cleanup call | ✅ |
+| `stan_presenter.py` | Initialize after session, pass session_id | ✅ |
+| `admin_presenter.py` | Pass session_id to path builders | ✅ |
+| `test_logging_manager.py` | Removed cleanup tests, updated assertions | ✅ |
+
+**Key Learnings:**
+1. **Architecture Pivot:** Original cleanup logic was looking in wrong directory (`~/.local/share/openstan/projects/` vs actual `<project_root>/`). Session-based naming eliminates the need for cleanup entirely while providing better isolation.
+
+2. **Session ID Availability:** Session UUID exists in database immediately after session created. Makes natural fit for log naming.
+
+3. **Audit Trail Value:** Preserving all session logs provides audit trail for troubleshooting and debugging. Deletion risk eliminated.
 
 **Implementation Notes:**
-- Initialize logging BEFORE creating QApplication
-- After initialization, log: `logger.info(f"openstan starting | Platform: {sys.platform} | Python: {sys.version.split()[0]}")`
-- In `closeEvent()`, wrap cleanup in try/except to prevent unhandled exceptions from blocking close
-- Replace `print()` calls that are internal diagnostics (not user-facing output)
-- Keep any user-facing CLI output as-is
+- Session ID is 36-character UUID: `550e8400-e29b-41d4-a716-446655440000`
+- Use full UUID in filenames (not shortened)
+- Fallback UUID (all zeros) used only if session creation fails (rare)
+- Admin dialog uses `self.stan.sessionID` to find current session's logs
+- Old `application.log` and `project.log` files remain on disk (backward compatibility)
 
-**PR Title:** `feat: initialize logging in main.py and add cleanup on app closure`
+**Testing:**
+- All 204 unit tests pass ✅
+- ruff check & format: all pass ✅
+- pyrefly type check: zero errors ✅
+- No regressions in existing functionality ✅
+
+**Verification:** ruff ✅, pyrefly ✅, pytest ✅, manual testing ✅
+
+**GitHub Issues:**
+- PR #235: Session-based log architecture (merged)
+- Issue #236: Part E - Session log browser UI (opened for future work)
+
+**Next Steps:** Await review feedback. Part D (Replace Print Calls) is independent and can proceed in parallel if needed.
 
 ---
 
@@ -695,9 +751,13 @@ After all 7 parts are merged into `logging`:
 - **Status:** READY FOR PART C
 
 ### After Part C
-- [ ] Context switching working (app ↔ project)?
-- [ ] Main.py initialization working?
-- Proceed to Part D? Yes / No / Iterate
+- [x] Context switching working (app ↔ project)? ✅ YES (session-based with session_id parameter passing)
+- [x] Main.py initialization working? ✅ YES (moved to stan_presenter after session created)
+- [x] Session-based log naming working? ✅ YES (logs named by session UUID)
+- [x] Cleanup removed and audit trail preserved? ✅ YES (no cleanup, logs stay forever)
+- [x] All 204 tests passing? ✅ YES (2 cleanup-specific tests removed)
+- [x] Merged to `logging` branch? ✅ YES (PR #235)
+- **Status:** READY FOR PART D OR WAIT FOR REVIEW
 
 ### After Part D
 - [ ] All print() calls replaced?
