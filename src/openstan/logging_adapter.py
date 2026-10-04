@@ -23,14 +23,14 @@ class ContextAdapter(logging.LoggerAdapter):
         ...     {'batch_id': '12345', 'project_id': 'proj-xyz'}
         ... )
         >>> _logger.error("Failed to process")
-        # Output: [batch=12345|project=proj-xyz] Failed to process
+        # Output: [batch_id=12345|project_id=proj-xyz] Failed to process
 
         >>> _logger = ContextAdapter(
         ...     logging.getLogger(__name__),
         ...     {'batch_id': None, 'project_id': 'proj-xyz'}
         ... )
         >>> _logger.error("Failed to process")
-        # Output: [project=proj-xyz] Failed to process
+        # Output: [project_id=proj-xyz] Failed to process
     """
 
     def process(
