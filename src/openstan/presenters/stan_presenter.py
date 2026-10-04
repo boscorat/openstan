@@ -7,6 +7,7 @@ from bank_statement_parser import ProjectPaths
 from PySide6.QtCore import QObject, Slot
 
 from openstan.components import StanButton
+from openstan.logging_adapter import ContextAdapter
 from openstan.logging_manager import initialize as initialize_logging
 from openstan.logging_manager import switch_to_app_log, switch_to_project_log
 from openstan.models.statement_result_model import ResultRow
@@ -170,7 +171,7 @@ class StanPresenter(QObject):
         # Cancel any in-progress debug worker so it stops at its next iteration
         self.statement_result_presenter.cancel_debug_worker()
         self.session_presenter.end_active_sessions()
-        print("Session ended.")
+        _logger.info("Session ended.")
 
     def update_current_project_info(self, index: int) -> None:
         current_record: QSqlRecord = self.project_presenter.model.record(index)
@@ -246,8 +247,15 @@ class StanPresenter(QObject):
                 batch_id
             )
             if not result_ids:
-                print(
-                    f"Stale lock detected for batch {batch_id} — no persisted results. Clearing batch_id automatically."
+                ctx_logger = ContextAdapter(
+                    _logger,
+                    {
+                        "batch_id": batch_id,
+                        "project_id": self.stan.current_project_id,
+                    },
+                )
+                ctx_logger.warning(
+                    "Stale lock detected — no persisted results. Clearing batch_id automatically."
                 )
                 self.stan.statement_queue_model.clear_batch_id()
                 # Also remove any orphaned batch duration record
@@ -440,10 +448,17 @@ class StanPresenter(QObject):
                 duration_secs=duration_secs,
             )
             if not ok:
-                print(f"WARNING: Could not persist batch duration: {msg}", flush=True)
+                ctx_logger = ContextAdapter(
+                    _logger,
+                    {
+                        "batch_id": batch_id,
+                        "project_id": self.stan.current_project_id,
+                    },
+                )
+                ctx_logger.warning(f"Could not persist batch duration: {msg}")
             self.statement_result_presenter.persist_batch_to_db(batch_id)
         else:
-            print("WARNING: on_import_finished called with no current batch_id.")
+            _logger.warning("on_import_finished called with no current batch_id.")
         # Re-enable action buttons now that import is complete
         self.statement_result_presenter.set_importing(False)
 
