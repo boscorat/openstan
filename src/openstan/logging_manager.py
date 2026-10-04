@@ -9,8 +9,8 @@ Each application session gets its own log files, named by session UUID:
 - App log: ~/.local/share/openstan/<session_uuid>.log
 - Project log: <project_root>/<session_uuid>.log
 
-This isolates logs by session, preserves audit trails, and eliminates cleanup complexity.
-Previous session logs remain on disk and are discoverable by session ID.
+This isolates logs by session, preserves audit trails, and eliminates cleanup
+complexity. Previous session logs remain on disk and are discoverable by session ID.
 
 **Key Design:**
 - Single root logger `"openstan"` with cascade to dependency libraries
@@ -74,9 +74,6 @@ _current_context: Literal["app", "project", "none"] = "none"
 # from the openstan logger hierarchy
 _lib_bank_parser_logger: logging.Logger | None = None
 _lib_anonymiser_logger: logging.Logger | None = None
-
-# Session tracking: current session UUID for log file naming
-_current_session_id: str | None = None
 
 
 def _user_data_dir() -> Path:
@@ -276,10 +273,8 @@ def initialize(session_id: str, verbosity: Verbosity | None = None) -> None:
         verbosity: Optional override for initial verbosity level.
             If not provided, reads from QSettings (default "normal").
     """
-    global _root_logger, _app_log_handler, _current_context, _current_session_id
+    global _root_logger, _app_log_handler, _current_context
     global _lib_bank_parser_logger, _lib_anonymiser_logger
-
-    _current_session_id = session_id
 
     # Create root logger
 

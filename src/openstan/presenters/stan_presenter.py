@@ -7,6 +7,7 @@ from bank_statement_parser import ProjectPaths
 from PySide6.QtCore import QObject, Slot
 
 from openstan.components import StanButton
+from openstan.logging_manager import initialize as initialize_logging
 from openstan.logging_manager import switch_to_app_log, switch_to_project_log
 from openstan.models.statement_result_model import ResultRow
 from openstan.presenters.admin_presenter import AdminPresenter
@@ -109,17 +110,9 @@ class StanPresenter(QObject):
                 )
 
         # Initialize logging with session ID (after session is created)
-        if self.stan.sessionID:
-            from openstan.logging_manager import initialize as initialize_logging
-
-            initialize_logging(self.stan.sessionID)
-        else:
-            # Fallback: use all-zeros UUID if session creation somehow failed
-            from openstan.logging_manager import initialize as initialize_logging
-
-            initialize_logging("00000000-0000-0000-0000-000000000000")
-
-        _logger.info(f"Logging initialized for session {self.stan.sessionID}")
+        session_id = self.stan.sessionID or "00000000-0000-0000-0000-000000000000"
+        initialize_logging(session_id)
+        _logger.info(f"Logging initialized for session {session_id}")
 
         # Update footer label with username
         self.footer_view.labelUser.setText(f"##### User: {self.stan.username}")
