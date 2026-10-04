@@ -1,9 +1,12 @@
+import logging
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QObject
 
 if TYPE_CHECKING:
     from openstan.models.user_model import UserModel
+
+_logger = logging.getLogger(__name__)
 
 
 class UserPresenter(QObject):
@@ -17,9 +20,9 @@ class UserPresenter(QObject):
     def create_new_user(self, username, sessionID) -> tuple[bool, str, str]:
         result: tuple[bool, str, str] = self.model.add_record(username, sessionID)
         if not result[0]:
-            print("Failed to create or retrieve user ID from the database.")
+            _logger.error("Failed to create or retrieve user ID from the database.")
             return result
         else:
             msg: str = f"User created successfully: {username} (ID: {result[1]})"
-            print(msg)
+            _logger.info(msg)
             return result

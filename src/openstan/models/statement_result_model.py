@@ -32,6 +32,7 @@ shown without re-running the import.
 
 import dataclasses
 import json
+import logging
 import sys
 import traceback
 from contextlib import contextmanager
@@ -47,6 +48,8 @@ from PySide6.QtGui import QStandardItem, QStandardItemModel
 from PySide6.QtSql import QSqlQuery, QSqlRecord, QSqlTableModel
 
 from openstan.models.statement_queue_model import _safe_hex_id
+
+_logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from bank_statement_parser import PdfResult
@@ -378,7 +381,7 @@ class StatementResultModel(QSqlTableModel):
             self.db_updated.emit()
             return (True, result_id, f"Result {result_id} inserted")
         err = self.lastError().text()
-        print(f"ERROR: StatementResultModel.add_result failed: {err}", file=sys.stderr)
+        _logger.error(f"StatementResultModel.add_result failed: {err}")
         return (False, "", err)
 
     def update_debug_info(
@@ -544,10 +547,7 @@ class StatementResultPayloadModel(QSqlTableModel):
         if self.insertRecord(-1, record) and self.submitAll():
             return (True, f"Payload for {result_id} stored")
         err = self.lastError().text()
-        print(
-            f"ERROR: StatementResultPayloadModel.add_payload failed: {err}",
-            file=sys.stderr,
-        )
+        _logger.error(f"StatementResultPayloadModel.add_payload failed: {err}")
         return (False, err)
 
     def delete_payloads_for_results(self, result_ids: list[str]) -> tuple[bool, str]:
@@ -586,9 +586,8 @@ class StatementResultPayloadModel(QSqlTableModel):
             query.addBindValue(rid)
         results: dict[str, PdfResult] = {}
         if not query.exec():
-            print(
-                f"ERROR: load_payloads_for_batch query failed: {query.lastError().text()}",
-                file=sys.stderr,
+            _logger.error(
+                f"load_payloads_for_batch query failed: {query.lastError().text()}"
             )
             return results
         while query.next():
@@ -598,9 +597,8 @@ class StatementResultPayloadModel(QSqlTableModel):
                 obj = _json_to_pdf_result(str(text))
                 results[rid] = obj
             except Exception:  # noqa: BLE001
-                print(
-                    f"WARNING: Could not deserialise payload for result_id={rid} — skipping.",
-                    file=sys.stderr,
+                _logger.warning(
+                    f"Could not deserialise payload for result_id={rid} — skipping."
                 )
                 traceback.print_exc(file=sys.stderr)
         return results

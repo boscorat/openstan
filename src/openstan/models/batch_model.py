@@ -25,7 +25,7 @@ Status constants
 * ``BATCH_STATUS_COMMITTED`` = 2  (successfully committed to project.db)
 """
 
-import sys
+import logging
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
@@ -37,6 +37,8 @@ from openstan.models.statement_queue_model import _safe_hex_id
 
 if TYPE_CHECKING:
     from PySide6.QtSql import QSqlDatabase
+
+_logger = logging.getLogger(__name__)
 
 
 class BatchModel(QSqlTableModel):
@@ -114,7 +116,7 @@ class BatchModel(QSqlTableModel):
             self.db_updated.emit()
             return (True, f"Batch {batch_id} created")
         err = self.lastError().text()
-        print(f"ERROR: BatchModel.create_batch failed: {err}", file=sys.stderr)
+        _logger.error(f"BatchModel.create_batch failed: {err}")
         return (False, err)
 
     def delete_batch(self, batch_id: str) -> tuple[bool, str]:
@@ -144,7 +146,7 @@ class BatchModel(QSqlTableModel):
                 self.db_updated.emit()
                 return (True, f"Batch {batch_id} committed")
             err = self.lastError().text()
-            print(f"ERROR: BatchModel.commit_batch failed: {err}", file=sys.stderr)
+            _logger.error(f"BatchModel.commit_batch failed: {err}")
             return (False, err)
 
     # ---------------------------------------------------------------------------
