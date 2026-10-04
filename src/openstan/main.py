@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from pathlib import Path
@@ -250,6 +251,16 @@ class _ThemeManager(QObject):
 
 
 def main() -> None:
+    # Initialize logging BEFORE creating QApplication
+    from openstan.logging_manager import initialize as initialize_logging
+
+    initialize_logging()
+    _logger = logging.getLogger(__name__)
+    _logger.info(
+        f"openstan starting | Platform: {sys.platform} | "
+        f"Python: {sys.version.split()[0]}"
+    )
+
     qDebug("Starting openstan GUI application...")
 
     print(
@@ -569,6 +580,16 @@ class Stan(QMainWindow):
                 return
         if self.sessionID:
             self.stan_presenter.cleanup_before_exit()
+
+        # Cleanup logging: delete project logs older than 30 days
+        try:
+            from openstan.logging_manager import cleanup_old_project_logs
+
+            cleanup_old_project_logs()
+        except Exception:  # noqa: BLE001, S110
+            # Silently ignore cleanup errors on shutdown to avoid blocking close
+            pass
+
         if a0:
             a0.accept()
 
