@@ -82,7 +82,7 @@ The **View Logs** section provides access to application and project log files f
 | **View Application Log** button | Opens the log viewer displaying application-wide events and diagnostics from the current session. Shows startup information, menu actions, and general errors. Always enabled. |
 | **View Project Log** button | Opens the log viewer displaying project-specific operations, statement imports, parser diagnostics, and anonymisation details. Only enabled when a project is selected. |
 
-For detailed information about logs, including how to find log files manually and how to share logs with support, see the [Logging & Debugging Guide](../guides/logging.md).
+For detailed information about logs, including how to find log files manually and how to share logs with support, see the [Logging & Debugging Guide](logging.md).
 
 ---
 
@@ -95,13 +95,13 @@ The **Logging Settings** section controls diagnostic verbosity levels across the
 | **Enable verbose mode** checkbox | When checked, enables DEBUG-level logging (shows detailed per-field extraction, database operations, and library diagnostics from `bank_statement_parser` and `uk_bank_statement_anonymiser`). Useful for troubleshooting and when reporting issues to support. Changes apply immediately without restarting the app. |
 | **Help icon** (question mark) | Hover to see a tooltip explaining verbose mode and when to use it. |
 
-For more information, see the [Enabling Verbose Mode](../guides/logging.md#enabling-verbose-mode-debug-logging) section of the Logging guide.
+For more information, see the [Enabling Verbose Mode](logging.md#enabling-verbose-mode-debug-logging) section of the Logging guide.
 
 ---
 
 ## Related Topics
 
-- [Logging & Debugging Guide](../guides/logging.md) – View and share logs, enable verbose mode
+- [Logging & Debugging Guide](logging.md) – View and share logs, enable verbose mode
 - [Troubleshooting Guide](../troubleshooting.md) – Common issues and solutions
 - [Project Management](project-management.md) – Create and manage projects
 - [Anonymise PDF](anonymise.md) – Redact PDFs for safe sharing

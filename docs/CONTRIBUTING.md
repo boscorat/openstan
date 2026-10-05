@@ -15,7 +15,7 @@ Before submitting a documentation change, ensure:
 - [ ] Frontmatter includes a **page-specific `description` field** (150–160 characters)
 - [ ] `description` is unique and summarizes the page's value, not the site description
 - [ ] Page has a single **H1 heading** (the title)
-- [ ] Internal links use **relative paths** (e.g., `[link](../screens/export-data.md)`)
+- [ ] Internal links use **relative paths** (e.g., `[link](../guides/export-data.md)`)
 - [ ] All images have descriptive **alt text** and follow theme conventions (`#only-light` / `#only-dark` for theme-variant images)
 - [ ] Code examples are clear, tested, and include language hints (` ```python `)
 - [ ] Page is linked from at least one related page (internal linking for crawlability)
@@ -62,7 +62,7 @@ The `description` field is critical for SEO — it appears in:
 |------|---|---|
 | `/installation/` | "Install openstan on Windows, macOS, or Linux. Self-contained native installers — no Python required." | Clear value prop, search-friendly keywords (install, platforms) |
 | `/use-cases/self-assessment/` | "Import 12 months of bank statement PDFs, separate business from personal transactions, and export clean data for your Self Assessment tax return. 100% offline." | Action-focused, includes search intent (self-assessment, bank statements) |
-| `/screens/export-data/` | "Export committed transaction data from openstan to Excel, CSV, or JSON using configurable presets." | Specific outcome, formats listed |
+| `/guides/export-data/` | "Export committed transaction data from openstan to Excel, CSV, or JSON using configurable presets." | Specific outcome, formats listed |
 | `/quickstart/` | "Step-by-step guide to creating your first project, importing bank statement PDFs, and exporting transactions in openstan." | Begins with intent, covers workflow |
 
 ---
@@ -128,15 +128,15 @@ Internal links help Google crawl and understand your site structure. They also i
   - Use-case pages should link to relevant screen/feature pages
   - Screen pages should link back to use cases that use them
   - Sequential guides should link forward/backward
-- **Use relative paths:** `[Export Data](../screens/export-data.md)` — MkDocs converts to URLs automatically
-- **Avoid linking to the same page** (e.g., don't link to `/screens/export-data/` from within that same page)
+- **Use relative paths:** `[Export Data](../guides/export-data.md)` — MkDocs converts to URLs automatically
+- **Avoid linking to the same page** (e.g., don't link to `/guides/export-data/` from within that same page)
 
 **Example — Page Linking Map:**
 
 ```
 /use-cases/self-assessment/
-├─ Links to: /screens/export-data/ (to export for tax)
-├─ Links to: /screens/run-reports/ (to build custom reports)
+├─ Links to: /guides/export-data/ (to export for tax)
+├─ Links to: /guides/run-reports/ (to build custom reports)
 ├─ Links to: ../index.md (back to all use cases)
 └─ Links to: ../installation.md (getting started)
 ```
@@ -232,11 +232,11 @@ Use this when adding or updating a page:
 
 ### Excellent
 - `/use-cases/self-assessment.md` — specific description, clear sections, internal links
-- `/screens/export-data.md` — action-oriented, screenshots, step-by-step instructions
+- `/guides/export-data.md` — action-oriented, screenshots, step-by-step instructions
 - `/installation.md` — platform-specific guidance, linked from multiple places
 
 ### Needs Improvement
-- `docs/screens/about.md` — generic description, minimal content, no internal links
+- `docs/guides/about.md` — generic description, minimal content, no internal links
 - `docs/feedback.md` — single paragraph, missing H2 sections
 
 ---
@@ -247,15 +247,15 @@ Use this when adding or updating a page:
 
 1. **Create the file** in the appropriate directory:
    - Use-case guides → `docs/use-cases/`
-   - Feature/screen guides → `docs/screens/`
+   - Feature/screen guides → `docs/guides/`
    - General info → `docs/`
 
 2. **Add to `mkdocs.yml` nav:**
    ```yaml
    nav:
      - Screens:
-         - Export Data: screens/export-data.md
-         - New Feature: screens/new-feature.md  # ← add here
+         - Export Data: guides/export-data.md
+         - New Feature: guides/new-feature.md  # ← add here
    ```
 
 3. **Write with frontmatter:**
@@ -302,7 +302,7 @@ When updating documentation to reference logging features or writing new pages t
 
 - **Troubleshooting pages** should link to [Logging & Debugging Guide](guides/logging.md) for diagnostic steps
 - **Feature pages** (Import, Export, Anonymise) should mention checking the Project Log if issues occur
-- **Admin screen documentation** should explain View Logs and Logging Settings (already done in `screens/admin.md`)
+- **Admin screen documentation** should explain View Logs and Logging Settings (already done in `guides/admin.md`)
 
 ### Example Links
 
@@ -363,6 +363,6 @@ Refer to `AGENTS.md` for project architecture and tech stack details. This guide
 ## Related Topics
 
 - **[Community & Support](community.md)** – Connect with other contributors and users
-- **[About Screen](screens/about.md)** – Attribution and license information
+- **[About Screen](guides/about.md)** – Attribution and license information
 - **[Privacy Policy](privacy.md)** – Data handling standards
 - **[GitHub Repository](https://github.com/boscorat/openstan)** – View source code and open issues

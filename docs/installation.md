@@ -164,9 +164,9 @@ and the build process.
 
 ## Troubleshooting
 
-- **Linux users:** [Read the installation section](#linux-debian--ubuntu) for required Qt system libraries
+- **Linux users:** [Read the installation section](#linux-debian-ubuntu) for required Qt system libraries
 - **Code signing issues:** [See the Code Signing Policy](codesigning.md)
-- **App won't start or crashes:** See the [Troubleshooting Guide](troubleshooting.md#installation--startup) for diagnostics and solutions
+- **App won't start or crashes:** See the [Troubleshooting Guide](troubleshooting.md#installation-startup) for diagnostics and solutions
 - **Import failures:** See [Troubleshooting Guide](troubleshooting.md#importing-statements) for common issues
 - **Logs not showing:** See [Logging & Debugging Guide](guides/logging.md#troubleshooting-log-issues) for solutions
 - **Bank not supported:** [Request a new bank parser configuration](https://github.com/boscorat/bank_statement_parser/issues/new?template=new-bank-request.yml)

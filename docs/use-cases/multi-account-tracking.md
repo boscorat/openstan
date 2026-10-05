@@ -71,7 +71,7 @@ them into openstan, and everything stays on your machine.
 3. **Download statement PDFs** from each of your bank accounts
 4. **Import them all** — one file at a time or entire folders
 5. **Search and filter** — across all accounts at once
-6. **Export to Excel/CSV** — [Export guide](../screens/export-data.md)
+6. **Export to Excel/CSV** — [Export guide](../guides/export-data.md)
 
 ---
 
@@ -93,5 +93,5 @@ them into openstan, and everything stays on your machine.
 
 - **[Installation](../installation.md)** – Download and install openstan
 - **[Quick Start](../quickstart.md)** – 5-minute walkthrough
-- **[Project Management](../screens/project-management.md)** – Manage multiple accounts
-- **[Export Data](../screens/export-data.md)** – Export combined dataset to Excel
+- **[Project Management](../guides/project-management.md)** – Manage multiple accounts
+- **[Export Data](../guides/export-data.md)** – Export combined dataset to Excel

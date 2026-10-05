@@ -88,6 +88,7 @@ nav:
       - Run Reports: guides/run-reports.md
       - Anonymise PDFs: guides/anonymise.md
       - Logging & Debugging: guides/logging.md
+      - Admin Panel: guides/admin.md
   - Use Cases:
       - Overview: use-cases/index.md
       - Self Assessment: use-cases/self-assessment.md
@@ -99,7 +100,6 @@ nav:
       - Overview: redaction/index.md
       - Use Cases: redaction/use-cases.md
   - Reference:
-      - Admin Panel: screens/admin.md
       - Project Info: guides/project-info.md
       - About: guides/about.md
   - Troubleshooting: troubleshooting.md

@@ -88,4 +88,4 @@ to meet these obligations.
 - [Import Results](../guides/import-statements.md) – Import bank statement PDFs
 - [Export Data](../guides/export-data.md) – Export transactions to Excel, CSV, or JSON
 - [Privacy Policy](../privacy.md) – How openstan handles your financial data
-- [Admin Panel](../screens/admin.md) – Access the Anonymise tool from the Admin dialog
+- [Admin Panel](../guides/admin.md) – Access the Anonymise tool from the Admin dialog

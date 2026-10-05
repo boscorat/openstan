@@ -102,6 +102,6 @@ If you have any questions about this policy, please open an issue on the
 ## Related Topics
 
 - [Code Signing Policy](codesigning.md) – Security and trust verification
-- [About Screen](screens/about.md) – License and attribution information
+- [About Screen](guides/about.md) – License and attribution information
 - [Community & Support](community.md) – Report concerns or ask questions
-- [Anonymise PDF](screens/anonymise.md) – Redact statements for safe sharing
+- [Anonymise PDF](guides/anonymise.md) – Redact statements for safe sharing

@@ -104,5 +104,5 @@ signed with a compromised certificate, please report it to
 - [Privacy Policy](privacy.md) – Data handling and privacy practices
 - [Installation](installation.md) – Download and verify signed installers
 - [Community & Support](community.md) – Report security concerns or ask questions
-- [About Screen](screens/about.md) – License and trust information
+- [About Screen](guides/about.md) – License and trust information
 - [GitHub Repository](https://github.com/boscorat/openstan) – Inspect open build configuration

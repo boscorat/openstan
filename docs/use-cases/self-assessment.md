@@ -79,7 +79,7 @@ Self Assessment deductions:
 2. **Create a project** — [Quick Start guide](../quickstart.md)
 3. **Import your statements** — one file at a time or entire folders
 4. **Search and filter** — find the transactions you need
-5. **Export to Excel/CSV** — [Export guide](../screens/export-data.md)
+5. **Export to Excel/CSV** — [Export guide](../guides/export-data.md)
 6. **Hand to your accountant** or enter totals into your SA100
 
 ---
@@ -103,5 +103,5 @@ Self Assessment deductions:
 
 - **[Installation](../installation.md)** – Download and install openstan
 - **[Quick Start](../quickstart.md)** – 5-minute walkthrough to get started
-- **[Export Data](../screens/export-data.md)** – Export for your tax return
-- **[Run Reports](../screens/run-reports.md)** – Build custom tax reports
+- **[Export Data](../guides/export-data.md)** – Export for your tax return
+- **[Run Reports](../guides/run-reports.md)** – Build custom tax reports
