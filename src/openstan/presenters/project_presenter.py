@@ -77,9 +77,11 @@ def get_project_info(project_path: Path) -> ProjectInfo | None:
     except sqlite3.OperationalError, bsp.StatementError:
         # Mart tables not yet built, or project.db missing — return nothing.
         return None
-    except Exception:  # noqa: BLE001
+    except Exception:
         _logger.warning(
-            "Failed to query project datamart counts: project_path=%s", project_path
+            "Failed to query project datamart counts: project_path=%s",
+            project_path,
+            exc_info=True,
         )
         return None
 
@@ -189,9 +191,11 @@ def get_project_info(project_path: Path) -> ProjectInfo | None:
         )
         gap_count = gap_rows.height
 
-    except Exception:  # noqa: BLE001
+    except Exception:
         _logger.warning(
-            "Failed to build project summary data: project_path=%s", project_path
+            "Failed to build project summary data: project_path=%s",
+            project_path,
+            exc_info=True,
         )
         return None
 

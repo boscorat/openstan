@@ -210,6 +210,8 @@ class AdminPresenter(QObject):
                 StanErrorMessage(parent=self.view).showMessage(
                     f"Project record removed, but the folder could not be deleted:\n{project_location}"
                 )
+                # Refresh UI even though folder deletion failed — record is already removed from DB
+                self.refresh_combos()
                 return
 
         _logger.info(

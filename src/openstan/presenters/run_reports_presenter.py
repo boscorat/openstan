@@ -881,7 +881,7 @@ class RunReportsPresenter(QObject):
         )
         dlg.setDefaultButton(StanInfoMessage.StandardButton.Cancel)
         if dlg.exec() != StanInfoMessage.StandardButton.Yes:
-            _logger.info("Report deletion cancelled by user")
+            self._ctx_logger.info("Report deletion cancelled by user")
             return
         ok, _, msg = self.model.delete_report(path)
         if not ok:
