@@ -315,7 +315,7 @@ If disk space is critical, you can safely delete old session log files:
 
 ## Related Topics
 
-- [Admin Screen](../admin.md) — Access logging controls from the UI
+- [Admin Screen](admin.md) — Access logging controls from the UI
 - [Troubleshooting Guide](../troubleshooting.md) — Common issues and solutions
 - [Privacy Policy](../privacy.md) — How openstan handles your data
 - [Community & Support](../community.md) — Report issues or ask questions

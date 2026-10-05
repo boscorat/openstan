@@ -309,14 +309,14 @@ When updating documentation to reference logging features or writing new pages t
 ```markdown
 # Good: Linking to logging guide from a feature page
 If the import fails, enable verbose mode for detailed diagnostics. 
-See [Enabling Verbose Mode](../../guides/logging.md#enabling-verbose-mode-debug-logging).
+See [Enabling Verbose Mode](logging.md#enabling-verbose-mode-debug-logging).
 
 # Good: Linking from troubleshooting to logging guide
 For detailed information about logs, see the 
-[Logging & Debugging Guide](../../guides/logging.md).
+[Logging & Debugging Guide](guides/logging.md).
 
 # Good: Mentioning logging in an error description
-Check the [Project Log](../../guides/logging.md#viewing-logs) to see what went wrong.
+Check the [Project Log](guides/logging.md#viewing-logs) to see what went wrong.
 ```
 
 ### Screenshots & Logging UI
