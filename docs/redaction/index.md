@@ -12,7 +12,7 @@ openstan's **Anonymise PDF** tool lets you produce redacted copies of bank
 statement PDFs that are safe to share, while keeping the structure intact
 so parsers can still read them.
 
-[Anonymise a PDF Now](../screens/anonymise.md){ .md-button .md-button--primary }
+[Anonymise a PDF Now](../guides/anonymise.md){ .md-button .md-button--primary }
 [Use Cases](use-cases.md){ .md-button }
 
 ---
@@ -78,14 +78,14 @@ to meet these obligations.
 ## Learn More
 
 - [Use Cases](use-cases.md) — real-world scenarios for redaction
-- [Reference](../screens/anonymise.md) — full tool documentation
+- [Reference](../guides/anonymise.md) — full tool documentation
 
 ---
 
 ## Related Topics
 
-- [Anonymise PDF Reference](../screens/anonymise.md) – Full tool documentation and config guide
-- [Import Results](../screens/import-statements.md) – Import bank statement PDFs
-- [Export Data](../screens/export-data.md) – Export transactions to Excel, CSV, or JSON
+- [Anonymise PDF Reference](../guides/anonymise.md) – Full tool documentation and config guide
+- [Import Results](../guides/import-statements.md) – Import bank statement PDFs
+- [Export Data](../guides/export-data.md) – Export transactions to Excel, CSV, or JSON
 - [Privacy Policy](../privacy.md) – How openstan handles your financial data
 - [Admin Panel](../screens/admin.md) – Access the Anonymise tool from the Admin dialog

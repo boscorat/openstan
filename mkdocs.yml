@@ -79,9 +79,15 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Quick Start: quickstart.md
-  - Video Tutorials: video-tutorials.md
-  - Blog:
-      - blog/index.md
+  - Guides:
+      - Project Management: guides/project-management.md
+      - Import Statements: guides/import-statements.md
+      - Import Results: guides/import-results.md
+      - Export Data: guides/export-data.md
+      - Advanced Export: guides/advanced-export.md
+      - Run Reports: guides/run-reports.md
+      - Anonymise PDFs: guides/anonymise.md
+      - Logging & Debugging: guides/logging.md
   - Use Cases:
       - Overview: use-cases/index.md
       - Self Assessment: use-cases/self-assessment.md
@@ -89,20 +95,17 @@ nav:
       - Multi-Account Tracking: use-cases/multi-account-tracking.md
       - Small Business: use-cases/small-business.md
       - Conveyancing: use-cases/conveyancing.md
-  - Redaction & Anonymisation:
+  - Redaction:
       - Overview: redaction/index.md
       - Use Cases: redaction/use-cases.md
-      - Reference: screens/anonymise.md
-  - Screens:
-      - Project Management: screens/project-management.md
-      - Import Statements: screens/import-statements.md
-      - Import Results: screens/import-results.md
-      - Project Info: screens/project-info.md
-      - Export Data: screens/export-data.md
-      - Advanced Export: screens/advanced-export.md
-      - Run Reports: screens/run-reports.md
-      - Admin: screens/admin.md
-      - About: screens/about.md
+  - Reference:
+      - Admin Panel: screens/admin.md
+      - Project Info: guides/project-info.md
+      - About: guides/about.md
+  - Troubleshooting: troubleshooting.md
+  - Video Tutorials: video-tutorials.md
+  - Blog:
+      - blog/index.md
   - Changelog: https://github.com/boscorat/openstan/blob/main/CHANGELOG.md
   - Contributing: CONTRIBUTING.md
   - Privacy Policy: privacy.md

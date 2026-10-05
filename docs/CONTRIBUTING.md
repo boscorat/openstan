@@ -280,8 +280,69 @@ Use this when adding or updating a page:
    ```
 
 6. **Verify sitemap:**
-   - Run `uv run zensical build` and check `site/sitemap.xml`
-   - Your new page should appear with `<url>https://openstan.org/your-new-page/</url>`
+    - Run `uv run zensical build` and check `site/sitemap.xml`
+    - Your new page should appear with `<url>https://openstan.org/your-new-page/</url>`
+
+---
+
+## Documenting Logging Features
+
+When updating documentation to reference logging features or writing new pages that involve logging:
+
+### Page-Level Guidance
+
+- **Link to the Logging Guide:** When a page describes operations that generate logs, link to [`guides/logging.md`](guides/logging.md) for detailed information
+- **Use consistent terminology:**
+  - "App log" and "Project log" (capitalized, with article)
+  - "verbose mode" (lowercase) for the user-facing feature
+  - "DEBUG logging" for technical/developer context
+  - "normal mode" for INFO-level logging
+
+### Cross-Linking Strategy
+
+- **Troubleshooting pages** should link to [Logging & Debugging Guide](guides/logging.md) for diagnostic steps
+- **Feature pages** (Import, Export, Anonymise) should mention checking the Project Log if issues occur
+- **Admin screen documentation** should explain View Logs and Logging Settings (already done in `screens/admin.md`)
+
+### Example Links
+
+```markdown
+# Good: Linking to logging guide from a feature page
+If the import fails, enable verbose mode for detailed diagnostics. 
+See [Enabling Verbose Mode](../../guides/logging.md#enabling-verbose-mode-debug-logging).
+
+# Good: Linking from troubleshooting to logging guide
+For detailed information about logs, see the 
+[Logging & Debugging Guide](../../guides/logging.md).
+
+# Good: Mentioning logging in an error description
+Check the [Project Log](../../guides/logging.md#viewing-logs) to see what went wrong.
+```
+
+### Screenshots & Logging UI
+
+- If Admin dialog or log viewer UI changes, update screenshots in `docs/assets/screenshots/` and `docs/assets/screenshots/dark/`
+- Use theme-variant syntax: `#only-light` and `#only-dark` fragments
+- Include privacy warning context in any log viewer screenshots
+
+### Privacy Guidance
+
+When documenting features that produce logs containing user data:
+
+- Include a privacy notice: "Logs may contain sensitive bank account information"
+- Explain data redaction when sharing logs with support
+- Link to [Privacy Policy](privacy.md) where appropriate
+- Provide examples of safe redaction (see `guides/logging.md#sharing-logs-with-support`)
+
+### SEO Considerations
+
+Logging-related keywords to naturally include in descriptions and content:
+
+- "Debugging" (diagnostic/troubleshooting context)
+- "Verbose mode" (feature name)
+- "Logs" or "application logs" (file type)
+- "Troubleshooting" (use case)
+- "Support" (when to share logs)
 
 ---
 
