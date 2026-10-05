@@ -34,7 +34,7 @@ import bank_statement_parser as bsp
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
 
 from openstan.components import StanErrorMessage, StanInfoMessage
-from openstan.logging_adapter import ContextAdapter
+from openstan.logging_adapter import ContextAdapter, WorkflowStepTracker
 from openstan.models.statement_result_model import ResultRow
 
 if TYPE_CHECKING:
@@ -53,76 +53,7 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Multi-step cleanup workflow tracker
-# ---------------------------------------------------------------------------
-
-
-class CleanupStepTracker:
-    """Tracks multi-step cleanup workflows with explicit step logging.
-
-    Used during batch abandonment (delete_batch_from_db_and_payloads) to log
-    each step of the cleanup sequence with a visual format:
-
-        [batch=abc123|project=proj-xyz] Cleanup Batch [Step 1/3] Delete payloads...
-        [batch=abc123|project=proj-xyz] Cleanup Batch [✓ Step 1/3] Delete payloads
-
-    Steps are tracked with completion checkmarks (✓) or errors (✗).
-    """
-
-    def __init__(
-        self, workflow_name: str, total_steps: int, batch_id: str, project_id: str
-    ) -> None:
-        """Initialize the cleanup step tracker.
-
-        Parameters
-        ----------
-        workflow_name:
-            Human-readable workflow name (e.g., "Cleanup Batch")
-        total_steps:
-            Total number of steps in the workflow
-        batch_id:
-            Batch identifier for context
-        project_id:
-            Project identifier for context
-        """
-        self.workflow_name = workflow_name
-        self.total_steps = total_steps
-        self.batch_id = batch_id
-        self.project_id = project_id
-        self.current_step = 0
-        self._ctx_logger = ContextAdapter(
-            _logger, {"batch_id": batch_id, "project_id": project_id}
-        )
-
-    def start_step(self, description: str) -> None:
-        """Log the start of a step.
-
-        Parameters
-        ----------
-        description:
-            Description of the step action
-        """
-        self.current_step += 1
-        msg = f"{self.workflow_name} [Step {self.current_step}/{self.total_steps}] {description}"
-        self._ctx_logger.info(msg)
-
-    def complete_step(self) -> None:
-        """Log successful completion of the current step."""
-        msg = f"{self.workflow_name} [✓ Step {self.current_step}/{self.total_steps}]"
-        self._ctx_logger.info(msg)
-
-    def error_step(self, error_message: str) -> None:
-        """Log an error in the current step.
-
-        Parameters
-        ----------
-        error_message:
-            Description of the error
-        """
-        msg = f"{self.workflow_name} [✗ Step {self.current_step}/{self.total_steps}] {error_message}"
-        self._ctx_logger.error(msg)
-
+# WorkflowStepTracker is imported from openstan.logging_adapter for multi-step operations
 
 # ---------------------------------------------------------------------------
 # Background worker for the three-step commit sequence
@@ -612,7 +543,9 @@ class StatementResultPresenter(QObject):
         project_id = self._current_project_id
 
         if batch_id:
-            tracker = CleanupStepTracker("Abandon Batch", 5, batch_id, project_id or "")
+            tracker = WorkflowStepTracker(
+                "Abandon Batch", 5, project_id or "", batch_id=batch_id
+            )
 
             # 1. Collect result_ids so we can delete payloads too
             tracker.start_step("Collecting result IDs...")

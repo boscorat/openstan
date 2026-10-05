@@ -5,11 +5,16 @@ Tests core behavior of ContextAdapter including:
 - None value filtering (optional context)
 - Empty context handling
 - Message preservation
+
+Also tests WorkflowStepTracker:
+- Step counter increment
+- Message formatting for start/complete/error steps
+- Context injection with and without batch_id
 """
 
 import logging
 
-from openstan.logging_adapter import ContextAdapter
+from openstan.logging_adapter import ContextAdapter, WorkflowStepTracker
 
 
 class TestContextAdapterFormatting:
@@ -218,3 +223,180 @@ class TestContextAdapterMessagePreservation:
             adapter.info(f"The answer is {value}")
 
         assert "The answer is 42" in caplog.text
+
+
+class TestWorkflowStepTrackerBasic:
+    """Tests for WorkflowStepTracker basic functionality."""
+
+    def test_step_counter_increments(self, caplog):
+        """Step counter should increment from 1 to N."""
+        tracker = WorkflowStepTracker(
+            workflow_name="Test Workflow",
+            total_steps=3,
+            project_id="proj-123",
+        )
+
+        with caplog.at_level(logging.INFO):
+            tracker.start_step("Step 1 description")
+            assert tracker.current_step == 1
+            tracker.start_step("Step 2 description")
+            assert tracker.current_step == 2
+            tracker.start_step("Step 3 description")
+            assert tracker.current_step == 3
+
+    def test_start_step_message_format(self, caplog):
+        """start_step should log '[Step n/total] description'."""
+        tracker = WorkflowStepTracker(
+            workflow_name="Export Data",
+            total_steps=2,
+            project_id="proj-xyz",
+        )
+
+        with caplog.at_level(logging.INFO):
+            tracker.start_step("Fetching records")
+
+        assert "Export Data [Step 1/2] Fetching records" in caplog.text
+
+    def test_complete_step_message_format(self, caplog):
+        """complete_step should log '[✓ Step n/total]'."""
+        tracker = WorkflowStepTracker(
+            workflow_name="Export Data",
+            total_steps=2,
+            project_id="proj-xyz",
+        )
+
+        with caplog.at_level(logging.INFO):
+            tracker.start_step("Fetching records")
+            tracker.complete_step()
+
+        assert "Export Data [✓ Step 1/2]" in caplog.text
+
+    def test_error_step_message_format(self, caplog):
+        """error_step should log '[✗ Step n/total] error_message'."""
+        tracker = WorkflowStepTracker(
+            workflow_name="Export Data",
+            total_steps=2,
+            project_id="proj-xyz",
+        )
+
+        with caplog.at_level(logging.ERROR):
+            tracker.start_step("Fetching records")
+            tracker.error_step("Disk full")
+
+        assert "Export Data [✗ Step 1/2] Disk full" in caplog.text
+
+
+class TestWorkflowStepTrackerContext:
+    """Tests for WorkflowStepTracker context injection."""
+
+    def test_project_id_context_included(self, caplog):
+        """Project ID should be included in context prefix."""
+        tracker = WorkflowStepTracker(
+            workflow_name="Test",
+            total_steps=1,
+            project_id="proj-abc",
+        )
+
+        with caplog.at_level(logging.INFO):
+            tracker.start_step("Step description")
+
+        assert "[project_id=proj-abc]" in caplog.text
+
+    def test_batch_id_included_when_provided(self, caplog):
+        """Batch ID should be included in context when provided."""
+        tracker = WorkflowStepTracker(
+            workflow_name="Test",
+            total_steps=1,
+            project_id="proj-xyz",
+            batch_id="batch-123",
+        )
+
+        with caplog.at_level(logging.INFO):
+            tracker.start_step("Step description")
+
+        assert "[batch_id=batch-123|project_id=proj-xyz]" in caplog.text
+
+    def test_batch_id_omitted_when_none(self, caplog):
+        """Batch ID should be omitted from context when None."""
+        tracker = WorkflowStepTracker(
+            workflow_name="Test",
+            total_steps=1,
+            project_id="proj-xyz",
+            batch_id=None,
+        )
+
+        with caplog.at_level(logging.INFO):
+            tracker.start_step("Step description")
+
+        # Should only have project_id, no batch_id in the output
+        assert "[project_id=proj-xyz]" in caplog.text
+        assert "batch_id" not in caplog.text
+
+
+class TestWorkflowStepTrackerMultipleSteps:
+    """Tests for WorkflowStepTracker with multiple steps."""
+
+    def test_full_workflow_sequence(self, caplog):
+        """Full workflow: start, complete, start, complete, start, error."""
+        tracker = WorkflowStepTracker(
+            workflow_name="Anonymise Batch",
+            total_steps=3,
+            project_id="proj-123",
+            batch_id="batch-456",
+        )
+
+        with caplog.at_level(logging.INFO):
+            tracker.start_step("Loading config")
+            tracker.complete_step()
+
+            tracker.start_step("Processing files")
+            tracker.complete_step()
+
+            tracker.start_step("Saving results")
+
+        # Verify step counter progressed correctly
+        assert tracker.current_step == 3
+        assert "Anonymise Batch [Step 1/3] Loading config" in caplog.text
+        assert "Anonymise Batch [✓ Step 1/3]" in caplog.text
+        assert "Anonymise Batch [Step 2/3] Processing files" in caplog.text
+        assert "Anonymise Batch [✓ Step 2/3]" in caplog.text
+        assert "Anonymise Batch [Step 3/3] Saving results" in caplog.text
+
+    def test_error_recovery_possible(self, caplog):
+        """After error_step, tracker can still continue to next step."""
+        tracker = WorkflowStepTracker(
+            workflow_name="Import",
+            total_steps=3,
+            project_id="proj-xyz",
+        )
+
+        with caplog.at_level(logging.INFO):
+            tracker.start_step("Step 1")
+            tracker.error_step("Retrying...")
+            tracker.start_step("Step 2 (retry)")
+            tracker.complete_step()
+
+        # Should be able to progress to step 2 after error
+        assert tracker.current_step == 2
+        assert "Import [✗ Step 1/3] Retrying..." in caplog.text
+        assert "Import [Step 2/3] Step 2 (retry)" in caplog.text
+
+    def test_different_workflow_names(self, caplog):
+        """Different workflow names should be preserved in messages."""
+        workflows = [
+            ("Export Data", 2),
+            ("Anonymise PDF", 3),
+            ("Load Reports", 2),
+        ]
+
+        with caplog.at_level(logging.INFO):
+            for name, steps in workflows:
+                tracker = WorkflowStepTracker(
+                    workflow_name=name,
+                    total_steps=steps,
+                    project_id="proj-test",
+                )
+                tracker.start_step("Step 1")
+
+        for name, _ in workflows:
+            assert f"{name} [Step 1/" in caplog.text

@@ -23,6 +23,7 @@ Architecture notes
 
 from __future__ import annotations
 
+import logging
 import traceback
 from datetime import date as _date
 from pathlib import Path
@@ -42,6 +43,7 @@ from PySide6.QtCore import (
 )
 
 from openstan.components import StanErrorMessage, StanInfoMessage
+from openstan.logging_adapter import ContextAdapter
 from openstan.models.report_model import (
     DERIVED_DATE_COLUMNS,
     FLAT_TRANSACTION_COLUMNS,
@@ -58,6 +60,8 @@ if TYPE_CHECKING:
     from PySide6.QtWidgets import QListWidget
 
 from PySide6.QtWidgets import QFileDialog, QMessageBox
+
+_logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Background worker
@@ -83,8 +87,8 @@ class _ReportWorker(QRunnable):
         try:
             df: pl.DataFrame = self.fn()
             self.signals.finished.emit(df, df.height)
-        except Exception as e:  # noqa: BLE001
-            traceback.print_exc()
+        except Exception as e:
+            _logger.warning("Report query failed", exc_info=True)
             self.signals.error.emit(str(e))
 
 
@@ -111,8 +115,8 @@ class _FetchWorker(QRunnable):
     def run(self) -> None:
         try:
             self.signals.finished.emit(self.fn())
-        except Exception as e:  # noqa: BLE001
-            traceback.print_exc()
+        except Exception as e:
+            _logger.warning("Failed to fetch distinct values", exc_info=True)
             self.signals.error.emit(str(e))
 
 
@@ -140,8 +144,8 @@ class _ReportExportWorker(QRunnable):
         try:
             self.fn()
             self.signals.finished.emit()
-        except Exception as e:  # noqa: BLE001
-            traceback.print_exc()
+        except Exception as e:
+            _logger.warning("Report export failed", exc_info=True)
             self.signals.error.emit(str(e))
 
 
@@ -194,6 +198,9 @@ class RunReportsPresenter(QObject):
 
         # Active project path — set by StanPresenter.
         self.project_path: Path | None = None
+
+        # Create context adapter for project-level logging (will have project_id after load_project)
+        self._ctx_logger = ContextAdapter(_logger, {"project_id": None})
 
         # Track the path of the currently loaded report (None = unsaved new).
         self._current_report_path: Path | None = None
@@ -282,6 +289,9 @@ class RunReportsPresenter(QObject):
     def load_project(self, project_path: Path) -> None:
         """Called by ``StanPresenter`` when the active project changes."""
         self.project_path = project_path
+        # Update context adapter with project path
+        self._ctx_logger = ContextAdapter(_logger, {"project_id": str(project_path)})
+        self._ctx_logger.info("Run Reports panel loaded for project")
         self._current_report_path = None
         self._refresh_saved_reports_combo()
         self._clear_builder()
@@ -812,23 +822,28 @@ class RunReportsPresenter(QObject):
     @Slot()
     def _save_report(self) -> None:
         if self.project_path is None:
+            _logger.warning("Save report requested but no project is active")
             self._error_dialog.showMessage(
                 "No project is currently loaded. Cannot save a report."
             )
             return
         title = self._read_title()
         if not title:
+            _logger.warning("Save report attempted with no title")
             self._error_dialog.showMessage("Please enter a report title before saving.")
             return
         defn = self._read_definition()
         filename = _slugify(title)
+        self._ctx_logger.info("Saving report: title=%s, filename=%s", title, filename)
         ok, path, msg = self.model.save_report(self.project_path, filename, defn)
         if ok:
             self._current_report_path = path
+            self._ctx_logger.info("Report saved successfully: path=%s", path)
             # Refresh combo and select the just-saved report
             self._refresh_saved_reports_combo()
             self._select_combo_by_path(path)
         else:
+            self._ctx_logger.warning("Failed to save report: %s", msg)
             self._error_dialog.showMessage(msg)
 
     @Slot()
@@ -837,13 +852,18 @@ class RunReportsPresenter(QObject):
         path: Path | None = combo.currentData(Qt.ItemDataRole.UserRole)
         if path is None:
             return
+        self._ctx_logger.info("Loading report: path=%s", path)
         ok, defn, msg = self.model.load_report(path)
         if ok:
             self._current_report_path = path
+            self._ctx_logger.info("Report loaded successfully: path=%s", path)
             self._apply_definition(defn)
             self.view.builder.set_builder_visible(True)
             self._run_preview()
         else:
+            self._ctx_logger.warning(
+                "Failed to load report: path=%s, error=%s", path, msg
+            )
             self._error_dialog.showMessage(msg)
 
     @Slot()
@@ -852,6 +872,8 @@ class RunReportsPresenter(QObject):
         path: Path | None = combo.currentData(Qt.ItemDataRole.UserRole)
         if path is None:
             return
+        report_name = combo.currentText()
+        self._ctx_logger.info("User initiated report deletion: report=%s", report_name)
         dlg = StanInfoMessage(self.view)
         dlg.setText(f"Delete report '{combo.currentText()}'?")
         dlg.setStandardButtons(
@@ -859,11 +881,16 @@ class RunReportsPresenter(QObject):
         )
         dlg.setDefaultButton(StanInfoMessage.StandardButton.Cancel)
         if dlg.exec() != StanInfoMessage.StandardButton.Yes:
+            self._ctx_logger.info("Report deletion cancelled by user")
             return
         ok, _, msg = self.model.delete_report(path)
         if not ok:
+            self._ctx_logger.warning(
+                "Failed to delete report: path=%s, error=%s", path, msg
+            )
             self._error_dialog.showMessage(msg)
         else:
+            self._ctx_logger.info("Report successfully deleted: report=%s", report_name)
             if self._current_report_path == path:
                 self._current_report_path = None
 

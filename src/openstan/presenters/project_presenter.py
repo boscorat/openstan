@@ -1,6 +1,5 @@
+import logging
 import sqlite3
-import sys
-import traceback
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +17,8 @@ if TYPE_CHECKING:
         ProjectView,
         ProjectWelcomeView,
     )
+
+_logger = logging.getLogger(__name__)
 
 
 def _fmt_date(s: str) -> str:
@@ -76,8 +77,12 @@ def get_project_info(project_path: Path) -> ProjectInfo | None:
     except sqlite3.OperationalError, bsp.StatementError:
         # Mart tables not yet built, or project.db missing — return nothing.
         return None
-    except Exception:  # noqa: BLE001
-        traceback.print_exc(file=sys.stderr)
+    except Exception:
+        _logger.warning(
+            "Failed to query project datamart counts: project_path=%s",
+            project_path,
+            exc_info=True,
+        )
         return None
 
     if tx_count == 0 and stmt_count == 0 and acc_count == 0:
@@ -186,8 +191,12 @@ def get_project_info(project_path: Path) -> ProjectInfo | None:
         )
         gap_count = gap_rows.height
 
-    except Exception:  # noqa: BLE001
-        traceback.print_exc(file=sys.stderr)
+    except Exception:
+        _logger.warning(
+            "Failed to build project summary data: project_path=%s",
+            project_path,
+            exc_info=True,
+        )
         return None
 
     return ProjectInfo(
@@ -374,19 +383,34 @@ class ProjectPresenter(QObject):
         full_path: Path | None = wizard.full_project_path
 
         if full_path is None:
+            _logger.warning("New project creation cancelled: no folder path set")
             wizard.failure_dialog.showMessage("No project folder path set.")
             return False
+
+        _logger.info(
+            "User creating new project: project_name=%s, path=%s",
+            project_name,
+            full_path,
+        )
 
         # Create the root project folder first (bsp requires it to exist before scaffolding)
         try:
             full_path.mkdir(parents=True, exist_ok=False)
         except FileExistsError:
+            _logger.warning(
+                "New project creation failed: folder already exists: path=%s", full_path
+            )
             error = f"Folder '{full_path}' already exists. Choose a different name or location."
             wizard.back()
             wizard.failure_dialog.showMessage(error)
             return False
         except OSError as e:
-            error = f"Failed to create project folder: {e}"
+            _logger.warning(
+                "New project creation failed: cannot create folder: path=%s",
+                full_path,
+                exc_info=True,
+            )
+            error = f"Failed to create project folder: {e!s}"
             wizard.back()
             wizard.failure_dialog.showMessage(error)
             return False
@@ -394,13 +418,18 @@ class ProjectPresenter(QObject):
         # bsp scaffolds subfolders, database and default config automatically
         try:
             bsp.validate_or_initialise_project(full_path)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             # Clean up the folder we just created so we don't leave a partial project
+            _logger.warning(
+                "New project creation failed: bsp initialization error: path=%s",
+                full_path,
+                exc_info=True,
+            )
             try:
                 full_path.rmdir()
             except OSError:
                 pass
-            error = f"Failed to initialise project: {e}"
+            error = f"Failed to initialise project: {e!s}"
             wizard.back()
             wizard.failure_dialog.showMessage(error)
             return False
@@ -411,9 +440,16 @@ class ProjectPresenter(QObject):
             str(full_path),
             self.sessionID,
         )
-        return self._finalise_project_add(
+        result = self._finalise_project_add(
             new_pro, project_name, full_path, wizard, "create"
         )
+        if result:
+            _logger.info(
+                "New project successfully created: project_name=%s, path=%s",
+                project_name,
+                full_path,
+            )
+        return result
 
     # ---------------------------------------------------------------------------
     # Existing project
@@ -435,14 +471,26 @@ class ProjectPresenter(QObject):
         full_path: Path | None = wizard.full_project_path
 
         if full_path is None:
+            _logger.warning("Existing project connection cancelled: no folder selected")
             wizard.failure_dialog.showMessage("No project folder selected.")
             return False
+
+        _logger.info(
+            "User adding existing project: project_name=%s, path=%s",
+            project_name,
+            full_path,
+        )
 
         # Validate the selected folder is a usable bsp project (may scaffold missing pieces)
         try:
             bsp.validate_or_initialise_project(full_path)
-        except Exception as e:  # noqa: BLE001
-            error = f"The selected folder does not appear to be a valid project: {e}"
+        except Exception as e:
+            _logger.warning(
+                "Existing project connection failed: invalid or corrupt project folder: path=%s",
+                full_path,
+                exc_info=True,
+            )
+            error = f"The selected folder does not appear to be a valid project: {e!s}"
             wizard.back()
             wizard.failure_dialog.showMessage(error)
             return False
@@ -453,9 +501,16 @@ class ProjectPresenter(QObject):
             str(full_path),
             self.sessionID,
         )
-        return self._finalise_project_add(
+        result = self._finalise_project_add(
             new_pro, project_name, full_path, wizard, "add"
         )
+        if result:
+            _logger.info(
+                "Existing project successfully added: project_name=%s, path=%s",
+                project_name,
+                full_path,
+            )
+        return result
 
     # ---------------------------------------------------------------------------
     # Shared folder selection and label update

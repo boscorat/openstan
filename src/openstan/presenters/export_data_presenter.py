@@ -11,6 +11,7 @@ the active project changes — consistent with the pattern used by
 ``StatementQueuePresenter`` and ``StatementResultPresenter``.
 """
 
+import logging
 import os
 from collections.abc import Callable
 from pathlib import Path
@@ -22,6 +23,7 @@ from PySide6.QtCore import QObject, Signal, Slot
 from PySide6.QtWidgets import QFileDialog
 
 from openstan.components import StanErrorMessage
+from openstan.logging_adapter import ContextAdapter
 from openstan.presenters.workers import ExportWorker
 from openstan.views.pending_batch_dialog import PendingBatchDialog
 
@@ -30,6 +32,8 @@ if TYPE_CHECKING:
 
     from openstan.models.batch_model import BatchModel
     from openstan.views.export_data_view import ExportDataView
+
+_logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -70,7 +74,10 @@ class ExportDataPresenter(QObject):
 
         # Set by StanPresenter on every project selection change.
         self.project_path: Path | None = None
-        self.project_id: str | None = None
+        self._project_id: str | None = None
+
+        # Create context adapter for project-level logging
+        self._ctx_logger = ContextAdapter(_logger, {"project_id": None})
 
         # Custom folder selected by the user (None = use BSP defaults).
         self._custom_folder: Path | None = None
@@ -87,6 +94,19 @@ class ExportDataPresenter(QObject):
         self.view.button_json.clicked.connect(self._on_json)
         self.view.button_browse_folder.clicked.connect(self._on_browse_folder)
         self.view.button_reset_folder.clicked.connect(self._on_reset_folder)
+
+    @property
+    def project_id(self) -> str | None:
+        """Return the current project ID."""
+        return self._project_id
+
+    @project_id.setter
+    def project_id(self, value: str | None) -> None:
+        """Set the project ID and update context logger."""
+        self._project_id = value
+        self._ctx_logger = ContextAdapter(_logger, {"project_id": value})
+        if value:
+            self._ctx_logger.info("Export Data panel loaded for project")
 
     # ---------------------------------------------------------------------------
     # Helpers
@@ -264,9 +284,11 @@ class ExportDataPresenter(QObject):
         """Resolve params, build the correct BSP worker, and start the export."""
         project_path = self._resolve_project_path()
         if project_path is None:
+            _logger.warning("Export requested but no project path available")
             return
         params = self._read_export_params()
         if params is None:
+            _logger.warning("Export requested but could not read export parameters")
             return
         output_folder = self._output_folder_for_format(fmt, params)
 
@@ -275,6 +297,13 @@ class ExportDataPresenter(QObject):
         batch_id: str | None = params["batch_id"]
         filename_timestamp: bool = params["filename_timestamp"]
         custom_folder: Path | None = params["folder"]
+
+        self._ctx_logger.info(
+            "Starting export: format=%s, type=%s, batch_id=%s",
+            fmt,
+            export_type,
+            batch_id,
+        )
 
         if fmt == "excel":
             # export_excel takes ``path`` (a file) rather than ``folder``.
@@ -328,6 +357,11 @@ class ExportDataPresenter(QObject):
 
     @Slot(str, str)
     def _on_export_finished(self, description: str, output_folder: str) -> None:
+        self._ctx_logger.info(
+            "Export completed successfully: description=%s, folder=%s",
+            description,
+            output_folder,
+        )
         self.view.progress_bar.setVisible(False)
         self._set_buttons_enabled(True)
         self.view.label_status.setText(
@@ -344,6 +378,7 @@ class ExportDataPresenter(QObject):
 
     @Slot(str)
     def _on_export_error(self, message: str) -> None:
+        self._ctx_logger.warning("Export failed: %s", message)
         self.view.progress_bar.setVisible(False)
         self._set_buttons_enabled(True)
         self.view.label_status.setText("")

@@ -16,6 +16,7 @@ file manager; on failure a modal error dialog is shown.
 The project path is pushed in by ``StanPresenter`` via ``load_project()``.
 """
 
+import logging
 import os
 import tomllib
 import traceback
@@ -32,6 +33,7 @@ from PySide6.QtCore import QObject, QRunnable, Signal, Slot
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from openstan.components import StanErrorMessage
+from openstan.logging_adapter import ContextAdapter
 from openstan.presenters.workers import ExportWorker
 from openstan.views.advanced_export_view import make_spec_button
 
@@ -39,6 +41,8 @@ if TYPE_CHECKING:
     from PySide6.QtCore import QThreadPool
 
     from openstan.views.advanced_export_view import AdvancedExportView
+
+_logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -95,7 +99,8 @@ class _DatamartLoadWorker(QRunnable):
                 .collect()
             )
             self.signals.finished.emit(accounts_df, statements_df)
-        except Exception:  # noqa: BLE001
+        except Exception:
+            _logger.warning("Failed to load datamart tables", exc_info=True)
             self.signals.error.emit(traceback.format_exc())
 
 
@@ -123,6 +128,9 @@ class AdvancedExportPresenter(QObject):
 
         self.project_path: Path | None = None
 
+        # Create context adapter for project-level logging
+        self._ctx_logger = ContextAdapter(_logger, {"project_id": None})
+
         # Full statements DataFrame cached after load so the account combo
         # can filter it without another DB query.
         self._all_statements: pl.DataFrame | None = None
@@ -145,6 +153,9 @@ class AdvancedExportPresenter(QObject):
         require a filesystem scan, not a DB query).
         """
         self.project_path = project_path
+        # Update context adapter with project path
+        self._ctx_logger = ContextAdapter(_logger, {"project_id": str(project_path)})
+        self._ctx_logger.info("Advanced Export panel loaded for project")
         self._all_statements = None
 
         # Clear combo boxes while loading
@@ -199,6 +210,7 @@ class AdvancedExportPresenter(QObject):
     @Slot(str)
     def _on_datamart_error(self, message: str) -> None:
         """Handle a failed datamart query (e.g. project.db not yet built)."""
+        self._ctx_logger.warning("Failed to load datamart: %s", message)
         self.view.combo_account.blockSignals(True)
         self.view.combo_account.clear()
         self.view.combo_account.addItem("(no data)")
@@ -303,6 +315,7 @@ class AdvancedExportPresenter(QObject):
     def _on_spec_clicked(self, spec_path: Path) -> None:
         """Run ``export_spec`` for the selected spec file."""
         if self.project_path is None:
+            _logger.warning("Export spec clicked but no project path available")
             self._error_dialog.showMessage(
                 "No project is currently selected. Please select a project before exporting."
             )
@@ -312,6 +325,13 @@ class AdvancedExportPresenter(QObject):
 
         project_path = self.project_path
         output_folder = project_path / "export" / spec_path.stem
+
+        self._ctx_logger.info(
+            "Starting spec export: spec=%s, account=%s, statement=%s",
+            spec_path.stem,
+            params.get("account_key"),
+            params.get("statement_key"),
+        )
 
         worker = ExportWorker(
             fn=lambda: bsp_export_spec(
@@ -390,6 +410,11 @@ class AdvancedExportPresenter(QObject):
 
     @Slot(str, str)
     def _on_export_finished(self, description: str, output_folder: str) -> None:
+        self._ctx_logger.info(
+            "Advanced export completed successfully: description=%s, folder=%s",
+            description,
+            output_folder,
+        )
         self.view.progress_bar.setVisible(False)
         self._set_spec_buttons_enabled(True)
         self.view.label_status.setText(
@@ -406,6 +431,7 @@ class AdvancedExportPresenter(QObject):
 
     @Slot(str)
     def _on_export_error(self, message: str) -> None:
+        self._ctx_logger.warning("Advanced export failed: %s", message)
         self.view.progress_bar.setVisible(False)
         self._set_spec_buttons_enabled(True)
         self.view.label_status.setText("")
