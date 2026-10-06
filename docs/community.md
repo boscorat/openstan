@@ -1,5 +1,5 @@
 ---
-description: "Get help, stay updated, and connect with the openstan community. Find support, request new banks, and follow us on social media."
+description: "Get help with openstan, request new bank support, stay updated on releases, and connect with the community on GitHub Discussions, LinkedIn, and Bluesky."
 ---
 
 # Community & Support
@@ -84,3 +84,13 @@ responses. Our target is:
 
 If something is urgent, tag it as such in your discussion title and we will do
 our best to prioritise.
+
+---
+
+## See Also
+
+- [Troubleshooting Guide](troubleshooting.md) – Solve common issues before posting
+- [Feedback](feedback.md) – Share your experience or request a feature
+- [Video Tutorials](video-tutorials.md) – Step-by-step walkthroughs
+- [Installation](installation.md) – Download and install openstan
+- [Privacy Policy](privacy.md) – How openstan handles your data

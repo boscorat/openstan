@@ -1,5 +1,5 @@
 ---
-description: "Admin panel for project operations, logging controls, and diagnostics. View logs, enable verbose mode, delete projects, and reset the application database."
+description: "Admin panel for project operations, logging, and diagnostics in openstan. View logs, enable verbose mode, delete or remove projects, and reset the app database."
 ---
 
 # Admin

@@ -58,7 +58,7 @@ plugins:
   #     priority: 0.8
   - blog:
       blog_dir: blog
-      post_dir: blog
+      post_dir: posts
       post_url_format: "{slug}"
       post_date_format: medium
       post_excerpt: optional

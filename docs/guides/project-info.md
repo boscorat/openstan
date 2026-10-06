@@ -1,5 +1,5 @@
 ---
-description: "View project summary statistics, per-account breakdowns, and statement coverage gaps in openstan."
+description: "View summary stats in openstan: total transactions, statement count, per-account breakdowns, date range, and automatically detected statement coverage gaps."
 ---
 
 # Project Info

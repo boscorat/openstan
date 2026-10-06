@@ -4,6 +4,10 @@ description: "View application and project logs, enable verbose mode for debuggi
 
 # Logging & Debugging
 
+openstan writes two log files — an App Log and a Project Log — that capture events, errors, and diagnostics as you use the application. This guide explains how to view them, how to enable verbose (DEBUG) mode for detailed diagnostics, and how to share logs safely with support.
+
+---
+
 ## What are logs?
 
 Logs are records of what happens inside the application as you use it. They capture important events like:
