@@ -7,7 +7,7 @@ controls for refreshing and copying log contents.
 from pathlib import Path
 
 from PySide6.QtCore import Slot
-from PySide6.QtGui import QClipboard, QTextCursor
+from PySide6.QtGui import QClipboard, QFont, QTextCursor
 from PySide6.QtWidgets import QApplication, QPlainTextEdit, QVBoxLayout
 
 from openstan.components import (
@@ -69,9 +69,10 @@ class LogViewerDialog(StanDialog):
         # Log display (read-only)
         self._log_display = QPlainTextEdit()
         self._log_display.setReadOnly(True)
-        self._log_display.setFont(
-            self._log_display.font()  # Keep default monospace
-        )
+        # Set explicit monospace font for log readability
+        monospace_font = QFont()
+        monospace_font.setStyleHint(QFont.StyleHint.Monospace)
+        self._log_display.setFont(monospace_font)
 
         # Truncation notice (hidden by default)
         self._truncation_label = StanMutedLabel()
