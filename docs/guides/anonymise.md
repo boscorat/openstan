@@ -1,5 +1,5 @@
 ---
-description: "Redact bank statement PDFs for safe sharing using openstan. Scramble text, force replacements, preserve structural phrases — single file or batch folder mode.'s Anonymise tool. Scramble text, force replacements, preserve structural phrases — process a single file or an entire folder in batch.'s Anonymise tool. Scramble text, force replacements, and preserve structural phrases — single file or batch."
+description: "Redact bank statement PDFs for safe sharing using openstan. Scramble text, force replacements, preserve structural phrases — single file or batch folder mode."
 ---
 
 # Anonymise PDF
