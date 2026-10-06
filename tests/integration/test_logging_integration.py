@@ -8,16 +8,13 @@ Tests cover the complete logging workflow:
 - Verbosity cascade to library loggers
 - UI state synchronization (button enabled/disabled states)
 - QSettings persistence across app lifecycle
-- Privacy notice display
-- Large file truncation with notice
 - Log rotation at 10 MB boundary
 - Context switching between app and project logs
 
 Test Strategy:
 - Use real file I/O (temporary directories) for realism
-- Mock large file creation (avoid actual 10 MB writes) for speed
 - Test actual logger level changes via logging module inspection
-- Verify QSettings persistence with temporary settings instances
+- Isolate QSettings via patching to separate test org/app
 """
 
 import logging
@@ -25,12 +22,17 @@ import logging.handlers
 import tempfile
 from collections.abc import Generator
 from pathlib import Path
+from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
 from PySide6.QtCore import QSettings
 
 from openstan import logging_manager
+
+# Test isolation constants
+_TEST_ORG = "openstan-test"
+_TEST_APP = "openstan-test"
 
 # ============================================================================
 # Fixtures
@@ -53,21 +55,31 @@ def temp_project_root() -> Generator[Path]:
 
 @pytest.fixture
 def cleanup_qsettings() -> Generator[None]:
-    """Clean up QSettings before and after each test.
+    """Patch QSettings to use test org/app, isolating from production.
 
-    Uses the real QSettings but clears the specific logging key to avoid
-    polluting production settings with test data.
+    This fixture patches QSettings in logging_manager to use a test instance
+    that writes to a separate test org/app (_TEST_ORG, _TEST_APP) instead of
+    production settings. This ensures tests never write to or read from the
+    developer's real production settings store.
+
+    The mock returns a real QSettings instance configured with test org/app.
     """
-    settings = QSettings("openstan", "openstan")
-    # Save original value if it exists
-    original_verbosity = settings.value("logging/verbosity", None)
-    settings.remove("logging/verbosity")
-    yield
-    # Restore original value
-    if original_verbosity is not None:
-        settings.setValue("logging/verbosity", original_verbosity)
-    else:
-        settings.remove("logging/verbosity")
+    test_settings = QSettings(_TEST_ORG, _TEST_APP)
+    test_settings.clear()  # Start clean
+
+    # Patch both in logging_manager and in this module (for test code that
+    # creates QSettings directly)
+    with (
+        patch("openstan.logging_manager.QSettings", return_value=test_settings),
+        patch(
+            "tests.integration.test_logging_integration.QSettings",
+            return_value=test_settings,
+        ),
+    ):
+        yield
+
+    # Cleanup after test
+    test_settings.clear()
 
 
 @pytest.fixture
@@ -374,14 +386,6 @@ class TestUIStateSync:
         assert project_log_path.is_file()
 
 
-class TestLargeFileHandling:
-    """Tests for handling large log files."""
-
-
-class TestPrivacyNotice:
-    """Tests for privacy notice in log viewer."""
-
-
 class TestSessionBasedLogIsolation:
     """Tests for session-based log isolation."""
 
@@ -466,8 +470,6 @@ Test Coverage Summary:
 ✓ Verbosity persistence to QSettings
 ✓ Log rotation configuration (10 MB max, 5 backups)
 ✓ UI state synchronization
-✓ Large file handling with truncation
-✓ Privacy notice support
 ✓ Session-based log isolation
 ✓ Complete multi-session workflow
 
