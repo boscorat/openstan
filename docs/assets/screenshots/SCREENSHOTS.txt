@@ -1,3 +1,7 @@
+---
+robots: noindex
+---
+
 # Screenshots
 
 Screenshots in this folder are **manually captured** and committed to the
