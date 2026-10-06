@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QDialogButtonBox, QVBoxLayout
+from PySide6.QtWidgets import QDialogButtonBox, QHBoxLayout, QVBoxLayout
 
 from openstan.components import (
     Qt,
@@ -7,6 +7,7 @@ from openstan.components import (
     StanComboBox,
     StanDialog,
     StanFrame,
+    StanHelpIcon,
     StanLabel,
 )
 
@@ -14,7 +15,7 @@ from openstan.components import (
 class AdminView(StanDialog):
     """Modeless admin dialog — opened by double-clicking the footer.
 
-    Contains five independent sections for destructive operations and configuration.
+    Contains seven independent sections for destructive operations and configuration.
     All action buttons require a confirmation step before executing.
     Business logic lives entirely in AdminPresenter.
 
@@ -25,7 +26,7 @@ class AdminView(StanDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Admin")
-        self.resize(650, 750)
+        self.resize(700, 850)
         self.make_scrollable()
 
         outer = QVBoxLayout()
@@ -179,6 +180,78 @@ class AdminView(StanDialog):
         section_privacy.setLayout(layout_privacy)
 
         # ------------------------------------------------------------------
+        # Section 6 — View Logs
+        # ------------------------------------------------------------------
+        section_logs = StanFrame()
+        layout_logs = QVBoxLayout()
+        layout_logs.setSpacing(8)
+
+        lbl_logs_title = StanLabel("##### View Logs")
+        lbl_logs_info = StanLabel(
+            "Display the current log file. App logs contain startup info and diagnostics. "
+            "Project logs contain bank parser and anonymiser diagnostics."
+        )
+        lbl_logs_info.setWordWrap(True)
+
+        self.button_view_app_log = StanButton("View Application Log")
+        self.button_view_app_log.setToolTip(
+            "Open the application log file containing startup and diagnostic information"
+        )
+
+        self.button_view_project_log = StanButton("View Project Log")
+        self.button_view_project_log.setToolTip(
+            "Open the project log file containing parser and anonymiser diagnostics (disabled if no project selected)"
+        )
+        self.button_view_project_log.setEnabled(False)
+
+        layout_logs.addWidget(lbl_logs_title)
+        layout_logs.addWidget(lbl_logs_info)
+        layout_logs.addWidget(
+            self.button_view_app_log, alignment=Qt.AlignmentFlag.AlignLeft
+        )
+        layout_logs.addWidget(
+            self.button_view_project_log, alignment=Qt.AlignmentFlag.AlignLeft
+        )
+        section_logs.setLayout(layout_logs)
+
+        # ------------------------------------------------------------------
+        # Section 7 — Logging Settings
+        # ------------------------------------------------------------------
+        section_logging = StanFrame()
+        layout_logging = QVBoxLayout()
+        layout_logging.setSpacing(8)
+
+        lbl_logging_title = StanLabel("##### Logging Settings")
+        lbl_logging_info = StanLabel(
+            "Configure logging verbosity. Verbose mode (DEBUG) enables detailed diagnostics "
+            "from the parser and anonymiser, but produces larger log files."
+        )
+        lbl_logging_info.setWordWrap(True)
+
+        self.check_verbose_logging = StanCheckBox("Enable verbose mode (DEBUG logging)")
+        self.check_verbose_logging.setToolTip(
+            "When checked, DEBUG-level logs are enabled for detailed diagnostics. Uncheck for normal (INFO) mode."
+        )
+
+        self.help_verbose_logging = StanHelpIcon(
+            "Enable DEBUG logging for detailed diagnostics from bank parser and anonymiser. "
+            "Verbose mode produces larger logs but provides detailed diagnostic information. "
+            "Disabling reduces log file size."
+        )
+
+        # Create inline layout for checkbox + help icon
+        layout_verbose = QHBoxLayout()
+        layout_verbose.setSpacing(8)
+        layout_verbose.addWidget(self.check_verbose_logging)
+        layout_verbose.addWidget(self.help_verbose_logging)
+        layout_verbose.addStretch()
+
+        layout_logging.addWidget(lbl_logging_title)
+        layout_logging.addWidget(lbl_logging_info)
+        layout_logging.addLayout(layout_verbose)
+        section_logging.setLayout(layout_logging)
+
+        # ------------------------------------------------------------------
         # Assemble outer layout
         # ------------------------------------------------------------------
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
@@ -189,5 +262,7 @@ class AdminView(StanDialog):
         outer.addWidget(section_empty)
         outer.addWidget(section_anon)
         outer.addWidget(section_privacy)
+        outer.addWidget(section_logs)
+        outer.addWidget(section_logging)
         outer.addWidget(button_box)
         self.setLayout(outer)

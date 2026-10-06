@@ -22,7 +22,7 @@ Signals emitted (consumed by StanPresenter)
 * ``view_results_requested()``                  — user pressed View Results.
 """
 
-import sys
+import logging
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -40,6 +40,7 @@ from openstan.components import (
     StanScrollArea,
     StanWidget,
 )
+from openstan.logging_adapter import ContextAdapter
 
 if TYPE_CHECKING:
     from PySide6.QtCore import QThreadPool
@@ -49,6 +50,8 @@ if TYPE_CHECKING:
         StatementQueueTreeModel,
     )
     from openstan.views.statement_queue_view import StatementQueueView
+
+_logger = logging.getLogger(__name__)
 
 
 class WorkerSignals(QObject):
@@ -178,10 +181,7 @@ class StatementQueuePresenter(QObject):
                 "No project is currently open.\n\n"
                 "Please open or create a project before running an import."
             )
-            print(
-                "[openstan] ERROR: run_import called with no project path set.",
-                flush=True,
-            )
+            _logger.error("run_import called with no project path set.")
             return
 
         batch_id: str = uuid4().hex
@@ -189,7 +189,10 @@ class StatementQueuePresenter(QObject):
         # Lock every queue row for this project
         success, msg = self.model.set_batch_id(batch_id)
         if not success:
-            print(f"ERROR: Could not lock queue: {msg}", flush=True)
+            ctx_logger = ContextAdapter(
+                _logger, {"batch_id": batch_id, "project_id": self.projectID}
+            )
+            ctx_logger.error(f"Could not lock queue: {msg}")
             return
 
         self._current_batch_id = batch_id
@@ -226,7 +229,14 @@ class StatementQueuePresenter(QObject):
         duration_secs: float = time.monotonic() - self._batch_start_time
         self.view.buttonViewResults.setVisible(True)
         self.import_finished.emit(duration_secs)
-        print(f"Import finished. Duration: {duration_secs:.2f}s")
+        ctx_logger = ContextAdapter(
+            _logger,
+            {
+                "batch_id": self._current_batch_id,
+                "project_id": self.projectID,
+            },
+        )
+        ctx_logger.info(f"Import finished. Duration: {duration_secs:.2f}s")
 
     @Slot()
     def __on_view_results_clicked(self) -> None:
@@ -475,7 +485,10 @@ class StatementQueuePresenter(QObject):
             is_folder=is_folder,
         )
         if not result[0]:
-            print(f"Error adding record: {result[2]}", file=sys.stderr)
+            ctx_logger = ContextAdapter(
+                _logger, {"project_id": self.projectID, "session_id": self.sessionID}
+            )
+            ctx_logger.error(f"Error adding record: {result[2]}")
 
     # ---------------------------------------------------------------------------
     # Tree state helpers

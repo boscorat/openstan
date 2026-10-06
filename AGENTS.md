@@ -382,7 +382,130 @@ Callers must check `result[0]` and handle the `False` case.
 
 ---
 
-## Key Libraries & What to Avoid
+## Logging Standards
+
+All application events and diagnostics are logged using Python's `logging` module. Logs help users and support troubleshoot issues.
+
+### When to Log
+
+Log significant events that help diagnose problems or understand what the app is doing:
+
+- **Milestones:** "Project selected (project_id=42)", "Batch 5 started", "Export complete"
+- **Errors:** Parse failures, I/O errors, database errors (always with `exc_info=True`)
+- **Diagnostics:** Unusual patterns, validation failures, anomalies
+- **User actions:** Destructive operations (delete, reset, anonymise)
+
+Do NOT log:
+
+- Routine loops or iterations (creates noise)
+- Every single variable assignment
+- Personally identifiable information (names, account numbers, dates of birth)
+
+### Logging Conventions
+
+**Import and setup:**
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)  # Always use __name__, never hardcode
+```
+
+**Logging levels:**
+
+| Level | When to Use | Example |
+|-------|---|---|
+| `DEBUG` | Detailed diagnostics, per-field extraction, DB operations | `logger.debug("Processing field: %s", field_name)` |
+| `INFO` | Milestones, important user actions, success messages | `logger.info("Project selected: project_id=%s", project_id)` |
+| `WARNING` | Unusual patterns, recoverable errors, data anomalies | `logger.warning("Duplicate transaction detected: %s", txn_id)` |
+| `ERROR` | Parse failures, I/O errors, unrecoverable failures | `logger.error("Failed to delete project folder", exc_info=True)` |
+
+**Error logging (always use `exc_info=True` or `.exception()`):**
+
+```python
+try:
+    # ... do something ...
+except ValueError as e:
+    logger.error("Parse failed for field: %s", field_name, exc_info=True)
+    # OR:
+    logger.exception("Parse failed for field: %s", field_name)
+```
+
+### Verbosity Cascade
+
+The application has a single verbosity setting (normal/verbose) that cascades to:
+
+- `openstan.*` loggers (app code)
+- `bank_statement_parser` loggers (import diagnostics)
+- `uk_bank_statement_anonymiser` loggers (anonymise diagnostics)
+
+When a user enables "verbose mode" in Admin Settings:
+- All DEBUG-level messages become visible (in addition to INFO/WARNING/ERROR)
+- This happens immediately, no restart needed
+- Log files grow 3–5× larger
+
+### Replacing `print()` Calls
+
+Never use `print()` in presenters or models. Replace with logging:
+
+```python
+# ❌ Don't do this:
+print("Batch 5 started")
+
+# ✅ Do this:
+logger.info("Batch 5 started")
+```
+
+### Example: Logging in a Presenter
+
+```python
+import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from openstan.models.project_model import ProjectModel
+
+logger = logging.getLogger(__name__)
+
+
+class MyPresenter(QObject):
+    def __init__(self, model: "ProjectModel", view) -> None:
+        super().__init__()
+        self.model = model
+        self.view = view
+
+        # Wire signals
+        self.model.data_changed.connect(self.on_data_changed)
+        self.view.button_process.clicked.connect(self.process_data)
+
+    def on_data_changed(self) -> None:
+        """Log when model changes."""
+        logger.info("Model data changed")
+
+    @Slot()
+    def process_data(self) -> None:
+        """Process data with error handling and diagnostics."""
+        try:
+            logger.info("Processing data started")
+            result = self.model.process()
+            if result[0]:  # success bool
+                logger.info("Processing completed: %d records", result[1])
+            else:
+                logger.warning("Processing completed with issues: %s", result[2])
+        except Exception:
+            logger.error("Processing failed", exc_info=True)
+            show_error_dialog("Processing failed. Check logs for details.")
+```
+
+### Log Files & User Access
+
+Users access logs via:
+- **Admin dialog** → View Application Log or View Project Log
+- **Manual file browsing** → `~/.local/share/openstan/` (Linux), `%APPDATA%\openstan` (Windows), etc.
+
+For detailed user documentation, see the [Logging & Debugging Guide](https://openstan.org/guides/logging/) on the docs site.
+
+---
 
 | Use | Avoid |
 |---|---|

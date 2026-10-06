@@ -569,6 +569,7 @@ class Stan(QMainWindow):
                 return
         if self.sessionID:
             self.stan_presenter.cleanup_before_exit()
+
         if a0:
             a0.accept()
 

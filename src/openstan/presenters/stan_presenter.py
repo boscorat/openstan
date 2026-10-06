@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -6,6 +7,9 @@ from bank_statement_parser import ProjectPaths
 from PySide6.QtCore import QObject, Slot
 
 from openstan.components import StanButton
+from openstan.logging_adapter import ContextAdapter
+from openstan.logging_manager import initialize as initialize_logging
+from openstan.logging_manager import switch_to_app_log, switch_to_project_log
 from openstan.models.statement_result_model import ResultRow
 from openstan.presenters.admin_presenter import AdminPresenter
 from openstan.presenters.project_presenter import get_project_info
@@ -16,11 +20,16 @@ if TYPE_CHECKING:
 
     from openstan.main import Stan
 
+_logger = logging.getLogger(__name__)
+
 
 class StanPresenter(QObject):
     def __init__(self, stan: Stan) -> None:
         super().__init__()
         self.stan: Stan = stan
+
+        # State for logging guard: track previous project to avoid logging on no-change
+        self._previous_project_id: str | None = None
 
         # presenters
         self.project_presenter = self.stan.project_presenter
@@ -101,6 +110,11 @@ class StanPresenter(QObject):
                     f"{msg}\nThe application will close shortly."
                 )
 
+        # Initialize logging with session ID (after session is created)
+        session_id = self.stan.sessionID or "00000000-0000-0000-0000-000000000000"
+        initialize_logging(session_id)
+        _logger.info(f"Logging initialized for session {session_id}")
+
         # Update footer label with username
         self.footer_view.labelUser.setText(f"##### User: {self.stan.username}")
 
@@ -157,7 +171,7 @@ class StanPresenter(QObject):
         # Cancel any in-progress debug worker so it stops at its next iteration
         self.statement_result_presenter.cancel_debug_worker()
         self.session_presenter.end_active_sessions()
-        print("Session ended.")
+        _logger.info("Session ended.")
 
     def update_current_project_info(self, index: int) -> None:
         current_record: QSqlRecord = self.project_presenter.model.record(index)
@@ -172,7 +186,16 @@ class StanPresenter(QObject):
         if not has_projects:
             self.__navigate_to(self.stan.nav_idx_welcome)
 
+        # Update admin dialog project log button state (early: only needs selected_project)
+        if hasattr(self.stan, "admin_presenter") and self.stan.admin_presenter:
+            self.stan.admin_presenter.update_project_log_button_state(selected_project)
+
         if not selected_project:
+            # No project selected: switch to app log if not already there
+            if self._previous_project_id is not None:
+                switch_to_app_log()
+                _logger.info("Switched to application log")
+                self._previous_project_id = None
             return
 
         self.statement_queue_presenter.projectID = self.stan.current_project_id
@@ -197,6 +220,17 @@ class StanPresenter(QObject):
         )
         self.run_reports_presenter.load_project(self.stan.current_project_paths.root)
 
+        # Switch logging context to project log (only log on actual project change)
+        if self.stan.current_project_id != self._previous_project_id:
+            switch_to_project_log(
+                self.stan.current_project_paths.root, self.stan.sessionID
+            )
+            _logger.info(
+                f"Switched to project log: {self.stan.current_project_name} "
+                f"(ID: {self.stan.current_project_id})"
+            )
+            self._previous_project_id = self.stan.current_project_id
+
         # Refresh project info panel and update nav button visibility.
         self.__refresh_project_info()
 
@@ -213,8 +247,15 @@ class StanPresenter(QObject):
                 batch_id
             )
             if not result_ids:
-                print(
-                    f"Stale lock detected for batch {batch_id} — no persisted results. Clearing batch_id automatically."
+                ctx_logger = ContextAdapter(
+                    _logger,
+                    {
+                        "batch_id": batch_id,
+                        "project_id": self.stan.current_project_id,
+                    },
+                )
+                ctx_logger.warning(
+                    "Stale lock detected — no persisted results. Clearing batch_id automatically."
                 )
                 self.stan.statement_queue_model.clear_batch_id()
                 # Also remove any orphaned batch duration record
@@ -407,10 +448,17 @@ class StanPresenter(QObject):
                 duration_secs=duration_secs,
             )
             if not ok:
-                print(f"WARNING: Could not persist batch duration: {msg}", flush=True)
+                ctx_logger = ContextAdapter(
+                    _logger,
+                    {
+                        "batch_id": batch_id,
+                        "project_id": self.stan.current_project_id,
+                    },
+                )
+                ctx_logger.warning(f"Could not persist batch duration: {msg}")
             self.statement_result_presenter.persist_batch_to_db(batch_id)
         else:
-            print("WARNING: on_import_finished called with no current batch_id.")
+            _logger.warning("on_import_finished called with no current batch_id.")
         # Re-enable action buttons now that import is complete
         self.statement_result_presenter.set_importing(False)
 

@@ -29,4 +29,4 @@ The complete tutorial covering reports, advanced export, and tips for getting th
 - **[Quick Start Guide](quickstart.md)** – Step-by-step written guide to get you started
 - **[Installation](installation.md)** – Download and install openstan
 - **[Use Cases](use-cases/index.md)** – Explore how openstan works for different scenarios
-- **[Feature Guides](screens/project-management.md)** – Detailed walkthroughs of every screen and tool
+- **[Feature Guides](guides/project-management.md)** – Detailed walkthroughs of every screen and tool

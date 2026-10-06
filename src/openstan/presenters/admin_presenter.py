@@ -1,15 +1,22 @@
+import logging
 import os
 import shutil
 import sys
-import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QObject, QSettings, Qt, Slot
+from PySide6.QtCore import QObject, QSettings, Slot
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from openstan.components import StanErrorMessage, StanInfoMessage
+from openstan.logging_manager import (
+    get_app_log_path,
+    get_project_log_path,
+    get_verbosity,
+    set_verbosity,
+)
 from openstan.paths import Paths
+from openstan.views.log_viewer_dialog import LogViewerDialog
 
 if TYPE_CHECKING:
     from openstan.main import Stan
@@ -19,6 +26,8 @@ if TYPE_CHECKING:
 _SETTINGS_ORG = "openstan"
 _SETTINGS_APP = "openstan"
 _KEY_UPDATE_CHECK = "privacy/update_check_enabled"
+
+_logger = logging.getLogger(__name__)
 
 
 class AdminPresenter(QObject):
@@ -44,6 +53,20 @@ class AdminPresenter(QObject):
         self.view.button_empty_db.clicked.connect(self.empty_gui_db)
         self.view.button_open_anonymise.clicked.connect(self.open_anonymise_tool)
         self.view.check_update_check.stateChanged.connect(self.update_check_changed)
+
+        # Wire logging controls
+        self.view.button_view_app_log.clicked.connect(self.view_app_log)
+        self.view.button_view_project_log.clicked.connect(self.view_project_log)
+        self.view.check_verbose_logging.stateChanged.connect(self.toggle_verbosity)
+
+        # Initialize verbosity checkbox from current setting
+        current_verbosity = get_verbosity()
+        self.view.check_verbose_logging.blockSignals(True)
+        self.view.check_verbose_logging.setChecked(current_verbosity == "verbose")
+        self.view.check_verbose_logging.blockSignals(False)
+
+        # Initialize project log button state (disabled if no project)
+        self.view.button_view_project_log.setEnabled(bool(self.stan.current_project_id))
 
     # ---------------------------------------------------------------------------
     # Public helpers
@@ -117,11 +140,12 @@ class AdminPresenter(QObject):
     # ---------------------------------------------------------------------------
 
     @Slot(int)
-    def update_check_changed(self, state: Qt.CheckState) -> None:
+    def update_check_changed(self, state: int) -> None:
         """Persist the update-check preference whenever the checkbox changes."""
-        enabled = state == Qt.CheckState.Checked
+        enabled = bool(state)
         settings = QSettings(_SETTINGS_ORG, _SETTINGS_APP)
         settings.setValue(_KEY_UPDATE_CHECK, enabled)
+        settings.sync()
 
     @Slot()
     def delete_project(self) -> None:
@@ -135,6 +159,13 @@ class AdminPresenter(QObject):
         project_location: str = str(record.value("project_location"))
         delete_folder: bool = self.view.check_delete_folder.isChecked()
 
+        _logger.info(
+            "User initiated project deletion: project_id=%s, project_name=%s, delete_folder=%s",
+            project_id,
+            project_name,
+            delete_folder,
+        )
+
         folder_warning = (
             f"\n\nThe project folder will also be permanently deleted from disk:\n{project_location}"
             if delete_folder
@@ -144,10 +175,18 @@ class AdminPresenter(QObject):
             "Confirm Delete",
             f"Delete project '{project_name}'?{folder_warning}\n\nThis cannot be undone.",
         ):
+            _logger.info(
+                "Project deletion cancelled by user: project_id=%s", project_id
+            )
             return
 
         success, _, msg = self.model.delete_record_by_id(project_id)
         if not success:
+            _logger.warning(
+                "Failed to delete project record from database: project_id=%s, error=%s",
+                project_id,
+                msg,
+            )
             StanErrorMessage(parent=self.view).showMessage(
                 f"Failed to delete project record: {msg}"
             )
@@ -156,12 +195,30 @@ class AdminPresenter(QObject):
         if delete_folder:
             try:
                 shutil.rmtree(Path(project_location))
-            except Exception:  # noqa: BLE001
-                traceback.print_exc()
+                _logger.info(
+                    "Successfully deleted project folder: project_id=%s, path=%s",
+                    project_id,
+                    project_location,
+                )
+            except Exception:
+                _logger.warning(
+                    "Failed to delete project folder (record already removed): project_id=%s, path=%s",
+                    project_id,
+                    project_location,
+                    exc_info=True,
+                )
                 StanErrorMessage(parent=self.view).showMessage(
                     f"Project record removed, but the folder could not be deleted:\n{project_location}"
                 )
+                # Refresh UI even though folder deletion failed — record is already removed from DB
+                self.refresh_combos()
+                return
 
+        _logger.info(
+            "Project successfully deleted: project_id=%s, project_name=%s",
+            project_id,
+            project_name,
+        )
         self.refresh_combos()
 
     @Slot()
@@ -174,24 +231,45 @@ class AdminPresenter(QObject):
         project_id: str = str(record.value("project_id"))
         project_name: str = str(record.value("project_name"))
 
+        _logger.info(
+            "User initiated project UI removal: project_id=%s, project_name=%s",
+            project_id,
+            project_name,
+        )
+
         if not self._confirm(
             "Confirm Remove",
             f"Remove project '{project_name}' from the UI?\n\nThe project folder on disk will not be affected.",
         ):
+            _logger.info(
+                "Project UI removal cancelled by user: project_id=%s", project_id
+            )
             return
 
         success, _, msg = self.model.delete_record_by_id(project_id)
         if not success:
+            _logger.warning(
+                "Failed to remove project record from UI: project_id=%s, error=%s",
+                project_id,
+                msg,
+            )
             StanErrorMessage(parent=self.view).showMessage(
                 f"Failed to remove project record: {msg}"
             )
             return
 
+        _logger.info(
+            "Project successfully removed from UI: project_id=%s, project_name=%s",
+            project_id,
+            project_name,
+        )
         self.refresh_combos()
 
     @Slot()
     def empty_gui_db(self) -> None:
         """Delete gui.db and restart the application."""
+        _logger.info("User initiated application reset")
+
         if not self._confirm(
             "Confirm Reset",
             "Reset the application?\n\n"
@@ -202,6 +280,7 @@ class AdminPresenter(QObject):
             "This action cannot be undone.",
             icon=QMessageBox.Icon.Critical,
         ):
+            _logger.info("Application reset cancelled by user")
             return
 
         gui_db_path = Path(Paths.databases("gui.db"))
@@ -212,8 +291,11 @@ class AdminPresenter(QObject):
         try:
             if gui_db_path.exists():
                 gui_db_path.unlink()
-        except Exception:  # noqa: BLE001
-            traceback.print_exc()
+            _logger.info("Successfully deleted gui.db: path=%s", gui_db_path)
+        except Exception:
+            _logger.warning(
+                "Failed to delete gui.db: path=%s", gui_db_path, exc_info=True
+            )
             StanErrorMessage(parent=self.view).showMessage(
                 "Failed to delete gui.db. The application will now close."
             )
@@ -221,12 +303,15 @@ class AdminPresenter(QObject):
             return
 
         # Restart — the new process will recreate gui.db on startup
+        _logger.info("Restarting application...")
         argv = list(getattr(sys, "orig_argv", sys.argv))
         argv[0] = sys.executable
         try:
             os.execv(sys.executable, argv)
-        except OSError:
-            traceback.print_exc()
+        except OSError as exc:
+            _logger.warning(
+                "Failed to restart application: %s", str(exc), exc_info=True
+            )
             StanErrorMessage(parent=self.view).showMessage(
                 "Failed to restart the application. The application will now close."
             )
@@ -242,13 +327,79 @@ class AdminPresenter(QObject):
 
         project_paths: ProjectPaths | None = self.stan.current_project_paths
         if project_paths is None:
+            _logger.warning("Anonymise tool requested but no project is active")
             StanErrorMessage(parent=self.view).showMessage(
                 "No project is currently active. Open a project before using the Anonymise tool."
             )
             return
 
+        _logger.info("Opening Anonymise tool for project: %s", project_paths.root)
         dlg = AnonymiseDialog(parent=self.view)
         _presenter = AnonymisePresenter(
             dialog=dlg, project_paths=project_paths, threadpool=self.stan.threadpool
         )
         dlg.exec()
+
+    @Slot()
+    def view_app_log(self) -> None:
+        """Open the log viewer displaying the current session's application log."""
+        try:
+            log_path = get_app_log_path(self.stan.sessionID)
+            _logger.info("Opening application log viewer: path=%s", log_path)
+            dlg = LogViewerDialog(parent=self.view)
+            dlg.show_log(log_path)
+            dlg.exec()
+        except Exception as exc:
+            _logger.warning("Failed to open application log viewer", exc_info=True)
+            StanErrorMessage(parent=self.view).showMessage(
+                f"Failed to open log viewer: {exc!s}"
+            )
+
+    @Slot()
+    def view_project_log(self) -> None:
+        """Open the log viewer displaying the current session's project log."""
+        if self.stan.current_project_paths is None:
+            _logger.warning("Project log viewer requested but no project is active")
+            StanErrorMessage(parent=self.view).showMessage(
+                "No project is currently selected."
+            )
+            return
+
+        try:
+            log_path = get_project_log_path(
+                self.stan.current_project_paths.root, self.stan.sessionID
+            )
+            _logger.info(
+                "Opening project log viewer: path=%s, project_root=%s",
+                log_path,
+                self.stan.current_project_paths.root,
+            )
+            dlg = LogViewerDialog(parent=self.view)
+            dlg.show_log(log_path)
+            dlg.exec()
+        except Exception as exc:
+            _logger.warning(
+                "Failed to open project log viewer: project_root=%s",
+                self.stan.current_project_paths.root,
+                exc_info=True,
+            )
+            StanErrorMessage(parent=self.view).showMessage(
+                f"Failed to open log viewer: {exc!s}"
+            )
+
+    @Slot(int)
+    def toggle_verbosity(self, state: int) -> None:
+        """Update verbosity setting when checkbox changes."""
+        enabled = bool(state)
+        new_level = "verbose" if enabled else "normal"
+        set_verbosity(new_level)
+
+    def update_project_log_button_state(self, enabled: bool) -> None:
+        """Enable or disable the 'View Project Log' button.
+
+        Called by stan_presenter when project selection changes.
+
+        Args:
+            enabled: True if a project is selected, False otherwise
+        """
+        self.view.button_view_project_log.setEnabled(enabled)

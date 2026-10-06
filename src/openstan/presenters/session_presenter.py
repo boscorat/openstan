@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -5,6 +6,8 @@ from PySide6.QtCore import QObject, Signal
 
 if TYPE_CHECKING:
     from openstan.models.session_model import SessionModel
+
+_logger = logging.getLogger(__name__)
 
 
 class SessionPresenter(QObject):
@@ -20,7 +23,7 @@ class SessionPresenter(QObject):
     def end_active_sessions(self) -> tuple[bool, str, str]:
         result: tuple[bool, str, str] = self.model.end_active_sessions()
         if not result[0]:
-            print("Failed to end active sessions in the database.")
+            _logger.error("Failed to end active sessions in the database.")
             self.db_lock_signal.emit()
         return result
 

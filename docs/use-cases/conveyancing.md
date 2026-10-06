@@ -95,5 +95,5 @@ Once your statements are in Excel:
 
 - **[Installation](../installation.md)** – Download and install openstan
 - **[Quick Start](../quickstart.md)** – 5-minute setup guide
-- **[Import Statements](../screens/import-statements.md)** – Import buyer's statements
-- **[Export Data](../screens/export-data.md)** – Export findings for compliance review
+- **[Import Statements](../guides/import-statements.md)** – Import buyer's statements
+- **[Export Data](../guides/export-data.md)** – Export findings for compliance review

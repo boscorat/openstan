@@ -7,11 +7,11 @@ Owns all logic for the anonymisation workflow:
   - opening the original / anonymised PDFs via the OS viewer
 """
 
+import logging
 import subprocess
 import sys
 import time
 import tomllib
-import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -21,11 +21,14 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 from openstan.components import StanErrorMessage, StanFolderDialog, StanInfoMessage
+from openstan.logging_adapter import ContextAdapter
 
 if TYPE_CHECKING:
     from bank_statement_parser import ProjectPaths
 
     from openstan.views.anonymise_dialog import AnonymiseDialog
+
+_logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -64,7 +67,7 @@ class NeverAnonymiseConfig:
             exclude = config.get("exclude", [])
             return cls(exclude=exclude)
         except tomllib.TOMLDecodeError, OSError:
-            traceback.print_exc()
+            _logger.warning("Failed to load never_anonymise config: path=%s", toml_path)
             return cls()
 
 
@@ -105,7 +108,9 @@ class AlwaysAnonymiseConfig:
             }
             return cls(replacements=replacements)
         except tomllib.TOMLDecodeError, OSError:
-            traceback.print_exc()
+            _logger.warning(
+                "Failed to load always_anonymise config: path=%s", toml_path
+            )
             return cls()
 
 
@@ -167,12 +172,18 @@ class _AnonymiseWorker(QRunnable):
                 retain_descriptions=self._retain_descriptions,
             )
             self.signals.finished.emit(out)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
+            _logger.warning(
+                "Single PDF anonymisation failed: input_path=%s",
+                self._input,
+                exc_info=True,
+            )
             self.signals.error.emit(str(exc))
 
     def _run_batch(self) -> None:
         """Process multiple PDFs sequentially, emitting progress per file."""
         total = len(self._inputs)
+        _logger.info("Starting batch anonymisation: file_count=%d", total)
         results: list[tuple[Path, Path | None, str | None]] = []
 
         for idx, input_path in enumerate(self._inputs):
@@ -197,9 +208,29 @@ class _AnonymiseWorker(QRunnable):
                     out.rename(dest)
                     out = dest
                 results.append((input_path, out, None))
-            except Exception as exc:  # noqa: BLE001
+                _logger.info(
+                    "Batch anonymisation succeeded: file=%d/%d, input=%s, output=%s",
+                    idx + 1,
+                    total,
+                    input_path.name,
+                    out.name,
+                )
+            except Exception as exc:
+                _logger.warning(
+                    "Batch anonymisation failed for file: file=%d/%d, input=%s",
+                    idx + 1,
+                    total,
+                    input_path.name,
+                    exc_info=True,
+                )
                 results.append((input_path, None, str(exc)))
 
+        _logger.info(
+            "Batch anonymisation complete: total=%d, succeeded=%d, failed=%d",
+            total,
+            sum(1 for _, out, _ in results if out is not None),
+            sum(1 for _, _, err in results if err is not None),
+        )
         self.signals.batch_finished.emit(results)
 
 
@@ -238,6 +269,12 @@ class AnonymisePresenter(QObject):
         self._never_anonymise_path: Path = self._config_dir / "never_anonymise.toml"
         self._input_path: Path | None = initial_pdf
         self._output_path: Path | None = None
+
+        # Create context adapter for project-level logging
+        self._ctx_logger = ContextAdapter(
+            _logger, {"project_id": str(project_paths.root)}
+        )
+        self._ctx_logger.info("Anonymise tool opened")
         # Remembers the parent of the last PDF the user selected.
         self._last_dir: Path | None = (
             initial_pdf.parent if initial_pdf is not None else None
@@ -338,9 +375,15 @@ class AnonymisePresenter(QObject):
                     self._never_config.to_toml(), encoding="utf-8"
                 )
                 # Success
+                self._ctx_logger.info("Config files saved successfully")
                 return True
             except OSError as exc:
-                traceback.print_exc()
+                self._ctx_logger.warning(
+                    "Failed to save config files (attempt %d/%d)",
+                    attempt + 1,
+                    max_retries,
+                    exc_info=True,
+                )
                 if attempt < max_retries - 1:
                     # Retry after delay
                     time.sleep(retry_delay)
@@ -689,6 +732,7 @@ class AnonymisePresenter(QObject):
     @Slot(str)
     def _on_error(self, message: str) -> None:
         """Called on the GUI thread when the worker raises an exception."""
+        self._ctx_logger.warning("Anonymisation error: %s", message)
         self.dialog.button_run.setEnabled(True)
         self.dialog.button_browse.setEnabled(True)
         self.dialog.button_browse_folder.setEnabled(True)

@@ -22,6 +22,7 @@ Signals emitted (consumed by StanPresenter)
 * ``batch_abandoned()``  — user abandoned the batch; DB rows + payloads deleted.
 """
 
+import logging
 import sys
 import threading
 import traceback
@@ -33,6 +34,7 @@ import bank_statement_parser as bsp
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
 
 from openstan.components import StanErrorMessage, StanInfoMessage
+from openstan.logging_adapter import ContextAdapter, WorkflowStepTracker
 from openstan.models.statement_result_model import ResultRow
 
 if TYPE_CHECKING:
@@ -48,6 +50,10 @@ if TYPE_CHECKING:
     from openstan.views.debug_info_dialog import DebugInfoDialog
     from openstan.views.statement_result_view import StatementResultView
 
+_logger = logging.getLogger(__name__)
+
+
+# WorkflowStepTracker is imported from openstan.logging_adapter for multi-step operations
 
 # ---------------------------------------------------------------------------
 # Background worker for the three-step commit sequence
@@ -240,10 +246,9 @@ class DebugWorker(QRunnable):
                             debug_excel_path = None
                 except Exception:  # noqa: BLE001
                     traceback.print_exc(file=sys.stderr)
-                    print(
-                        f"WARNING: debug_pdf_statement failed for {row.file_path.name}; "
-                        "entry will have no debug files.",
-                        file=sys.stderr,
+                    _logger.warning(
+                        f"debug_pdf_statement failed for {row.file_path.name}; "
+                        "entry will have no debug files."
                     )
 
                 self.signals.entry_done.emit(
@@ -399,14 +404,12 @@ class StatementResultPresenter(QObject):
             if ok and row.pdf_result is not None:
                 p_ok, p_msg = self.payload_model.add_payload(result_id, row.pdf_result)
                 if not p_ok:
-                    print(
-                        f"WARNING: Could not persist payload for {row.file_path.name}: {p_msg}",
-                        file=sys.stderr,
+                    _logger.warning(
+                        f"Could not persist payload for {row.file_path.name}: {p_msg}"
                     )
             elif not ok:
-                print(
-                    f"WARNING: Could not persist result for {row.file_path.name}: {msg}",
-                    file=sys.stderr,
+                _logger.warning(
+                    f"Could not persist result for {row.file_path.name}: {msg}"
                 )
         # Capture counts for commit summary dialog
         self._n_success = self.success_model.row_count
@@ -540,32 +543,49 @@ class StatementResultPresenter(QObject):
         project_id = self._current_project_id
 
         if batch_id:
+            tracker = WorkflowStepTracker(
+                "Abandon Batch", 5, project_id or "", batch_id=batch_id
+            )
+
             # 1. Collect result_ids so we can delete payloads too
+            tracker.start_step("Collecting result IDs...")
             result_ids = self.result_model.get_result_ids_for_batch(batch_id)
+            tracker.complete_step()
 
             # 2. Delete payloads first (FK-safe order)
+            tracker.start_step("Deleting payloads...")
             ok, msg = self.payload_model.delete_payloads_for_results(result_ids)
             if not ok:
-                print(f"ERROR: Could not delete payloads: {msg}", file=sys.stderr)
+                tracker.error_step(f"Could not delete payloads: {msg}")
+            else:
+                tracker.complete_step()
 
             # 3. Hard-delete all result rows (including any soft-deleted ones)
+            tracker.start_step("Deleting results...")
             ok, msg = self.result_model.delete_results_for_batch(batch_id)
             if not ok:
-                print(f"ERROR: Could not delete results: {msg}", file=sys.stderr)
+                tracker.error_step(f"Could not delete results: {msg}")
+            else:
+                tracker.complete_step()
 
             # 4. Delete batch record
+            tracker.start_step("Deleting batch record...")
             ok, msg = self.batch_model.delete_batch(batch_id)
             if not ok:
-                print(f"ERROR: Could not delete batch record: {msg}", file=sys.stderr)
+                tracker.error_step(f"Could not delete batch record: {msg}")
+            else:
+                tracker.complete_step()
 
             # 5. Clear batch_id on queue rows → unlock the queue
+            tracker.start_step("Unlocking queue...")
             if project_id:
                 ok, msg = self.queue_model.clear_batch_id()
                 if not ok:
-                    print(
-                        f"ERROR: Could not clear batch_id on queue: {msg}",
-                        file=sys.stderr,
-                    )
+                    tracker.error_step(f"Could not clear batch_id on queue: {msg}")
+                else:
+                    tracker.complete_step()
+            else:
+                tracker.complete_step()
 
         # 6. Clear in-memory state and reset labels
         self._current_batch_id = None
@@ -637,10 +657,7 @@ class StatementResultPresenter(QObject):
         debug paths from a previous run (e.g. on session restore).
         """
         if self.project_path is None:
-            print(
-                "WARNING: Cannot start debug worker — project path is not set.",
-                file=sys.stderr,
-            )
+            _logger.warning("Cannot start debug worker — project path is not set.")
             return
 
         non_success = self.review_model.all_rows() + self.failure_model.all_rows()
@@ -669,10 +686,7 @@ class StatementResultPresenter(QObject):
         for rid in debug_ids:
             ok, msg = self.result_model.update_debug_info(rid, "pending", None)
             if not ok:
-                print(
-                    f"WARNING: update_debug_info(pending) failed for {rid}: {msg}",
-                    file=sys.stderr,
-                )
+                _logger.warning(f"update_debug_info(pending) failed for {rid}: {msg}")
 
         self._debug_cancel = threading.Event()
         self._debug_worker_done = False
@@ -707,10 +721,7 @@ class StatementResultPresenter(QObject):
             result_id, status, debug_json_path, debug_excel_path
         )
         if not ok:
-            print(
-                f"WARNING: update_debug_info failed for {result_id}: {msg}",
-                file=sys.stderr,
-            )
+            _logger.warning(f"update_debug_info failed for {result_id}: {msg}")
 
         self._debug_done_count += 1
 
@@ -734,14 +745,14 @@ class StatementResultPresenter(QObject):
         if self._pending_hard_delete and self._pending_batch_id:
             ok, msg = self.result_model.hard_delete_soft_deleted(self._pending_batch_id)
             if not ok:
-                print(f"ERROR: hard_delete_soft_deleted failed: {msg}", file=sys.stderr)
+                _logger.error(f"hard_delete_soft_deleted failed: {msg}")
             self._pending_hard_delete = False
             self._pending_batch_id = None
 
     @Slot(str)
     def __on_debug_error(self, message: str) -> None:
         """Worker raised an outer exception — treat as all-done."""
-        print(f"ERROR: DebugWorker: {message}", file=sys.stderr)
+        _logger.error(f"DebugWorker: {message}")
         self.__on_debug_all_done()
 
     def __update_debug_button_label(self) -> None:
@@ -876,37 +887,37 @@ class StatementResultPresenter(QObject):
             result_ids = self.result_model.get_result_ids_for_batch(batch_id)
             ok, msg = self.payload_model.delete_payloads_for_results(result_ids)
             if not ok:
-                print(
-                    f"ERROR: Could not delete payloads after commit: {msg}",
-                    file=sys.stderr,
+                ctx_logger = ContextAdapter(
+                    _logger, {"batch_id": batch_id, "project_id": project_id}
                 )
+                ctx_logger.error(f"Could not delete payloads after commit: {msg}")
 
             # Soft-delete result rows so the UI clears immediately;
             # debug worker (if still running) will hard-delete once done.
             ok, msg = self.result_model.soft_delete_batch(batch_id)
             if not ok:
-                print(
-                    f"ERROR: Could not soft-delete results after commit: {msg}",
-                    file=sys.stderr,
+                ctx_logger = ContextAdapter(
+                    _logger, {"batch_id": batch_id, "project_id": project_id}
                 )
+                ctx_logger.error(f"Could not soft-delete results after commit: {msg}")
 
             # Mark batch as committed in gui.db so the export panel can
             # identify it as a completed (non-pending) batch when resolving
             # "Latest" batch exports.
             ok, msg = self.batch_model.commit_batch(batch_id)
             if not ok:
-                print(
-                    f"WARNING: Could not mark batch as committed: {msg}",
-                    file=sys.stderr,
+                ctx_logger = ContextAdapter(
+                    _logger, {"batch_id": batch_id, "project_id": project_id}
                 )
+                ctx_logger.warning(f"Could not mark batch as committed: {msg}")
 
             if project_id:
                 ok, msg = self.queue_model.clear_batch_id()
                 if not ok:
-                    print(
-                        f"ERROR: Could not clear batch_id after commit: {msg}",
-                        file=sys.stderr,
+                    ctx_logger = ContextAdapter(
+                        _logger, {"batch_id": batch_id, "project_id": project_id}
                     )
+                    ctx_logger.error(f"Could not clear batch_id after commit: {msg}")
 
         self._current_batch_id = None
         self._current_project_id = None
@@ -917,10 +928,10 @@ class StatementResultPresenter(QObject):
             if self._debug_worker_done:
                 ok, msg = self.result_model.hard_delete_soft_deleted(batch_id)
                 if not ok:
-                    print(
-                        f"ERROR: hard_delete_soft_deleted failed: {msg}",
-                        file=sys.stderr,
+                    ctx_logger = ContextAdapter(
+                        _logger, {"batch_id": batch_id, "project_id": project_id}
                     )
+                    ctx_logger.error(f"hard_delete_soft_deleted failed: {msg}")
             else:
                 self._pending_batch_id = batch_id
                 self._pending_hard_delete = True
@@ -960,7 +971,7 @@ class StatementResultPresenter(QObject):
     @Slot(str)
     def __on_commit_warning(self, message: str) -> None:
         """A non-fatal warning from the commit process (e.g. migration column drops)."""
-        print(f"[commit warning] {message}", file=sys.stderr)
+        _logger.warning(f"commit warning: {message}")
 
     @Slot(str)
     def __on_commit_error(self, message: str) -> None:
