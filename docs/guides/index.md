@@ -1,5 +1,5 @@
 ---
-description: "Step-by-step guides for every openstan feature: project management, importing statements, reviewing results, exporting data, building reports, anonymisation, and troubleshooting."
+description: "Step-by-step guides for every openstan feature: project management, importing statements, reviewing results, exporting data, reporting, and anonymising PDFs."
 ---
 
 # Guides
@@ -8,8 +8,8 @@ Learn how to use every feature of openstan with our step-by-step guides.
 
 ## Getting Started
 
-- [**Project Management**](./project-management.md) – Create, switch between, and manage openstan projects. Covers the project selector bar, creation wizard, adding existing projects, and navigation shortcuts.
-- [**Import Statements**](./import-statements.md) – Build a queue of bank statement PDFs and run the import process. Add individual files or folders, remove duplicates, and track real-time batch progress.
+- [**Project Management**](project-management.md) – Create, switch between, and manage openstan projects. Covers the project selector bar, creation wizard, adding existing projects, and navigation shortcuts.
+- [**Import Statements**](import-statements.md) – Build a queue of bank statement PDFs and run the import process. Add individual files or folders, remove duplicates, and track real-time batch progress.
 
 ## Working with Imported Data
 
