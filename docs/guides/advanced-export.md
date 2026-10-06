@@ -1,5 +1,5 @@
 ---
-description: "Spec-driven custom exports in openstan via TOML files with per-account and date-range filtering."
+description: "Create spec-driven custom exports in openstan using TOML files. Filter by account, statement, or date range. Define output shape with a reusable export spec."
 ---
 
 # Advanced Export

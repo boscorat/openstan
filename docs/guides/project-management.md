@@ -1,5 +1,5 @@
 ---
-description: "Create, switch between, and manage openstan projects. Project selector bar and navigation overview."
+description: "Create, switch between, and manage openstan projects. Covers the project selector bar, creation wizard, adding existing projects, navigation bar shortcuts."
 ---
 
 # Project Management

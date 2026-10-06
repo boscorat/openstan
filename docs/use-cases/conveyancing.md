@@ -1,5 +1,5 @@
 ---
-description: "Verify deposits, trace fund sources, and check statement continuity using openstan. Convert client bank statement PDFs to structured data for conveyancing due diligence."
+description: "Verify deposits, trace fund sources, and check statement continuity. Convert bank statement PDFs to structured data for conveyancing source of funds checks."
 ---
 
 # Conveyancing & Source of Funds

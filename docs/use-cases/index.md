@@ -1,5 +1,5 @@
 ---
-description: "How individuals, solicitors, bookkeepers, and small businesses use openstan to import, analyse, and export UK bank statement PDFs."
+description: "How individuals, solicitors, bookkeepers, and small businesses use openstan to analyse UK bank statement PDFs. Self assessment, probate, conveyancing, and more."
 ---
 
 # Use Cases
@@ -30,3 +30,13 @@ source of funds enquiries.
 [**Small Business**](small-business.md)
 Import business account statements, build a transaction database,
 and export for your bookkeeper or accounting software.
+
+---
+
+## See Also
+
+- [Installation](../installation.md) – Download and install openstan
+- [Quick Start](../quickstart.md) – Create your first project in 5 minutes
+- [Export Data](../guides/export-data.md) – Export transactions to Excel, CSV, or JSON
+- [Redaction & Anonymisation](../redaction/index.md) – Share statements safely
+- [Community & Support](../community.md) – Get help and connect with other users

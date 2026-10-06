@@ -1,5 +1,5 @@
 ---
-description: "Export committed transaction data from openstan to Excel, CSV, or JSON using configurable presets."
+description: "Export committed transaction data from openstan to Excel, CSV, or JSON. Choose a flat transactions table or full star-schema dataset with configurable presets."
 ---
 
 # Export Data
@@ -85,5 +85,6 @@ For a comprehensive guide to creating and modifying export TOML config files, se
 - [Advanced Export](advanced-export.md) – Create spec-driven custom exports with TOML
 - [Run Reports](run-reports.md) – Build and analyze reports before exporting
 - [Import Results](import-results.md) – Review transactions before committing
+- [Logging & Debugging Guide](logging.md) – Diagnose export failures with verbose mode
 - [Self-Assessment Use Case](../use-cases/self-assessment.md) – Export for tax returns
 - [Small Business Use Case](../use-cases/small-business.md) – Export for accountants

@@ -1,5 +1,5 @@
 ---
-description: "Review openstan import results — success, review, and failure tabs with debug output and original PDF side by side."
+description: "Review openstan import results in Success, Review, and Failure tabs. View per-file debug output alongside the original PDF, then commit or abandon your batch."
 ---
 
 # Import Results
@@ -99,3 +99,13 @@ A progress indicator at the bottom of the dialog shows how many debug files have
 
 !!! info "After committing"
     Once a batch is committed, the **Project Info**, **Export Data**, and **Run Reports** navigation items become visible (or are updated if they were already visible).
+
+---
+
+## Related Topics
+
+- [Import Statements](import-statements.md) – Build the import queue and run the batch
+- [Anonymise PDF](anonymise.md) – Redact a failing statement before attaching to a bug report
+- [Logging & Debugging Guide](logging.md) – Enable verbose mode for detailed import diagnostics
+- [Export Data](export-data.md) – Export transactions once committed
+- [Troubleshooting Guide](../troubleshooting.md) – Common import issues and solutions

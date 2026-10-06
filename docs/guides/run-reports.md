@@ -1,5 +1,5 @@
 ---
-description: "Build custom reports with filters, grouping, and aggregations in openstan's no-code report builder."
+description: "Build custom transaction reports in openstan with the no-code report builder. Set filters, group by date or account, add aggregations, and export results."
 ---
 
 # Run Reports

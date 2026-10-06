@@ -1,5 +1,5 @@
 ---
-description: "Build a queue of bank statement PDFs and run the import process in openstan."
+description: "Build a queue of bank statement PDFs and run the import process. Add individual files or folders, remove duplicates, and track real-time batch progress."
 ---
 
 # Import Statements
@@ -49,6 +49,9 @@ During processing:
 !!! warning "Do not close the application during import"
     Closing openstan while an import is running will leave the batch in an incomplete state. If this happens, use **Abandon Batch** in the results panel on next launch to reset the queue.
 
+!!! tip "Diagnosing import failures"
+    If statements land in the REVIEW or FAILURE tabs, enable verbose mode and re-run the import for detailed per-field diagnostics. See the [Logging & Debugging Guide](logging.md) for instructions.
+
 ---
 
 ## Reviewing a pending batch
@@ -76,5 +79,6 @@ If your bank is not yet supported, refer to the [bank\_statement\_parser guide o
 - [Import Results](import-results.md) – Review parsed transactions and debug output
 - [Project Management](project-management.md) – Create and manage projects
 - [Export Data](export-data.md) – Export transactions after import and commit
+- [Logging & Debugging Guide](logging.md) – Enable verbose mode for import diagnostics
 - [Quick Start](../quickstart.md) – Step-by-step getting started guide
 - [Community & Support](../community.md) – Request support for additional banks

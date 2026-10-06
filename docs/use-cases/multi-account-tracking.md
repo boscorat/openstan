@@ -1,5 +1,5 @@
 ---
-description: "Combine statements from multiple bank accounts and credit cards into one searchable dataset. See your full financial picture — 100% offline, no cloud, no Open Banking."
+description: "Combine UK bank account and credit card statements into one searchable dataset. Complete financial picture — 100% offline, no cloud, no Open Banking required."
 ---
 
 # Multi-Account Tracking

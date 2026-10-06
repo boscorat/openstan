@@ -1,8 +1,12 @@
 ---
-description: "Video tutorials for openstan — watch quickstart walkthroughs and feature demos."
+description: "Watch openstan tutorials: a 2-minute quick-start overview and a 12-minute full walkthrough covering imports, reports, advanced export, and bank statement tips."
 ---
 
 # Video Tutorials
+
+Short videos covering the core openstan workflow — creating a project, importing bank statement PDFs, reviewing results, and exporting to Excel. New tutorials are published on the [openstan YouTube channel](https://youtube.com/@openstan).
+
+---
 
 ## Quick Start (2 min)
 
@@ -24,9 +28,10 @@ The complete tutorial covering reports, advanced export, and tips for getting th
 
 ---
 
-## Next Steps
+## See Also
 
 - **[Quick Start Guide](quickstart.md)** – Step-by-step written guide to get you started
 - **[Installation](installation.md)** – Download and install openstan
 - **[Use Cases](use-cases/index.md)** – Explore how openstan works for different scenarios
 - **[Feature Guides](guides/project-management.md)** – Detailed walkthroughs of every screen and tool
+- **[Logging & Debugging Guide](guides/logging.md)** – Diagnose import and export issues
