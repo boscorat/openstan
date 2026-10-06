@@ -72,7 +72,7 @@ New banks can be added by anyone via a [TOML configuration file](https://boscora
 
 1. [Install openstan](installation.md) for your operating system — no Python required.
 2. Follow the [Quick Start guide](quickstart.md) to create your first project and import your first statements.
-3. Browse the [Screens](screens/project-management.md) reference for a guide to every panel and option.
+3. Browse the [Screens](guides/project-management.md) reference for a guide to every panel and option.
 4. Explore [Use Cases](use-cases/index.md) for ideas specific to your workflow.
 5. Learn about [Redaction & Anonymisation](redaction/index.md) to share statements safely.
 
@@ -82,14 +82,14 @@ New banks can be added by anyone via a [TOML configuration file](https://boscora
 
 | Screen | Description |
 |--------|-------------|
-| [Project Management](screens/project-management.md) | Create, switch, and delete projects |
-| [Import Statements](screens/import-statements.md) | Import bank statement PDFs in bulk |
-| [Import Results](screens/import-results.md) | Review and commit imported statements |
-| [Project Info](screens/project-info.md) | View transaction counts and account breakdowns |
-| [Run Reports](screens/run-reports.md) | Filter, group, and aggregate transactions |
-| [Export Data](screens/export-data.md) | Export to Excel, CSV, or JSON |
-| [Anonymise PDF](screens/anonymise.md) | Redact bank statement PDFs for safe sharing |
-| [Admin](screens/admin.md) | Manage banks and statement configurations |
+| [Project Management](guides/project-management.md) | Create, switch, and delete projects |
+| [Import Statements](guides/import-statements.md) | Import bank statement PDFs in bulk |
+| [Import Results](guides/import-results.md) | Review and commit imported statements |
+| [Project Info](guides/project-info.md) | View transaction counts and account breakdowns |
+| [Run Reports](guides/run-reports.md) | Filter, group, and aggregate transactions |
+| [Export Data](guides/export-data.md) | Export to Excel, CSV, or JSON |
+| [Anonymise PDF](guides/anonymise.md) | Redact bank statement PDFs for safe sharing |
+| [Admin](guides/admin.md) | Manage banks and statement configurations |
 
 ---
 

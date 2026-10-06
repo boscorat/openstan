@@ -114,5 +114,5 @@ When reviewing bank statements in an estate context:
 
 - **[Installation](../installation.md)** – Download and install openstan
 - **[Quick Start](../quickstart.md)** – 5-minute setup guide
-- **[Import Statements](../screens/import-statements.md)** – Import estate bank statements
-- **[Export Data](../screens/export-data.md)** – Export for the probate accounts
+- **[Import Statements](../guides/import-statements.md)** – Import estate bank statements
+- **[Export Data](../guides/export-data.md)** – Export for the probate accounts

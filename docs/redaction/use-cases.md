@@ -136,5 +136,5 @@ that looks authentic but contains no personal data.
 
 - **[Installation](../installation.md)** – Download and install openstan
 - **[Quick Start](../quickstart.md)** – 5-minute walkthrough to get started
-- **[Anonymise PDF Reference](../screens/anonymise.md)** – Full tool documentation
-- **[Run Reports](../screens/run-reports.md)** – Build custom transaction reports
+- **[Anonymise PDF Reference](../guides/anonymise.md)** – Full tool documentation
+- **[Run Reports](../guides/run-reports.md)** – Build custom transaction reports

@@ -105,6 +105,6 @@ Once committed, the queue unlocks and the **Project Info**, **Export Data**, and
 
 ## Next steps
 
-- Read the [Import Statements](screens/import-statements.md) screen guide for full details on the queue and import options.
-- Read the [Export Data](screens/export-data.md) and [Advanced Export](screens/advanced-export.md) guides to learn about export specs.
-- Read the [Run Reports](screens/run-reports.md) guide to get the most out of the report builder.
+- Read the [Import Statements](guides/import-statements.md) screen guide for full details on the queue and import options.
+- Read the [Export Data](guides/export-data.md) and [Advanced Export](guides/advanced-export.md) guides to learn about export specs.
+- Read the [Run Reports](guides/run-reports.md) guide to get the most out of the report builder.

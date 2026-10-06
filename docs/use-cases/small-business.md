@@ -93,5 +93,5 @@ running totals.
 
 - **[Installation](../installation.md)** – Download and install openstan
 - **[Quick Start](../quickstart.md)** – 5-minute setup guide
-- **[Export Data](../screens/export-data.md)** – Export for your bookkeeper
-- **[Run Reports](../screens/run-reports.md)** – Build business reports and summaries
+- **[Export Data](../guides/export-data.md)** – Export for your bookkeeper
+- **[Run Reports](../guides/run-reports.md)** – Build business reports and summaries
