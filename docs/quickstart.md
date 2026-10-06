@@ -1,5 +1,5 @@
 ---
-description: "Step-by-step guide to creating your first project, importing bank statement PDFs, and exporting transactions in openstan."
+description: "Step-by-step guide to creating your first openstan project, importing bank statement PDFs, reviewing results, committing a batch, and exporting transactions."
 ---
 
 # Quick Start
@@ -108,3 +108,4 @@ Once committed, the queue unlocks and the **Project Info**, **Export Data**, and
 - Read the [Import Statements](guides/import-statements.md) screen guide for full details on the queue and import options.
 - Read the [Export Data](guides/export-data.md) and [Advanced Export](guides/advanced-export.md) guides to learn about export specs.
 - Read the [Run Reports](guides/run-reports.md) guide to get the most out of the report builder.
+- If an import fails, enable verbose mode and check the Project Log — see the [Logging & Debugging Guide](guides/logging.md) for instructions.

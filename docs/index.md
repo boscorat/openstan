@@ -1,6 +1,6 @@
 ---
 title: "Free UK Bank Statement Analyser"
-description: "Free, open-source UK bank statement analyser. Import HSBC, TSB, NatWest, and Halifax PDFs offline. Parse 100 statements in under 60 seconds. Export to Excel, CSV, or JSON."
+description: "Free, open-source UK bank statement analyser. Import HSBC, TSB, NatWest PDFs 100% offline. Parse a full year of statements in seconds. Export to Excel or CSV."
 ---
 
 # openstan — Free UK Bank Statement Analyser
@@ -16,7 +16,7 @@ Import an entire year of statements, build reports, and export to Excel in under
 [![Import results — light](assets/screenshots/statement_results.png#only-light)](assets/screenshots/statement_results.png)
 [![Import results — dark](assets/screenshots/dark/statement_results.png#only-dark)](assets/screenshots/dark/statement_results.png)
 
-### See it in action
+## See it in action
 
 ![openstan walkthrough — create a project, import bank statement PDFs, review results](assets/media/openstan_demo.gif)
 

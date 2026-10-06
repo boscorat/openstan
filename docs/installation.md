@@ -1,5 +1,5 @@
 ---
-description: "Install openstan on Windows, macOS, or Linux. Self-contained native installers — no Python required."
+description: "Install openstan on Windows, macOS, or Linux. Self-contained native installer, no Python required. Covers upgrade, uninstall, running from source, code signing."
 ---
 
 # Installation

@@ -1,5 +1,5 @@
 ---
-description: "Import business bank statement PDFs, build a searchable transaction database, and export for your bookkeeper or accounting software. Free, offline, and extensible."
+description: "Import business bank statement PDFs, build a searchable transaction database, and export for your bookkeeper or accounting software. Free and offline."
 ---
 
 # Small Business Bookkeeping

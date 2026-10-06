@@ -1,5 +1,5 @@
 ---
-description: "Contribute to openstan documentation. Guidelines for page structure, SEO best practices, frontmatter requirements, and design consistency."
+description: "Standards for contributing to openstan documentation: frontmatter requirements, description length, heading hierarchy, internal linking, SEO checklist, and image conventions."
 ---
 
 # Contributing to Documentation

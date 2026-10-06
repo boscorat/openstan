@@ -1,5 +1,5 @@
 ---
-description: "Solve common openstan issues: import failures, logs not showing, verbose mode, and how to share logs with support. Troubleshooting FAQ and solutions."
+description: "Fix common openstan problems: import failures, logs not appearing, verbose mode, export errors, and how to share logs with support for faster resolution."
 ---
 
 # Troubleshooting

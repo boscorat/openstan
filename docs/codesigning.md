@@ -1,5 +1,5 @@
 ---
-description: "openstan code signing policy. Windows MSI installers signed via Certum; macOS apps signed and notarized via Apple Developer ID."
+description: "openstan code signing: Windows MSI signed via Certum Open Source; macOS apps signed with Apple Developer ID and notarized by Apple. Verify authenticity."
 ---
 
 # Code Signing Policy
