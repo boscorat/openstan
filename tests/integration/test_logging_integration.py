@@ -24,7 +24,6 @@ import logging
 import logging.handlers
 import tempfile
 from collections.abc import Generator
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
@@ -32,7 +31,6 @@ import pytest
 from PySide6.QtCore import QSettings
 
 from openstan import logging_manager
-
 
 # ============================================================================
 # Fixtures
@@ -46,7 +44,7 @@ def test_session_id() -> str:
 
 
 @pytest.fixture
-def temp_project_root() -> Generator[Path, None, None]:
+def temp_project_root() -> Generator[Path]:
     """Create a temporary project root directory."""
     with tempfile.TemporaryDirectory() as tmpdir:
         project_root = Path(tmpdir)
@@ -54,20 +52,34 @@ def temp_project_root() -> Generator[Path, None, None]:
 
 
 @pytest.fixture
-def cleanup_qsettings() -> Generator[None, None, None]:
-    """Clean up QSettings before and after each test."""
+def cleanup_qsettings() -> Generator[None]:
+    """Clean up QSettings before and after each test.
+
+    Uses the real QSettings but clears the specific logging key to avoid
+    polluting production settings with test data.
+    """
     settings = QSettings("openstan", "openstan")
-    settings.clear()
+    # Save original value if it exists
+    original_verbosity = settings.value("logging/verbosity", None)
+    settings.remove("logging/verbosity")
     yield
-    settings.clear()
+    # Restore original value
+    if original_verbosity is not None:
+        settings.setValue("logging/verbosity", original_verbosity)
+    else:
+        settings.remove("logging/verbosity")
 
 
 @pytest.fixture
-def fresh_logging_state() -> Generator[None, None, None]:
+def fresh_logging_state() -> Generator[None]:
     """Reset logging module to fresh state before/after test."""
     # Store original logger levels
     original_levels = {}
-    for logger_name in ("openstan", "bank_statement_parser", "uk_bank_statement_anonymiser"):
+    for logger_name in (
+        "openstan",
+        "bank_statement_parser",
+        "uk_bank_statement_anonymiser",
+    ):
         logger = logging.getLogger(logger_name)
         original_levels[logger_name] = logger.level
 
@@ -309,7 +321,8 @@ class TestLogRotation:
         # Get the root logger's handlers
         root_logger = logging.getLogger("openstan")
         rotating_handlers = [
-            h for h in root_logger.handlers
+            h
+            for h in root_logger.handlers
             if isinstance(h, logging.handlers.RotatingFileHandler)
         ]
 
@@ -364,44 +377,9 @@ class TestUIStateSync:
 class TestLargeFileHandling:
     """Tests for handling large log files."""
 
-    def test_large_log_file_truncation_notice(
-        self, temp_project_root: Path, test_session_id: str
-    ) -> None:
-        """Verify large log file truncation with notice."""
-        # Create a mock large log file
-        project_log_path = logging_manager.get_project_log_path(
-            project_root=temp_project_root, session_id=test_session_id
-        )
-        project_log_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Write 600 lines to exceed 500-line limit
-        large_log_content = "\n".join(
-            [f"Line {i}: Test log entry" for i in range(600)]
-        )
-        project_log_path.write_text(large_log_content)
-
-        # Read log with truncation (simulating log viewer behavior)
-        lines = project_log_path.read_text().split("\n")
-        last_500_lines = lines[-500:] if len(lines) > 500 else lines
-
-        # Verify only last 500 lines would be shown
-        assert len(last_500_lines) <= 500
-
 
 class TestPrivacyNotice:
     """Tests for privacy notice in log viewer."""
-
-    def test_privacy_notice_present_in_logs(self, test_session_id: str) -> None:
-        """Verify privacy notice is implemented in log viewer."""
-        logging_manager.initialize(session_id=test_session_id, verbosity="normal")
-
-        # Privacy notice is displayed by UI, not stored in logs
-        # Verify this is documented in log viewer implementation
-        privacy_notice = "Logs may contain sensitive bank account information"
-
-        # This is more of a documentation check - privacy notice should be
-        # in the log viewer UI code
-        assert privacy_notice is not None
 
 
 class TestSessionBasedLogIsolation:
@@ -470,11 +448,9 @@ class TestMultiSessionLogging:
         # App log should contain app messages
         assert "App startup message" in app_log_content
         assert "App cleanup message" in app_log_content
-
         # Project log should contain project messages
         assert "Project import started" in project_log_content
         assert "Project import completed" in project_log_content
-
 
 
 # ============================================================================

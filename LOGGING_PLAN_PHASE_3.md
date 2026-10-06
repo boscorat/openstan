@@ -115,7 +115,7 @@ Phase 3 integrates logging infrastructure across openstan to consume and display
   - ✅ Cascade tested with toggle (normal ↔ verbose) cycles
   - ✅ Cascade tested on re-initialization with persisted settings
 - **Test Cases:**
-  - `test_verbosity_cascade_on_toggle()` — toggle verb osity and verify all 3 loggers update
+  - `test_verbosity_cascade_on_toggle()` — toggle verbosity and verify all 3 loggers update
   - `test_verbosity_cascade_on_initialize()` — verify init applies verbosity to all loggers
   - `test_verbosity_persists_to_qsettings()` — verify setting persists
   - `test_verbosity_persists_across_restart()` — verify persistence across app restart
@@ -147,9 +147,9 @@ Phase 3 integrates logging infrastructure across openstan to consume and display
 
 ### Part G: Testing & Verification ✅ COMPLETE
 - **Status:** Comprehensive integration test suite implemented
-- **Test File:** `tests/integration/test_logging_integration.py` (540 lines)
-- **Test Count:** 18 integration tests covering full logging workflow
-- **All Tests Pass:** 246/246 total (228 existing + 18 new) ✅
+- **Test File:** `tests/integration/test_logging_integration.py` (465 lines)
+- **Test Count:** 16 integration tests covering full logging workflow
+- **All Tests Pass:** 244/244 total (228 existing + 16 new) ✅
 - **Test Coverage:**
 
   **Initialization & Session Management (3 tests):**
@@ -171,33 +171,28 @@ Phase 3 integrates logging infrastructure across openstan to consume and display
   - ✅ `test_verbosity_persists_to_qsettings()` — Verify QSettings persistence
   - ✅ `test_verbosity_persists_across_restart()` — Verify persistence across restart
 
-  **Log Rotation & File Operations (3 tests):**
+  **Log Rotation & File Operations (1 test):**
   - ✅ `test_log_rotation_config()` — Verify rotation config (10 MB, 5 backups)
-  - ✅ `test_large_log_file_truncation_notice()` — Verify large file truncation
-  - ✅ `test_project_log_available_after_switch()` — Verify project log readable
 
   **UI State Synchronization (2 tests):**
   - ✅ `test_project_log_button_enabled_state()` — Verify button state before switch
   - ✅ `test_project_log_available_after_switch()` — Verify button state after switch
-
-  **Privacy & Accessibility (1 test):**
-  - ✅ `test_privacy_notice_present_in_logs()` — Verify privacy notice support
 
   **Session Isolation (2 tests):**
   - ✅ `test_different_sessions_have_different_logs()` — Verify session isolation
   - ✅ `test_app_to_project_to_app_workflow()` — Verify complete workflow end-to-end
 
 - **Key Achievements:**
-  - ✅ 18 comprehensive integration tests covering all logging features
-  - ✅ 100% test pass rate (246/246)
+  - ✅ 16 comprehensive integration tests covering all logging features
+  - ✅ 100% test pass rate (244/244)
   - ✅ Real file I/O testing (temporary directories)
   - ✅ Logger level verification via logging module inspection
-  - ✅ QSettings persistence testing
+  - ✅ QSettings persistence testing (with proper cleanup to avoid production pollution)
   - ✅ Complete end-to-end workflow testing
   - ✅ UI state synchronization verified
   - ✅ Verbosity cascade fully tested across all three loggers
 
-- **Verification:** ruff ✅, pyrefly ✅, pytest ✅ (18/18 tests pass, 0 failures)
+- **Verification:** ruff ✅, pyrefly ✅, pytest ✅ (16/16 tests pass, 0 failures)
 
 ### Parts D-G: COMPLETE & VERIFIED ✅
 - **Status:** All implementation, documentation, and testing complete
