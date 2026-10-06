@@ -1,5 +1,5 @@
 ---
-description: "Convert bank statement PDFs from deceased accounts into structured spreadsheets for estate administration, IHT406 preparation, and probate accounts. Offline.'s accounts into structured spreadsheets for estate administration, IHT406 preparation, and probate accounts. Free and fully offline.'s accounts into structured spreadsheets for estate administration, IHT406, and probate accounts. Free and offline."
+description: "Convert bank statement PDFs from deceased accounts into structured spreadsheets for estate administration, IHT406 preparation, and probate accounts. Offline."
 ---
 
 # Probate & Estate Administration
