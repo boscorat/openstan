@@ -26,13 +26,12 @@ jobs:
         id: release_info
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          PUBLISHED_AT: ${{ github.event.release.published_at }}
+          RELEASE_BODY: ${{ github.event.release.body }}
         run: |
           set -euo pipefail
-
-          TAG="${{ github.event.release.tag_name }}"
-          RELEASE_NAME="${{ github.event.release.name }}"
-          PUBLISHED_AT="${{ github.event.release.published_at }}"
-          RELEASE_BODY="${{ github.event.release.body }}"
 
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "name=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
