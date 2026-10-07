@@ -52,7 +52,7 @@ New banks are added via [TOML configuration files](https://boscorat.github.io/ba
 
 Interested in contributing code, documentation, or a new bank configuration?
 
-- [CONTRIBUTING.md](https://github.com/boscorat/openstan/blob/main/CONTRIBUTING.md) — development setup and code style
+- [CONTRIBUTING.md](https://github.com/boscorat/openstan/blob/master/CONTRIBUTING.md) — development setup and code style
 - [GitHub Issues](https://github.com/boscorat/openstan/issues) — bug reports and feature requests
 - [bank_statement_parser](https://github.com/boscorat/bank_statement_parser) — the parsing library (where bank configs live)
 
