@@ -193,6 +193,7 @@ for _config_file in _bsa_config_files:
             f"Check that the installed version of bank_statement_anonymiser ships it."
         )
 
+# On Linux CI the PNG may need to be regenerated if bdist_rpm re-invokes
 # build_exe in a temporary BUILD directory where the pre-built icon is absent.
 # We try a chain of converters in preference order and fail loudly only if
 # none are available.  Preference: Inkscape (highest fidelity) → rsvg-convert
