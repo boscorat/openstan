@@ -159,6 +159,40 @@ if not _bsp_project_dir.exists():
     )
 include_files.append((str(_bsp_project_dir), "lib/bank_statement_parser/project"))
 
+# ---------------------------------------------------------------------------
+# Explicit bank_statement_anonymiser data files
+# ---------------------------------------------------------------------------
+# bank_statement_anonymiser ships system TOML config files for anonymisation
+# rules (always_anonymise_system.toml, never_anonymise_system.toml).
+# These are loaded at module import time via importlib.resources.read_bytes().
+# Although the fix in v0.2.5+ loads configs at import time (avoiding the
+# frozen-app resource extraction issue), we explicitly include them here as
+# a safety net for edge cases and to ensure they're always extracted to disk.
+
+_bsa_spec = _ilu.find_spec("bank_statement_anonymiser")
+if _bsa_spec is None or _bsa_spec.origin is None:
+    raise RuntimeError(
+        "bank_statement_anonymiser is not installed in the active virtual environment. "
+        "Run 'uv sync --no-dev' before building."
+    )
+_bsa_pkg_dir = Path(_bsa_spec.origin).parent
+_bsa_config_files = [
+    "always_anonymise_system.toml",
+    "never_anonymise_system.toml",
+]
+for _config_file in _bsa_config_files:
+    _config_path = _bsa_pkg_dir / _config_file
+    if _config_path.exists():
+        include_files.append(
+            (str(_config_path), f"lib/bank_statement_anonymiser/{_config_file}")
+        )
+    else:
+        raise FileNotFoundError(
+            f"bank_statement_anonymiser config file not found: {_config_path}\n"
+            f"This file is required for anonymisation. "
+            f"Check that the installed version of bank_statement_anonymiser ships it."
+        )
+
 # On Linux CI the PNG may need to be regenerated if bdist_rpm re-invokes
 # build_exe in a temporary BUILD directory where the pre-built icon is absent.
 # We try a chain of converters in preference order and fail loudly only if
