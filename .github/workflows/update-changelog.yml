@@ -1,0 +1,179 @@
+name: Update CHANGELOG on Release
+
+# Triggered when a release is published (draft → published)
+# Creates a PR to add the release notes to CHANGELOG.md
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-changelog:
+    name: Update CHANGELOG.md from release notes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Extract release information
+        id: release_info
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          PUBLISHED_AT: ${{ github.event.release.published_at }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+        run: |
+          set -euo pipefail
+
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "name=${RELEASE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "published_at=${PUBLISHED_AT}" >> "$GITHUB_OUTPUT"
+
+          # Extract just the release notes (skip Downloads and Security Scan sections)
+          # The release body contains auto-generated sections we need to filter out
+          BODY_FILE="/tmp/release_body.md"
+          echo "$RELEASE_BODY" | awk '
+            /^## (Downloads|Security Scan Results)$/ { skipping=1; next }
+            skipping && /^---$/ { skipping=0; next }
+            skipping && /^## / { skipping=0 }
+            !skipping { print }
+          ' > "$BODY_FILE"
+
+          # Also extract the section before auto-generated content (summary + structured sections)
+          echo "release_body_file=${BODY_FILE}" >> "$GITHUB_OUTPUT"
+
+          # Parse version from tag (v1.2.3 → 1.2.3)
+          VERSION="${TAG#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          # Format date as YYYY-MM-DD
+          DATE=$(echo "$PUBLISHED_AT" | cut -d'T' -f1)
+          echo "date=${DATE}" >> "$GITHUB_OUTPUT"
+
+          echo "Release Info:"
+          echo "  Tag: $TAG"
+          echo "  Version: $VERSION"
+          echo "  Date: $DATE"
+
+      - name: Find previous tag for comparison link
+        id: prev_tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          CURRENT_TAG="${{ steps.release_info.outputs.tag }}"
+
+          # Get list of all tags in reverse chronological order (newest first)
+          TAGS=$(gh release list --limit 100 --json tagName --jq '.[].tagName')
+
+          FOUND_CURRENT=false
+          PREV_TAG=""
+
+          while IFS= read -r tag; do
+            if [ "$tag" = "$CURRENT_TAG" ]; then
+              FOUND_CURRENT=true
+              continue
+            fi
+
+            if [ "$FOUND_CURRENT" = true ] && [ -z "$PREV_TAG" ]; then
+              PREV_TAG="$tag"
+              break
+            fi
+          done <<< "$TAGS"
+
+          if [ -z "$PREV_TAG" ]; then
+            echo "No previous tag found; will use first commit"
+            echo "prev_tag=" >> "$GITHUB_OUTPUT"
+          else
+            echo "prev_tag=${PREV_TAG}" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "Previous tag: ${PREV_TAG:-none}"
+
+      - name: Build changelog entry
+        id: changelog_entry
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ steps.release_info.outputs.version }}"
+          DATE="${{ steps.release_info.outputs.date }}"
+          PREV_TAG="${{ steps.prev_tag.outputs.prev_tag }}"
+          CURRENT_TAG="${{ steps.release_info.outputs.tag }}"
+          BODY_FILE="/tmp/release_body.md"
+
+          ENTRY_FILE="/tmp/changelog_entry.md"
+
+          # Build the version header and date
+          {
+            echo "## [${VERSION}] - ${DATE}"
+            echo ""
+
+            # Read the release body (stripped of auto-generated sections)
+            cat "$BODY_FILE"
+            echo ""
+
+            # Add comparison link
+            if [ -n "$PREV_TAG" ]; then
+              echo "[${VERSION}]: https://github.com/boscorat/openstan/compare/${PREV_TAG}...${CURRENT_TAG}"
+            else
+              echo "[${VERSION}]: https://github.com/boscorat/openstan/releases/tag/${CURRENT_TAG}"
+            fi
+
+            echo ""
+            echo "---"
+            echo ""
+          } > "$ENTRY_FILE"
+
+          echo "entry_file=${ENTRY_FILE}" >> "$GITHUB_OUTPUT"
+
+          echo "Generated changelog entry:"
+          cat "$ENTRY_FILE"
+
+      - name: Update CHANGELOG.md
+        id: update_changelog
+        run: |
+          set -euo pipefail
+
+          CHANGELOG_FILE="CHANGELOG.md"
+          ENTRY_FILE="/tmp/changelog_entry.md"
+
+          # Insert the new entry after the header and description
+          # Keep the "# Changelog" header and description lines, then insert new entry
+          {
+            head -5 "$CHANGELOG_FILE"  # Keep: # Changelog, blank, description, blank, format line
+            echo ""
+            cat "$ENTRY_FILE"
+            tail -n +7 "$CHANGELOG_FILE"  # Rest of file from 7th line onward
+          } > "${CHANGELOG_FILE}.tmp"
+
+          mv "${CHANGELOG_FILE}.tmp" "$CHANGELOG_FILE"
+
+          echo "CHANGELOG.md updated successfully"
+          echo "updated=true" >> "$GITHUB_OUTPUT"
+
+      - name: Create Pull Request
+        if: steps.update_changelog.outputs.updated == 'true'
+        uses: peter-evans/create-pull-request@5e914681df9dc353aa573929db9a9d91eed7fa08  # v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "docs: update CHANGELOG.md for ${{ steps.release_info.outputs.tag }}"
+          title: "docs: update CHANGELOG.md for ${{ steps.release_info.outputs.tag }}"
+          body: |
+            Automated changelog update from release: ${{ steps.release_info.outputs.name || steps.release_info.outputs.tag }}
+
+            **Release:** [${{ steps.release_info.outputs.tag }}](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.release_info.outputs.tag }})
+            **Date:** ${{ steps.release_info.outputs.date }}
+
+            This PR was automatically generated when the release was published.
+            Please review and merge if the changelog entry looks correct.
+          branch: "changelog/${{ steps.release_info.outputs.tag }}"
+          delete-branch: true
