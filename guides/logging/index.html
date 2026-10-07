@@ -1,0 +1,2701 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="View application and project logs, enable verbose mode for debugging, and safely share logs with support. Platform-specific paths and privacy guidance.">
+      
+      
+      
+        <link rel="canonical" href="https://openstan.org/guides/logging/">
+      
+      
+        <link rel="prev" href="../anonymise/">
+      
+      
+        <link rel="next" href="../admin/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.svg">
+      <meta name="generator" content="zensical-0.0.68">
+    
+    
+      
+        <title>Logging & Debugging - openstan</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.595f2bf5.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.b27955a4.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+  
+      
+
+    
+  
+  <script data-goatcounter="openstan.goatcounter.com/count"
+          async src="//gc.zgo.at/count.js"></script>
+  
+  
+  <script type="text/javascript">
+  var sc_project=13354789;
+  var sc_invisible=1;
+  var sc_security="15dbcfe9";
+  </script>
+  <script type="text/javascript"
+  src="https://www.statcounter.com/counter/counter.js"
+  async></script>
+  
+
+    
+  
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Logging & Debugging — openstan">
+  <meta property="og:description" content="View application and project logs, enable verbose mode for debugging, and safely share logs with support. Platform-specific paths and privacy guidance.">
+  <meta property="og:url" content="https://openstan.org/guides/logging/">
+  <meta property="og:site_name" content="openstan">
+  <meta property="og:image" content="https://openstan.org/assets/screenshots/statement_results.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Logging & Debugging — openstan">
+  <meta name="twitter:description" content="View application and project logs, enable verbose mode for debugging, and safely share logs with support. Platform-specific paths and privacy guidance.">
+  <meta name="twitter:image" content="https://openstan.org/assets/screenshots/statement_results.png">
+   
+   <!-- Organization schema — on all pages -->
+   <script type="application/ld+json">
+   {
+     "@context": "https://schema.org",
+     "@type": "Organization",
+     "name": "openstan",
+     "url": "https://openstan.org",
+      "logo": "https://openstan.org/assets/logo-light.svg",
+     "description": "User guide for openstan — a desktop application for bank statement analysis and visualisation.",
+     "sameAs": [
+       "https://github.com/boscorat/openstan"
+     ]
+   }
+   </script>
+    
+   <script type="application/ld+json">
+   {
+     "@context": "https://schema.org",
+     "@type": "BreadcrumbList",
+     "itemListElement": [
+       {
+         "@type": "ListItem",
+         "position": 1,
+         "name": "Home",
+         "item": "https://openstan.org/"
+       },
+       {
+         "@type": "ListItem",
+         "position": 2,
+         "name": "Logging \u0026 Debugging",
+         "item": "https://openstan.org/guides/logging/"
+       }
+     ]
+   }
+   </script>
+   
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="openstan" class="md-header__button md-logo" aria-label="openstan" data-md-component="logo">
+      <img src="../../assets/logo-light.svg" alt="openstan" class="stan-logo-light">
+<img src="../../assets/logo-dark.svg" alt="openstan" class="stan-logo-dark">
+    </a>
+    <label class="md-header__button md-icon" for="__drawer" aria-label="Navigation">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            openstan
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Logging & Debugging
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search" aria-label="Search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/boscorat/openstan" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    boscorat/openstan
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="openstan" class="md-nav__button md-logo" aria-label="openstan" data-md-component="logo">
+      <img src="../../assets/logo-light.svg" alt="openstan" class="stan-logo-light">
+<img src="../../assets/logo-dark.svg" alt="openstan" class="stan-logo-dark">
+    </a>
+    openstan
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/boscorat/openstan" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    boscorat/openstan
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Quick Start
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guides
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Guides
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../project-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project Management
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../import-statements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Import Statements
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../import-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Import Results
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../export-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Export Data
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../advanced-export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced Export
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../run-reports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Run Reports
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../anonymise/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Anonymise PDFs
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Logging & Debugging
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Logging & Debugging
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-are-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What are logs?
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#privacy-notice" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Privacy Notice ⚠️
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#viewing-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Viewing Logs
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Viewing Logs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#opening-the-log-viewer" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Opening the Log Viewer
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-youll-see-in-the-log-viewer" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What You'll See in the Log Viewer
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#finding-log-files-manually" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Finding Log Files Manually
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Finding Log Files Manually">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#windows-10-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Windows 10 / 11
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macos" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        macOS
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Linux
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enabling-verbose-mode-debug-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Enabling Verbose Mode (DEBUG Logging)
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Enabling Verbose Mode (DEBUG Logging)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-is-verbose-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What is Verbose Mode?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-verbose-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        When to Use Verbose Mode
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-enable-verbose-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How to Enable Verbose Mode
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#effects-of-verbose-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Effects of Verbose Mode
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Performance Impact
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-verbose-mode-affects-library-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How Verbose Mode Affects Library Logs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#persistent-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Persistent Settings
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#log-rotation-retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Log Rotation &amp; Retention
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Log Rotation &amp; Retention">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-automatic-rotation-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How Automatic Rotation Works
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-many-backups-are-kept" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How Many Backups Are Kept?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-rotation-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Example: Rotation Sequence
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cleanup-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Cleanup Policies
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#session-based-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Session-Based Naming
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-cleanup-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Manual Cleanup (Optional)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sharing-logs-with-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Sharing Logs with Support
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sharing Logs with Support">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-share-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Why Share Logs?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#safe-sharing-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Safe Sharing Process
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-support-can-see-in-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What Support Can See in Logs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-not-to-share" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What NOT to Share
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-redacting-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Example: Redacting Logs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting-log-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Troubleshooting Log Issues
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting Log Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#i-dont-see-logs-in-the-viewer" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        "I don't see logs in the viewer"
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logs-are-growing-too-large" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        "Logs are growing too large"
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-topics" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Related Topics
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Admin Panel
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../use-cases/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Use Cases
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Use Cases
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/self-assessment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Self Assessment
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/probate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Probate & Estate Admin
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/multi-account-tracking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Multi-Account Tracking
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/small-business/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Small Business
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/conveyancing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Conveyancing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../redaction/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Redaction
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Redaction
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../redaction/use-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Use Cases
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_7">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Reference
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../project-info/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project Info
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../about/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  About
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Troubleshooting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../video-tutorials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Video Tutorials
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_10" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../blog/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Blog
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/boscorat/openstan/blob/master/CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Changelog
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Contributing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../privacy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Privacy Policy
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../codesigning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Code Signing Policy
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../community/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Community & Support
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feedback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Feedback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-are-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What are logs?
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#privacy-notice" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Privacy Notice ⚠️
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#viewing-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Viewing Logs
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Viewing Logs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#opening-the-log-viewer" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Opening the Log Viewer
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-youll-see-in-the-log-viewer" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What You'll See in the Log Viewer
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#finding-log-files-manually" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Finding Log Files Manually
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Finding Log Files Manually">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#windows-10-11" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Windows 10 / 11
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#macos" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        macOS
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Linux
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enabling-verbose-mode-debug-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Enabling Verbose Mode (DEBUG Logging)
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Enabling Verbose Mode (DEBUG Logging)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#what-is-verbose-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What is Verbose Mode?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-to-use-verbose-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        When to Use Verbose Mode
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-to-enable-verbose-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How to Enable Verbose Mode
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#effects-of-verbose-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Effects of Verbose Mode
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#performance-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Performance Impact
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-verbose-mode-affects-library-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How Verbose Mode Affects Library Logs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#persistent-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Persistent Settings
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#log-rotation-retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Log Rotation &amp; Retention
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Log Rotation &amp; Retention">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-automatic-rotation-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How Automatic Rotation Works
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-many-backups-are-kept" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        How Many Backups Are Kept?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-rotation-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Example: Rotation Sequence
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cleanup-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Cleanup Policies
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#session-based-naming" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Session-Based Naming
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-cleanup-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Manual Cleanup (Optional)
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sharing-logs-with-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Sharing Logs with Support
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sharing Logs with Support">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-share-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Why Share Logs?
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#safe-sharing-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Safe Sharing Process
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-support-can-see-in-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What Support Can See in Logs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-not-to-share" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        What NOT to Share
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-redacting-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Example: Redacting Logs
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting-log-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Troubleshooting Log Issues
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting Log Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#i-dont-see-logs-in-the-viewer" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        "I don't see logs in the viewer"
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logs-are-growing-too-large" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        "Logs are growing too large"
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-topics" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Related Topics
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+  
+  
+
+
+<h1 id="logging-debugging">Logging &amp; Debugging<a class="headerlink" href="#logging-debugging" title="Permanent link">&para;</a></h1>
+<p>openstan writes two log files — an App Log and a Project Log — that capture events, errors, and diagnostics as you use the application. This guide explains how to view them, how to enable verbose (DEBUG) mode for detailed diagnostics, and how to share logs safely with support.</p>
+<hr />
+<h2 id="what-are-logs">What are logs?<a class="headerlink" href="#what-are-logs" title="Permanent link">&para;</a></h2>
+<p>Logs are records of what happens inside the application as you use it. They capture important events like:</p>
+<ul>
+<li>When the app starts</li>
+<li>When you import statements</li>
+<li>When operations succeed or fail</li>
+<li>Detailed diagnostic information during import, export, and anonymisation</li>
+</ul>
+<p>Logs help diagnose problems and are invaluable when reporting issues to support.</p>
+<h2 id="privacy-notice">Privacy Notice ⚠️<a class="headerlink" href="#privacy-notice" title="Permanent link">&para;</a></h2>
+<p><strong>Logs may contain sensitive bank account information.</strong> Be cautious when sharing logs with others. Review logs before pasting into public forums or sending to unverified recipients. See <a href="#sharing-logs-with-support">Sharing Logs with Support</a> below for safe sharing practices.</p>
+<hr />
+<h2 id="viewing-logs">Viewing Logs<a class="headerlink" href="#viewing-logs" title="Permanent link">&para;</a></h2>
+<p>There are two types of logs:</p>
+<table>
+<thead>
+<tr>
+<th>Log Type</th>
+<th>Contains</th>
+<th>View When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>App Log</strong></td>
+<td>Application-wide events, startup diagnostics, menu actions, general errors</td>
+<td>App crashes, startup issues, menu problems, general diagnostics</td>
+</tr>
+<tr>
+<td><strong>Project Log</strong></td>
+<td>Project-specific operations, statement imports, parser errors, anonymiser details</td>
+<td>Import failures, statement parsing issues, anonymisation problems</td>
+</tr>
+</tbody>
+</table>
+<h3 id="opening-the-log-viewer">Opening the Log Viewer<a class="headerlink" href="#opening-the-log-viewer" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Click the <strong>Admin</strong> button in the top-right corner of the window</li>
+<li>Look for the <strong>View Logs</strong> section</li>
+<li>Click either <strong>View Application Log</strong> or <strong>View Project Log</strong></li>
+<li>A dialog will open showing the log contents</li>
+</ol>
+<p>The log viewer displays the most recent 500 lines of the log file. If the file is larger, a notice appears at the bottom indicating that content has been truncated.</p>
+<h3 id="what-youll-see-in-the-log-viewer">What You'll See in the Log Viewer<a class="headerlink" href="#what-youll-see-in-the-log-viewer" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>File path</strong> at the top (for your reference)</li>
+<li><strong>Privacy warning banner</strong> (reminder about sensitive data)</li>
+<li><strong>Log contents</strong> (read-only text area, showing recent entries)</li>
+<li><strong>Truncation notice</strong> if the file is larger than 500 lines</li>
+<li><strong>Three buttons:</strong></li>
+<li><strong>Refresh</strong> — reload the log file (shows latest changes)</li>
+<li><strong>Copy</strong> — copy displayed text to clipboard</li>
+<li><strong>Close</strong> — close the dialog</li>
+</ul>
+<hr />
+<h2 id="finding-log-files-manually">Finding Log Files Manually<a class="headerlink" href="#finding-log-files-manually" title="Permanent link">&para;</a></h2>
+<p>If you prefer to browse log files directly on your computer, here's where to find them:</p>
+<h3 id="windows-10-11">Windows 10 / 11<a class="headerlink" href="#windows-10-11" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Press <strong><code>Win+R</code></strong> to open the Run dialog</li>
+<li>Type: <strong><code>%APPDATA%\openstan</code></strong> and press Enter</li>
+<li>Your log files are displayed in this folder</li>
+</ol>
+<p>Alternatively, open <strong>File Explorer</strong> and navigate to:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>C:\Users\[YourUsername]\AppData\Roaming\openstan
+</code></pre></div></p>
+<h3 id="macos">macOS<a class="headerlink" href="#macos" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Open <strong>Finder</strong></li>
+<li>Press <strong><code>Cmd+Shift+G</code></strong> (Go to Folder)</li>
+<li>Type: <strong><code>~/Library/Application Support/openstan</code></strong> and press Enter</li>
+<li>Your log files are displayed in this folder</li>
+</ol>
+<h3 id="linux">Linux<a class="headerlink" href="#linux" title="Permanent link">&para;</a></h3>
+<p>Open a file manager and navigate to:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>~/.local/share/openstan/
+</code></pre></div></p>
+<p>Or open a terminal and run:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ls<span class="w"> </span>-la<span class="w"> </span>~/.local/share/openstan/
+</code></pre></div></p>
+<hr />
+<h2 id="enabling-verbose-mode-debug-logging">Enabling Verbose Mode (DEBUG Logging)<a class="headerlink" href="#enabling-verbose-mode-debug-logging" title="Permanent link">&para;</a></h2>
+<h3 id="what-is-verbose-mode">What is Verbose Mode?<a class="headerlink" href="#what-is-verbose-mode" title="Permanent link">&para;</a></h3>
+<p>By default, openstan logs important milestones and errors only. <strong>Verbose mode</strong> enables detailed debugging output, which can help diagnose stubborn issues.</p>
+<h3 id="when-to-use-verbose-mode">When to Use Verbose Mode<a class="headerlink" href="#when-to-use-verbose-mode" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Troubleshooting import failures</strong> — shows per-field extraction details</li>
+<li><strong>Reporting issues with detailed diagnostics</strong> — support may ask for this</li>
+<li><strong>Performance investigation</strong> — reveals timing details for slow operations</li>
+<li><strong>Supporting library issues</strong> — <code>bank_statement_parser</code> and <code>uk_bank_statement_anonymiser</code> show diagnostic output</li>
+</ul>
+<h3 id="how-to-enable-verbose-mode">How to Enable Verbose Mode<a class="headerlink" href="#how-to-enable-verbose-mode" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Click the <strong>Admin</strong> button in the top-right corner</li>
+<li>Look for the <strong>Logging Settings</strong> section</li>
+<li>Check the <strong>Enable verbose mode</strong> checkbox</li>
+<li>Changes apply <strong>immediately</strong> (no restart needed)</li>
+</ol>
+<h3 id="effects-of-verbose-mode">Effects of Verbose Mode<a class="headerlink" href="#effects-of-verbose-mode" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Log Level</th>
+<th>Output</th>
+<th>Appearance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Normal</strong> (unchecked)</td>
+<td>INFO</td>
+<td>Milestones, errors, important events</td>
+<td>Clean, minimal output</td>
+</tr>
+<tr>
+<td><strong>Verbose</strong> (checked)</td>
+<td>DEBUG</td>
+<td>Per-field extraction, database operations, library diagnostics</td>
+<td>~3–5× more output</td>
+</tr>
+</tbody>
+</table>
+<h3 id="performance-impact">Performance Impact<a class="headerlink" href="#performance-impact" title="Permanent link">&para;</a></h3>
+<p>Verbose mode adds approximately <strong>5–10% overhead</strong> to import and export operations, which is negligible for most users. Disable it once you've finished troubleshooting.</p>
+<h3 id="how-verbose-mode-affects-library-logs">How Verbose Mode Affects Library Logs<a class="headerlink" href="#how-verbose-mode-affects-library-logs" title="Permanent link">&para;</a></h3>
+<p>When you enable verbose mode, it cascades to dependent libraries:</p>
+<ul>
+<li><strong><code>bank_statement_parser</code></strong> — Shows extraction timing for every field, bank format detection, field mapping details</li>
+<li><strong><code>uk_bank_statement_anonymiser</code></strong> — Shows PDF processing details, exclusion pattern matching, anonymisation progress</li>
+</ul>
+<p>All output goes to the same project/app log files (no separate files are created).</p>
+<h3 id="persistent-settings">Persistent Settings<a class="headerlink" href="#persistent-settings" title="Permanent link">&para;</a></h3>
+<p>Your verbose mode setting is saved automatically and will be restored the next time you open the app.</p>
+<hr />
+<h2 id="log-rotation-retention">Log Rotation &amp; Retention<a class="headerlink" href="#log-rotation-retention" title="Permanent link">&para;</a></h2>
+<h3 id="how-automatic-rotation-works">How Automatic Rotation Works<a class="headerlink" href="#how-automatic-rotation-works" title="Permanent link">&para;</a></h3>
+<p>When a log file reaches <strong>10 MB</strong>, it's automatically rotated:</p>
+<ol>
+<li>The current log file is renamed (e.g., <code>.log.1</code>)</li>
+<li>A new <code>.log</code> file is created</li>
+<li>The app continues writing to the new file</li>
+</ol>
+<h3 id="how-many-backups-are-kept">How Many Backups Are Kept?<a class="headerlink" href="#how-many-backups-are-kept" title="Permanent link">&para;</a></h3>
+<p>The last <strong>5 backup files</strong> are kept (<code>.log.1</code> through <code>.log.5</code>), giving you approximately <strong>60 MB</strong> of total retention per log type.</p>
+<h3 id="example-rotation-sequence">Example: Rotation Sequence<a class="headerlink" href="#example-rotation-sequence" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>openstan.log          ← Currently being written to (10 MB)
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>openstan.log.1        ← Previous log (10 MB)
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>openstan.log.2        ← Previous log (10 MB)
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>openstan.log.3        ← Previous log (10 MB)
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>openstan.log.4        ← Previous log (10 MB)
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>openstan.log.5        ← Oldest kept (10 MB)
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>                      ← openstan.log.6 is deleted when rotation occurs
+</code></pre></div>
+<h3 id="cleanup-policies">Cleanup Policies<a class="headerlink" href="#cleanup-policies" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Automatic cleanup:</strong> No automatic cleanup occurs; logs are preserved for audit trail purposes</li>
+<li><strong>Manual cleanup:</strong> You can delete old session files if disk space is a concern (see below)</li>
+</ul>
+<h3 id="session-based-naming">Session-Based Naming<a class="headerlink" href="#session-based-naming" title="Permanent link">&para;</a></h3>
+<p>Each time you start openstan, a new unique log file is created based on your session:</p>
+<ul>
+<li>App log: <code>~/.local/share/openstan/[session-uuid].log</code> (Linux example)</li>
+<li>Project log: <code>&lt;project-root&gt;/[session-uuid].log</code></li>
+</ul>
+<p><strong>Benefit:</strong> No collision between sessions; you have a complete audit trail of all app sessions.</p>
+<h3 id="manual-cleanup-optional">Manual Cleanup (Optional)<a class="headerlink" href="#manual-cleanup-optional" title="Permanent link">&para;</a></h3>
+<p>If log files are consuming significant disk space:</p>
+<ol>
+<li>Navigate to your log directory (see <a href="#finding-log-files-manually">Finding Log Files Manually</a>)</li>
+<li>Delete old session files (e.g., sessions from a month ago)</li>
+<li><strong>Do NOT delete your current session's log file</strong> — the app is still writing to it</li>
+</ol>
+<p><strong>Linux example:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span>~/.local/share/openstan/
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># List old files and confirm before deleting</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>ls<span class="w"> </span>-lt<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-20
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="c1"># Delete files older than 30 days (example)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>find<span class="w"> </span>.<span class="w"> </span>-name<span class="w"> </span><span class="s2">"*.log*"</span><span class="w"> </span>-mtime<span class="w"> </span>+30<span class="w"> </span>-delete
+</code></pre></div></p>
+<hr />
+<h2 id="sharing-logs-with-support">Sharing Logs with Support<a class="headerlink" href="#sharing-logs-with-support" title="Permanent link">&para;</a></h2>
+<h3 id="why-share-logs">Why Share Logs?<a class="headerlink" href="#why-share-logs" title="Permanent link">&para;</a></h3>
+<p>Support can often diagnose problems much faster with access to your logs. Logs show:</p>
+<ul>
+<li>Exact sequence of events leading to the error</li>
+<li>Error messages and stack traces</li>
+<li>Bank/statement parser diagnostics</li>
+<li>Why a particular import or operation failed</li>
+</ul>
+<h3 id="safe-sharing-process">Safe Sharing Process<a class="headerlink" href="#safe-sharing-process" title="Permanent link">&para;</a></h3>
+<p><strong>Step 1: Enable Verbose Mode (Optional)</strong></p>
+<p>If the issue is intermittent, enabling verbose mode first provides more detail:</p>
+<ol>
+<li>Admin → Logging Settings → Check "Enable verbose mode"</li>
+<li>Perform the action that causes the issue (import, export, etc.)</li>
+<li>Wait 10–30 seconds, then gather logs</li>
+</ol>
+<p><strong>Step 2: Open the Log Viewer</strong></p>
+<ol>
+<li>Admin button → View App Log or View Project Log</li>
+<li>Review the displayed logs</li>
+</ol>
+<p><strong>Step 3: Copy Logs</strong></p>
+<ol>
+<li>Click the <strong>Copy</strong> button</li>
+<li>Logs are copied to your clipboard (last 500 lines shown in viewer)</li>
+</ol>
+<p><strong>Step 4: Paste and Submit</strong></p>
+<p>Paste logs into:</p>
+<ul>
+<li><strong>GitHub issue:</strong> <a href="https://github.com/boscorat/openstan/issues/new?template=bug-report.yml">Report a Bug</a></li>
+<li><strong>Email:</strong> <a href="mailto:community@openstan.org">community@openstan.org</a></li>
+</ul>
+<p><strong>Step 5: Review and Redact PII</strong></p>
+<p>Before submitting, review logs and remove sensitive data (see below).</p>
+<h3 id="what-support-can-see-in-logs">What Support Can See in Logs<a class="headerlink" href="#what-support-can-see-in-logs" title="Permanent link">&para;</a></h3>
+<p>Safe to share:</p>
+<ul>
+<li>Timestamps of events</li>
+<li>Error messages and stack traces (e.g., "field X could not be parsed")</li>
+<li>Bank name and statement format</li>
+<li>Import/export progress</li>
+<li>Which operations were performed (import, export, anonymise)</li>
+</ul>
+<h3 id="what-not-to-share">What NOT to Share<a class="headerlink" href="#what-not-to-share" title="Permanent link">&para;</a></h3>
+<p>Always remove these before pasting into public forums:</p>
+<ul>
+<li><strong>Account numbers</strong> (full or partial)</li>
+<li><strong>Routing numbers</strong></li>
+<li><strong>Full names</strong> of account holders</li>
+<li><strong>Addresses</strong></li>
+<li><strong>Dates of birth</strong></li>
+<li><strong>Transaction amounts</strong> (context-dependent; ask support)</li>
+</ul>
+<h3 id="example-redacting-logs">Example: Redacting Logs<a class="headerlink" href="#example-redacting-logs" title="Permanent link">&para;</a></h3>
+<p><strong>Before (with PII):</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>2026-10-05 14:32:15 | INFO | openstan | User started session
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>2026-10-05 14:32:16 | INFO | openstan.importers | Importing: Mr John Smith statement Oct 2026.pdf
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>2026-10-05 14:32:17 | DEBUG | bank_statement_parser | Extracting account: GB12 MIDL 3456 7890 12
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>2026-10-05 14:32:18 | ERROR | bank_statement_parser | Failed to parse: Unrecognized field format
+</code></pre></div></p>
+<p><strong>After (redacted):</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>2026-10-05 14:32:15 | INFO | openstan | User started session
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>2026-10-05 14:32:16 | INFO | openstan.importers | Importing: [REDACTED] statement Oct 2026.pdf
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>2026-10-05 14:32:17 | DEBUG | bank_statement_parser | Extracting account: GB12 [REDACTED]
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>2026-10-05 14:32:18 | ERROR | bank_statement_parser | Failed to parse: Unrecognized field format
+</code></pre></div></p>
+<hr />
+<h2 id="troubleshooting-log-issues">Troubleshooting Log Issues<a class="headerlink" href="#troubleshooting-log-issues" title="Permanent link">&para;</a></h2>
+<h3 id="i-dont-see-logs-in-the-viewer">"I don't see logs in the viewer"<a class="headerlink" href="#i-dont-see-logs-in-the-viewer" title="Permanent link">&para;</a></h3>
+<p><strong>Possible causes:</strong></p>
+<ol>
+<li><strong>Log file doesn't exist yet</strong></li>
+<li>App may have just started; give it a moment</li>
+<li>Perform an action (import, export) to generate log entries</li>
+<li>
+<p>Try clicking <strong>Refresh</strong> button</p>
+</li>
+<li>
+<p><strong>Wrong log selected</strong></p>
+</li>
+<li>App Log is always available; Project Log is only available when a project is selected</li>
+<li>
+<p>Make sure you've selected a project before clicking View Project Log</p>
+</li>
+<li>
+<p><strong>File permissions issue</strong></p>
+</li>
+<li>App may not have read access to log directory</li>
+<li>Check that the log directory exists and is readable</li>
+</ol>
+<p><strong>Solution:</strong> Enable verbose mode (creates more log entries), then perform an action, then check logs again.</p>
+<h3 id="logs-are-growing-too-large">"Logs are growing too large"<a class="headerlink" href="#logs-are-growing-too-large" title="Permanent link">&para;</a></h3>
+<p><strong>Normal behavior:</strong> Logs rotate automatically at 10 MB and keep 5 backups (~60 MB total). This is expected.</p>
+<p><strong>Optional manual cleanup:</strong></p>
+<p>If disk space is critical, you can safely delete old session log files:</p>
+<ol>
+<li>Navigate to log directory</li>
+<li>Delete old session UUIDs (keep current session)</li>
+<li>This won't affect the running app</li>
+</ol>
+<p><strong>To reduce logging output:</strong> Disable verbose mode if it's enabled.</p>
+<hr />
+<h2 id="related-topics">Related Topics<a class="headerlink" href="#related-topics" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../admin/">Admin Screen</a> — Access logging controls from the UI</li>
+<li><a href="../../troubleshooting/">Troubleshooting Guide</a> — Common issues and solutions</li>
+<li><a href="../../privacy/">Privacy Policy</a> — How openstan handles your data</li>
+<li><a href="../../community/">Community &amp; Support</a> — Report issues or ask questions</li>
+</ul>
+
+
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+          
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["navigation.sections","navigation.expand","navigation.top","search.suggest","search.highlight","content.code.copy","toc.follow","navigation.indexes"],"redirect":"../../redirect.json","search":"../../assets/javascripts/workers/search.7d14d953.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.3c842f4c.min.js"></script>
+      
+    
+  </body>
+</html>
