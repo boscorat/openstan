@@ -116,6 +116,26 @@
      ]
    }
    </script>
+    {% if page.meta and page.meta.video %}
+   <script type="application/ld+json">
+   {
+     "@context": "https://schema.org",
+     "@type": "VideoObject",
+     "name": {{ page.meta.video.title | tojson }},
+     "description": {{ page.meta.video.description | tojson }},
+     "thumbnailUrl": "https://img.youtube.com/vi/{{ page.meta.video.youtube_id }}/hqdefault.jpg",
+     "uploadDate": {{ page.meta.video.upload_date | tojson }},
+     "duration": {{ page.meta.video.duration | tojson }},
+     "contentUrl": "https://www.youtube.com/watch?v={{ page.meta.video.youtube_id }}",
+     "embedUrl": "https://www.youtube.com/embed/{{ page.meta.video.youtube_id }}",
+     "publisher": {
+       "@type": "Organization",
+       "name": "openstan",
+       "url": "https://openstan.org"
+     }
+   }
+   </script>
+   {% endif %}
     {% if page.canonical_url and page.canonical_url != config.site_url and page.canonical_url != (config.site_url ~ '/') and page.title %}
    <script type="application/ld+json">
    {

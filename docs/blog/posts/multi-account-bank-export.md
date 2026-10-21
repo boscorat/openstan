@@ -5,11 +5,30 @@ slug: multi-account-bank-export
 description: "Export bank statements from HSBC, NatWest, TSB and more into one Excel file. Step-by-step guide for self-assessment, probate & small business. Free, offline."
 tags: [export, excel, multi-account, tutorial]
 categories: [how-to]
+video:
+  youtube_id: 0zGYd-blgC0
+  title: "Export Multiple UK Bank Statements to Excel | openstan tutorial"
+  description: "5-minute walkthrough: combine HSBC, NatWest, TSB and other UK bank statements into a single Excel file using openstan. Covers project creation, importing PDFs from multiple banks at once, and exporting to Excel."
+  upload_date: "2026-10-08T00:00:00Z"
+  duration: "PT4M41S"
 ---
 
 You've got statements from three different banks sitting in your downloads folder. Your self-assessment deadline is approaching, or maybe you're sorting out someone's estate and the solicitor needs everything in one spreadsheet. Copying rows by hand from each PDF is the kind of task that chews up a whole evening and still feels uncertain when you're done.
 
 There's a calmer way. openstan lets you import all your PDFs at once, then export bank statements to Excel in a single file — sorted, labelled by account, no manual copying required.
+
+<div style="max-width: 800px; margin: 1.5rem 0;">
+  <iframe
+    width="100%"
+    height="450"
+    src="https://www.youtube-nocookie.com/embed/0zGYd-blgC0"
+    title="Export Multiple UK Bank Statements to Excel | openstan tutorial"
+    frameborder="0"
+    loading="lazy"
+    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    allowfullscreen>
+  </iframe>
+</div>
 
 <!-- more -->
 
