@@ -24,6 +24,7 @@ There's a calmer way. openstan lets you import all your PDFs at once, then expor
     src="https://www.youtube-nocookie.com/embed/0zGYd-blgC0"
     title="Export Multiple UK Bank Statements to Excel | openstan tutorial"
     frameborder="0"
+    loading="lazy"
     allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
     allowfullscreen>
   </iframe>
