@@ -63,6 +63,7 @@ plugins:
       redirect_maps:
         'blog/multi-account-bank-export.md': 'blog/2026/09/22/multi-account-bank-export/multi-account-bank-export.md'
         'blog/posts/multi-account-bank-export.md': 'blog/2026/09/22/multi-account-bank-export/multi-account-bank-export.md'
+        'screens/': 'guides/'
   - blog:
       blog_dir: blog
   # RSS support planned for Zensical roadmap; will enable when available
