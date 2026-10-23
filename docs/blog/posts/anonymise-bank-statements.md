@@ -5,6 +5,7 @@ slug: anonymise-bank-statements
 description: "Need to share a bank statement but not expose your account details? Learn exactly what to redact, what to keep, and how to do it safely — free, step-by-step."
 tags: [bank-statements, privacy, anonymise, redact, mortgage, probate]
 categories: [guides]
+draft: true
 ---
 
 You need to share your bank statements — with a mortgage lender, a solicitor, or your accountant. But handing over a full statement means exposing your account number, sort code, and every personal transaction note to someone who only needs to verify your balance.

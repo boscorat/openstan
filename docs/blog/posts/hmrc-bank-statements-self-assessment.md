@@ -1,6 +1,6 @@
 ---
 title: "HMRC Bank Statements for Self-Assessment: Complete Guide"
-date: 2026-10-22
+date: 2026-10-23
 slug: hmrc-bank-statements-self-assessment
 description: "What bank statements does HMRC require for self-assessment? Period, retention and what to keep — plus a step-by-step checklist for sole traders."
 tags: [hmrc, self-assessment, bank-statements, tax-return, uk-finance]
