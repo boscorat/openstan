@@ -26,7 +26,7 @@ def _fmt_date(s: str) -> str:
     if not s:
         return ""
     try:
-        return datetime.strptime(s, "%Y-%m-%d").strftime("%d/%m/%Y")  # noqa: DTZ007
+        return datetime.strptime(s, "%Y-%m-%d").strftime("%d/%m/%Y")
     except ValueError:
         return s
 
