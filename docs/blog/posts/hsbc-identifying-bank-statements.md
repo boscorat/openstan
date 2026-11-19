@@ -2,7 +2,7 @@
 title: How We Identified HSBC Bank Statements — Building a PDF Detective
 date: 2026-11-18
 slug: hsbc-identifying-bank-statements
-description: "Learn how we detect HSBC PDFs automatically using regex and location-based extraction. Step-by-step guide to building bank identification configs."
+description: "Learn how we detect HSBC PDFs automatically using regex and location-based extraction, with a step-by-step guide to building bank identification configs"
 tags: [bank-statements, pdf-parsing, hsbc, toml, configuration]
 categories: [how-to]
 ---
@@ -225,7 +225,7 @@ The [bank_statement_parser contributing guide](https://github.com/boscorat/bank_
 
 ---
 
-## Common Issues & Solutions
+## Additional FAQs
 
 **Q: What's the difference between top_left and bottom_right?**
 

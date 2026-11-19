@@ -205,15 +205,14 @@ fields = [
 
 ## Cell Addressing & Coordinates Explained
 
-Cell addressing uses zero-based indexing, so row 1 is actually the second row of the table:
+Cell addressing uses 1-based row indexing in this config, so row 1 is the first row of the table:
 
 | Row | Col 0 | Col 1 |
 |-----|-------|-------|
-| 0 | "Opening Balance" | 5,000.00 CR |
-| **1** | "Payments In" | 2,500.00 |
-| 2 | "Payments Out" | 1,200.50 |
-| 3 | "Closing Balance" | 6,300.00 D |
-
+| 1 | "Opening Balance" | 5,000.00 CR |
+| 2 | "Payments In" | 2,500.00 |
+| 3 | "Payments Out" | 1,200.50 |
+| 4 | "Closing Balance" | 6,300.00 D |
 So `cell = {row = 1, col = 1}` points to "2,500.00" (the second row, second column).
 
 The `vertical_lines` define column boundaries. In HSBC's config: `[360, 475, 475, 550]`

@@ -2,7 +2,7 @@
 title: Connecting HSBC Configs Together — The statement_types & standard_fields Layer
 date: 2026-11-18
 slug: hsbc-connecting-the-pieces
-description: "Learn how statement types orchestrate extraction and how raw fields map to standardized output. The final piece of the HSBC parser puzzle."
+description: "Learn how statement types orchestrate HSBC extraction steps and how raw fields map to standardized output columns, completing the HSBC config pipeline"
 tags: [bank-statements, statement-types, standard-fields, configuration, hsbc]
 categories: [how-to]
 ---

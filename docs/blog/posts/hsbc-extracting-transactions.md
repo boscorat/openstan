@@ -2,7 +2,7 @@
 title: Parsing HSBC Transactions — Handling Multi-Row Transactions & Bookends
 date: 2026-11-18
 slug: hsbc-extracting-transactions
-description: "Learn how to extract variable-length transactions from bank PDFs. Covers transaction tables, bookend detection, pdfplumber column dividers, and real HSBC examples."
+description: "Learn how to extract variable-length HSBC transactions from bank PDFs using bookend detection, pdfplumber column dividers, and multi-row grouping examples"
 tags: [bank-statements, transaction-parsing, pdf-extraction, pdfplumber, hsbc]
 categories: [how-to]
 ---
