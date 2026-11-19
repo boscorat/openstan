@@ -120,7 +120,8 @@ pdfplumber can automatically detect columns by looking for gaps in text, but PDF
 Option 1: Use pdfplumber's visual debugging
 ```python
 import pdfplumber
-with pdfplumber.open('statement.pdf') as pdf:
+
+with pdfplumber.open("statement.pdf") as pdf:
     page = pdf.pages[0]
     table = page.extract_table()
     # Inspect page.width, table structure, etc.
