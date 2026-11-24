@@ -64,6 +64,9 @@ openstan parses statements using the [bank_statement_parser](https://boscorat.gi
 |---|---|
 --8<-- "supported_banks.md"
 
+!!! info "Santander Edge Current Account — Experimental"
+    Support for Santander Edge Current Account is **experimental**. If you bank with Santander, please test the import functionality and [report any issues on GitHub](https://github.com/boscorat/openstan/issues) or email [support@openstan.org](mailto:support@openstan.org). Your feedback helps us refine Santander support for general availability.
+
 New banks can be added by anyone via a [TOML configuration file](https://boscorat.github.io/bank_statement_parser/latest/guides/new-bank-config/) — no coding required. Don't see your bank? [Request it here](https://github.com/boscorat/bank_statement_parser/issues/new?template=new-bank-request.yml).
 
 ---
