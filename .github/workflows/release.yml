@@ -9,11 +9,12 @@ name: Release
 # platform during validation testing, switch that job's build step to the
 # PyInstaller path (see comments in each job).
 #
-# Icon conversion strategy: Inkscape (Linux/macOS) + resvg (Windows).
-# cairosvg requires the libcairo system library which is not pre-installed on
-# any GitHub-hosted runner.  Inkscape works headlessly on Linux/macOS runners.
-# On Windows, Inkscape requires DBus/display and crashes silently; resvg is a
-# single headless Rust binary (choco install resvg) with no system dependencies.
+# Icon conversion strategy: resvg (all platforms).
+# resvg is a lightweight, headless Rust-based SVG renderer with no system
+# dependencies. It works reliably on Linux, macOS, and Windows runners,
+# eliminating the need for Inkscape (which has display/X11 requirements and
+# external CDN dependencies). cairosvg requires libcairo which is not
+# pre-installed on any GitHub-hosted runner.
 # Pillow is then used (Python-only, no system deps) to produce .ico and .icns.
 
 on:
@@ -258,8 +259,29 @@ jobs:
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
             libxcb-xkb1 libegl1 libxkbcommon-x11-0 libdbus-1-3 \
             libfontconfig1 libfreetype6 \
-            rpm \
-            inkscape
+            rpm
+
+      - name: Install resvg (headless SVG→PNG renderer, no display required)
+        run: |
+          set -o pipefail
+          RESVG_VERSION="0.50.0"
+          RESVG_ASSET="resvg-linux-x86_64.tar.gz"
+          RESVG_URL="https://github.com/linebender/resvg/releases/download/v${RESVG_VERSION}/${RESVG_ASSET}"
+          EXPECTED_SHA256="5d1c9ffd43c82fb802d92cef8100055c612cd3e248d5a787c20079293a456e21"
+          
+          # Download with checksum verification
+          curl -fsSL "$RESVG_URL" -o resvg.tar.gz
+          ACTUAL_SHA256=$(sha256sum resvg.tar.gz | awk '{print $1}')
+          if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+            echo "SHA256 checksum mismatch for $RESVG_ASSET" >&2
+            echo "Expected: $EXPECTED_SHA256" >&2
+            echo "Got: $ACTUAL_SHA256" >&2
+            exit 1
+          fi
+          
+          tar xz -C /usr/local/bin -f resvg.tar.gz
+          rm resvg.tar.gz
+          resvg --version
 
       - name: Install fpm
         run: |
@@ -272,15 +294,14 @@ jobs:
         # and therefore never bundled into the frozen installer.
         run: uv sync --no-dev
 
-      # Inkscape converts SVG → PNG; the resulting .png is placed in the
+      # resvg converts SVG → PNG; the resulting .png is placed in the
       # package share/ directory so the .desktop entry can reference it.
       - name: Convert app icon SVG → PNG
         run: |
           mkdir -p build/icons
-          inkscape --export-type=png \
-                   --export-filename=build/icons/openstan.png \
-                   --export-width=256 --export-height=256 \
-                   src/openstan/icons/icon-square.svg
+          resvg --width 256 --height 256 \
+                src/openstan/icons/icon-square.svg \
+                build/icons/openstan.png
 
       # ── cx_Freeze build ────────────────────────────────────────────────────
       - name: Build frozen app (cx_Freeze)
@@ -408,8 +429,29 @@ jobs:
             libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 \
             libxcb-xkb1 libegl1 libxkbcommon-x11-0 libdbus-1-3 \
             libfontconfig1 libfreetype6 \
-            rpm \
-            inkscape
+            rpm
+
+      - name: Install resvg (headless SVG→PNG renderer, no display required)
+        run: |
+          set -o pipefail
+          RESVG_VERSION="0.50.0"
+          RESVG_ASSET="resvg-linux-aarch64.tar.gz"
+          RESVG_URL="https://github.com/linebender/resvg/releases/download/v${RESVG_VERSION}/${RESVG_ASSET}"
+          EXPECTED_SHA256="b197bf704c9da5d572ae565c799727da3067dffacaf32a2476c8143af90e2f9c"
+          
+          # Download with checksum verification
+          curl -fsSL "$RESVG_URL" -o resvg.tar.gz
+          ACTUAL_SHA256=$(sha256sum resvg.tar.gz | awk '{print $1}')
+          if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+            echo "SHA256 checksum mismatch for $RESVG_ASSET" >&2
+            echo "Expected: $EXPECTED_SHA256" >&2
+            echo "Got: $ACTUAL_SHA256" >&2
+            exit 1
+          fi
+          
+          tar xz -C /usr/local/bin -f resvg.tar.gz
+          rm resvg.tar.gz
+          resvg --version
 
       - name: Install fpm
         run: |
@@ -422,10 +464,9 @@ jobs:
       - name: Convert app icon SVG → PNG
         run: |
           mkdir -p build/icons
-          inkscape --export-type=png \
-                   --export-filename=build/icons/openstan.png \
-                   --export-width=256 --export-height=256 \
-                   src/openstan/icons/icon-square.svg
+          resvg --width 256 --height 256 \
+                src/openstan/icons/icon-square.svg \
+                build/icons/openstan.png
 
       - name: Build frozen app (cx_Freeze)
         run: uv run --with cx-freeze==8.6.4 python cx_freeze_setup.py build
@@ -526,12 +567,12 @@ jobs:
       - name: Install resvg (headless SVG→PNG, no display required)
         shell: pwsh
         run: |
-          $url = "https://github.com/linebender/resvg/releases/download/v0.44.0/resvg-win64.zip"
-          $expectedSha256 = "4fd4ac0640bc0ee4b4e20335d9b7636d5e5b9722cfeaee4cd51b86655dcfdae5"
+          $url = "https://github.com/linebender/resvg/releases/download/v0.50.0/resvg-win-x86_64.zip"
+          $expectedSha256 = "e4817e40ac63d3eb5c9e5762526cf6cc91f0cc108de38cd09dd60be765184efd"
           Invoke-WebRequest $url -OutFile resvg.zip
           $actualSha256 = (Get-FileHash resvg.zip -Algorithm SHA256).Hash.ToLower()
           if ($actualSha256 -ne $expectedSha256) {
-            Write-Error "Checksum mismatch for resvg-win64.zip`nExpected: $expectedSha256`nGot: $actualSha256"
+            Write-Error "Checksum mismatch for resvg-win-x86_64.zip`nExpected: $expectedSha256`nGot: $actualSha256"
             exit 1
           }
           Expand-Archive resvg.zip -DestinationPath C:\resvg
@@ -667,8 +708,40 @@ jobs:
           brew untap azure/bicep || true
           brew untap aws/tap || true
 
-      - name: Install Inkscape
-        run: brew install inkscape
+      - name: Install resvg (headless SVG→PNG renderer, no display required)
+        run: |
+          set -o pipefail
+          RESVG_VERSION="0.50.0"
+          ARCH=$(uname -m)
+          # Map arm64 (from uname) to aarch64 (resvg release naming)
+          if [ "$ARCH" = "arm64" ]; then ARCH="aarch64"; fi
+          RESVG_ASSET="resvg-macos-${ARCH}.zip"
+          RESVG_URL="https://github.com/linebender/resvg/releases/download/v${RESVG_VERSION}/${RESVG_ASSET}"
+          
+          # Download with checksum verification
+          curl -fsSL "$RESVG_URL" -o resvg.zip
+          
+          # Verify checksum based on architecture
+          if [ "$ARCH" = "x86_64" ]; then
+            EXPECTED_SHA256="f47150b41b41842c629ea9c397ce0f3373451549f47ea1c44f950866a992363f"
+          elif [ "$ARCH" = "aarch64" ]; then
+            EXPECTED_SHA256="8155b569f2b93723ba3645b53536eead3b591c8faf62bdaafd3033ba37838837"
+          else
+            echo "Unknown architecture: $ARCH" >&2
+            exit 1
+          fi
+          
+          ACTUAL_SHA256=$(shasum --algorithm 256 resvg.zip | awk '{print $1}')
+          if [ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]; then
+            echo "SHA256 checksum mismatch for $RESVG_ASSET" >&2
+            echo "Expected: $EXPECTED_SHA256" >&2
+            echo "Got: $ACTUAL_SHA256" >&2
+            exit 1
+          fi
+          
+          unzip -q resvg.zip -d /usr/local/bin
+          rm resvg.zip
+          resvg --version
 
       - name: Install libiodbc (required by cx_Freeze on macOS)
         run: brew install libiodbc
@@ -690,7 +763,7 @@ jobs:
         # Runtime deps only — build tools injected ephemerally via --with.
         run: uv sync --no-dev
 
-      # Inkscape converts SVG → PNG at each size.
+      # resvg converts SVG → PNG at each size (headless, no display needed).
       # Pillow assembles the PNGs into an iconset; iconutil (macOS built-in)
       # compiles the iconset into an .icns file.
       - name: Convert app icon SVG → .icns
@@ -701,19 +774,17 @@ jobs:
 
           # Standard sizes required by macOS iconutil
           for SZ in 16 32 64 128 256 512 1024; do
-            inkscape --export-type=png \
-                     --export-filename="${ICONSET}/icon_${SZ}x${SZ}.png" \
-                     --export-width=${SZ} --export-height=${SZ} \
-                     src/openstan/icons/icon-square.svg
+            resvg --width $SZ --height $SZ \
+                  src/openstan/icons/icon-square.svg \
+                  "${ICONSET}/icon_${SZ}x${SZ}.png"
           done
 
           # @2x variants (up to 512@2x = 1024px)
           for SZ in 16 32 64 128 256 512; do
             SZ2=$((SZ * 2))
-            inkscape --export-type=png \
-                     --export-filename="${ICONSET}/icon_${SZ}x${SZ}@2x.png" \
-                     --export-width=${SZ2} --export-height=${SZ2} \
-                     src/openstan/icons/icon-square.svg
+            resvg --width $SZ2 --height $SZ2 \
+                  src/openstan/icons/icon-square.svg \
+                  "${ICONSET}/icon_${SZ}x${SZ}@2x.png"
           done
 
           iconutil -c icns "$ICONSET" -o build/icons/openstan.icns
