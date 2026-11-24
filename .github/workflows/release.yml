@@ -668,7 +668,7 @@ jobs:
           brew untap aws/tap || true
 
       - name: Install Inkscape
-        run: brew install inkscape
+        run: brew install --cask inkscape
 
       - name: Install libiodbc (required by cx_Freeze on macOS)
         run: brew install libiodbc
