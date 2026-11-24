@@ -1,0 +1,2369 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Learn how to extract variable-length HSBC transactions from bank PDFs using bookend detection, pdfplumber column dividers, and multi-row grouping examples">
+      
+      
+      
+        <link rel="canonical" href="https://openstan.org/blog/hsbc-extracting-transactions/">
+      
+      
+      
+        <link rel="prev" href="../hsbc-identifying-bank-statements/">
+      
+      
+        <link rel="next" href="../hsbc-extracting-account-details/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.svg">
+      <meta name="generator" content="zensical-0.1.2">
+    
+    
+      
+        <title>Parsing HSBC Transactions — Handling Multi-Row Transactions & Bookends - openstan</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.ebb7f775.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+  
+      
+
+    
+  
+  <script data-goatcounter="openstan.goatcounter.com/count"
+          async src="//gc.zgo.at/count.js"></script>
+  
+  
+  <script type="text/javascript">
+  var sc_project=13354789;
+  var sc_invisible=1;
+  var sc_security="15dbcfe9";
+  </script>
+  <script type="text/javascript"
+  src="https://www.statcounter.com/counter/counter.js"
+  async></script>
+  
+
+    
+  
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Parsing HSBC Transactions — Handling Multi-Row Transactions & Bookends — openstan">
+  <meta property="og:description" content="Learn how to extract variable-length HSBC transactions from bank PDFs using bookend detection, pdfplumber column dividers, and multi-row grouping examples">
+  <meta property="og:url" content="https://openstan.org/blog/hsbc-extracting-transactions/">
+  <meta property="og:site_name" content="openstan">
+  <meta property="og:image" content="https://openstan.org//assets/screenshots/statement_results.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Parsing HSBC Transactions — Handling Multi-Row Transactions & Bookends — openstan">
+  <meta name="twitter:description" content="Learn how to extract variable-length HSBC transactions from bank PDFs using bookend detection, pdfplumber column dividers, and multi-row grouping examples">
+  <meta name="twitter:image" content="https://openstan.org//assets/screenshots/statement_results.png">
+   
+   <!-- Organization schema — on all pages -->
+   <script type="application/ld+json">
+   {
+     "@context": "https://schema.org",
+     "@type": "Organization",
+     "name": "openstan",
+     "url": "https://openstan.org/",
+      "logo": "https://openstan.org//assets/logo-light.svg",
+     "description": "User guide for openstan — a desktop application for bank statement analysis and visualisation.",
+     "sameAs": [
+       "https://github.com/boscorat/openstan"
+     ]
+   }
+   </script>
+    
+    
+   <script type="application/ld+json">
+   {
+     "@context": "https://schema.org",
+     "@type": "BreadcrumbList",
+     "itemListElement": [
+       {
+         "@type": "ListItem",
+         "position": 1,
+         "name": "Home",
+         "item": "https://openstan.org/"
+       },
+       {
+         "@type": "ListItem",
+         "position": 2,
+         "name": "Parsing HSBC Transactions — Handling Multi-Row Transactions \u0026 Bookends",
+         "item": "https://openstan.org/blog/hsbc-extracting-transactions/"
+       }
+     ]
+   }
+   </script>
+   
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="openstan" class="md-header__button md-logo" aria-label="openstan" data-md-component="logo">
+      <img src="../../assets/logo-light.svg" alt="openstan" class="stan-logo-light">
+<img src="../../assets/logo-dark.svg" alt="openstan" class="stan-logo-dark">
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            openstan
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Parsing HSBC Transactions — Handling Multi-Row Transactions & Bookends
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/boscorat/openstan" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    boscorat/openstan
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="openstan" class="md-nav__button md-logo" aria-label="openstan" data-md-component="logo">
+      <img src="../../assets/logo-light.svg" alt="openstan" class="stan-logo-light">
+<img src="../../assets/logo-dark.svg" alt="openstan" class="stan-logo-dark">
+    </a>
+    openstan
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/boscorat/openstan" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    boscorat/openstan
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Quick Start
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guides
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Guides
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/project-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project Management
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/import-statements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Import Statements
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/import-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Import Results
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/export-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Export Data
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/advanced-export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced Export
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/run-reports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Run Reports
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/anonymise/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Anonymise PDFs
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Logging & Debugging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/admin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Admin Panel
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../use-cases/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Use Cases
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Use Cases
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/self-assessment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Self Assessment
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/probate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Probate & Estate Admin
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/multi-account-tracking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Multi-Account Tracking
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/small-business/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Small Business
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/conveyancing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Conveyancing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../redaction/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Redaction
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Redaction
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../redaction/use-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Use Cases
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_7">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Reference
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/project-info/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project Info
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/about/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  About
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Troubleshooting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../video-tutorials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Video Tutorials
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link md-nav__link--active">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Blog
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link md-nav__link--active" for="__nav_10" id="__nav_10_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_10">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Blog
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_10_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_10_2" id="__nav_10_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Archive
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_10_2_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_10_2">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Archive
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  2026
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_10_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_10_3" id="__nav_10_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Categories
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_10_3_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_10_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Categories
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/how-to/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  How to
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/boscorat/openstan/blob/master/CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Changelog
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Contributing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../privacy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Privacy Policy
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../codesigning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Code Signing Policy
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../community/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Community & Support
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feedback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Feedback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-multi-row-transaction-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        The Multi-Row Transaction Problem
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#understanding-transaction-table-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Understanding Transaction Table Concepts
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#introducing-the-transaction-table-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Introducing the Transaction Table Config
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#finding-columns-using-pdfplumber-coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Finding Columns Using pdfplumber Coordinates
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bookend-detection-knowing-where-transactions-start-end" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Bookend Detection: Knowing Where Transactions Start &amp; End
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fill-forward-fields-repeating-values-across-rows" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Fill-Forward Fields: Repeating Values Across Rows
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#merge-fields-combining-multi-row-text" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Merge Fields: Combining Multi-Row Text
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#field-validation-regex-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Field Validation &amp; Regex Patterns
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#currency-numeric-modifiers-revisited-from-post-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Currency &amp; Numeric Modifiers (Revisited from Post #2)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#processing-flags-row-deletion-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Processing Flags: Row Deletion &amp; Cleanup
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-your-transaction-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Testing Your Transaction Config
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#handling-variable-pdf-layouts" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Handling Variable PDF Layouts
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#now-its-your-turn-adapting-multi-row-transaction-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Now It's Your Turn: Adapting Multi-Row Transaction Extraction
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-issues-solutions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Common Issues &amp; Solutions
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        See Also
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav md-nav--primary">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../" class="md-nav__link">
+                  
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+                  <span class="md-ellipsis">
+                    Back to index
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
+                  <span class="md-ellipsis">
+                    Metadata
+                  </span>
+                </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-calendar-days" viewBox="0 0 24 24"><path d="M8 2v3M16 2v3"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg>
+                        <time datetime="2026-11-18 00:00:00+00:00" class="md-ellipsis">November 18, 2026</time>
+                      </div>
+                    </li>
+                    
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-library" viewBox="0 0 24 24"><path d="m16 6 4 14M12 6v14M8 8v12M4 4v16"/></svg>
+                          <span class="md-ellipsis">
+                            in
+                            
+                              <a href="../category/how-to/">how-to</a></span>
+                        </div>
+                      </li>
+                    
+                    
+                      
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                          <span class="md-ellipsis">
+                            
+                              10 min read
+                            
+                          </span>
+                        </div>
+                      </li>
+                    
+                  </ul>
+                </nav>
+              </li>
+            </ul>
+            
+          </nav>
+          
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      <a id="__skip" tabindex="-1"></a>
+      
+        
+
+  
+  
+
+
+<p>We've identified the bank and extracted account balances. Now comes the hardest part: transactions. HSBC packs each transaction into a table, but here's the problem: not every transaction is one row. Some transactions span 2–3 rows because the description wraps. Figuring out where one transaction ends and the next begins requires a clever technique called "bookend detection." Here's how we solved it.</p>
+<!-- more -->
+
+<h1 id="parsing-hsbc-transactions-handling-multi-row-transactions-bookends">Parsing HSBC Transactions — Handling Multi-Row Transactions &amp; Bookends<a class="headerlink" href="#parsing-hsbc-transactions-handling-multi-row-transactions-bookends" title="Permanent link">&para;</a></h1>
+<h2 id="the-multi-row-transaction-problem">The Multi-Row Transaction Problem<a class="headerlink" href="#the-multi-row-transaction-problem" title="Permanent link">&para;</a></h2>
+<p>Let's look at what a real HSBC transaction table looks like (simplified):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Row 1:  01 Jan | FPI      | SALARY EMPLOYER      | —    | 2500.00 | 7500.00
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Row 2:  03 Jan | CHQ      | TESCO CARDIFF        | 50.00| —       | 7450.00
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Row 3:  —     | —        | Reference continues  | —    | —       | —
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>Row 4:  05 Jan | TRF      | WATER BILL PAYMENT   | 150.00| —      | 7300.00
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>Row 5:  08 Jan | DD       | ELECTRICITY CO       | 85.00| —       | 7215.00
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>Row 6:  —     | —        | Account number 999   | —    | —       | —
+</code></pre></div>
+<p>Here's the challenge:
+- <strong>Row 1:</strong> One complete transaction (salary payment)
+- <strong>Rows 2–3:</strong> One transaction that spans two rows (payment + continuation)
+- <strong>Row 4:</strong> One complete transaction
+- <strong>Rows 5–6:</strong> One transaction that spans two rows</p>
+<p>Your parser needs to group these correctly:
+- Transaction 1: Row 1 only
+- Transaction 2: Rows 2 + 3 combined
+- Transaction 3: Row 4 only
+- Transaction 4: Rows 5 + 6 combined</p>
+<p>How do you know when to merge rows and when to split? This is where <strong>bookend detection</strong> comes in.</p>
+<h2 id="understanding-transaction-table-concepts">Understanding Transaction Table Concepts<a class="headerlink" href="#understanding-transaction-table-concepts" title="Permanent link">&para;</a></h2>
+<p>Before we dive into the config, let's define some terminology:</p>
+<p><strong>Transaction row</strong> — A single complete transaction (might span 1 or more PDF rows)</p>
+<p><strong>PDF row</strong> — A single line in the pdfplumber-extracted table. For multi-row transactions, multiple PDF rows belong to one transaction row.</p>
+<p><strong>Bookend</strong> — A marker that identifies where a transaction starts or ends. For HSBC:
+- <strong>Start bookend:</strong> A row where BOTH payment_type AND details have values (e.g., "CHQ" and "TESCO CARDIFF")
+- <strong>End bookend:</strong> A row where EITHER paid_out OR paid_in has a value (the actual amount)</p>
+<p><strong>Fill-forward fields</strong> — Fields that repeat across multi-row transactions. The date and payment type usually only appear on the first row of a multi-row transaction; we propagate them to subsequent rows.</p>
+<p><strong>Merge fields</strong> — Fields that need to be combined across rows. If a description spans two rows ("TESCO CARDIFF" on row 1 and "Reference continues" on row 2), we merge them into one field.</p>
+<h2 id="introducing-the-transaction-table-config">Introducing the Transaction Table Config<a class="headerlink" href="#introducing-the-transaction-table-config" title="Permanent link">&para;</a></h2>
+<p>Here's HSBC's complete transaction table config. It's large, so we'll break it down piece by piece:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[HSBC_UK_CUR_TRANSACTIONS]</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"transaction"</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">statement_table</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'Transactions'</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">table_columns</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">6</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">locations</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="p">{</span><span class="n">vertical_lines</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">50</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">130</span><span class="p">,</span><span class="w"> </span><span class="mi">130</span><span class="p">,</span><span class="w"> </span><span class="mi">320</span><span class="p">,</span><span class="w"> </span><span class="mi">320</span><span class="p">,</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span><span class="w"> </span><span class="mi">480</span><span class="p">,</span><span class="w"> </span><span class="mi">480</span><span class="p">,</span><span class="w"> </span><span class="mi">555</span><span class="p">]},</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">]</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">fields</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="p">{</span><span class="n">field</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s1">'date'</span><span class="p">,</span><span class="w"> </span><span class="n">column</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">vital</span><span class="p">=</span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span><span class="w"> </span><span class="n">string_pattern</span><span class="w"> </span><span class="p">=</span><span class="s1">'^[0-3][0-9]\s?[A-Z][a-z]{2}\s?[0-3][0-9]$'</span><span class="p">},</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="p">{</span><span class="n">field</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s1">'payment_type'</span><span class="p">,</span><span class="w"> </span><span class="n">column</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">vital</span><span class="p">=</span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span><span class="w"> </span><span class="n">string_pattern</span><span class="w"> </span><span class="p">=</span><span class="s1">'(^[A-Z0-9]{1,3}$)|(^[)]{3}$)'</span><span class="p">},</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span><span class="p">{</span><span class="n">field</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s1">'details'</span><span class="p">,</span><span class="w"> </span><span class="n">column</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">vital</span><span class="p">=</span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"string"</span><span class="p">,</span><span class="w"> </span><span class="n">string_pattern</span><span class="w"> </span><span class="p">=</span><span class="s1">'.+'</span><span class="p">,</span><span class="w"> </span><span class="n">string_max_length</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">100</span><span class="p">},</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span><span class="p">{</span><span class="n">field</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s1">'£_paid_out'</span><span class="p">,</span><span class="w"> </span><span class="n">column</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">vital</span><span class="p">=</span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"currency"</span><span class="p">},</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="p">{</span><span class="n">field</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s1">'£_paid_in'</span><span class="p">,</span><span class="w"> </span><span class="n">column</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">vital</span><span class="p">=</span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"currency"</span><span class="p">},</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="p">{</span><span class="n">field</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s1">'£_balance'</span><span class="p">,</span><span class="w"> </span><span class="n">column</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">vital</span><span class="p">=</span><span class="kc">false</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"currency"</span><span class="p">,</span><span class="w"> </span><span class="n">numeric_modifier</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">{</span><span class="n">suffix</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"D"</span><span class="p">,</span><span class="w"> </span><span class="n">multiplier</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mf">-1.0000</span><span class="p">}},</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="p">]</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="n">delete_success_false</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">delete_cast_success_false</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="n">delete_rows_with_missing_vital_fields</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="k">[HSBC_UK_CUR_TRANSACTIONS.transaction_spec]</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="n">transaction_bookends</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">    </span><span class="p">{</span><span class="n">start_fields</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="s1">'payment_type'</span><span class="p">,</span><span class="s1">'details'</span><span class="p">],</span><span class="w"> </span><span class="n">min_non_empty_start</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">end_fields</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="s1">'£_paid_out'</span><span class="p">,</span><span class="s1">'£_paid_in'</span><span class="p">],</span><span class="w"> </span><span class="n">min_non_empty_end</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="p">}</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="p">]</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="n">fill_forward_fields</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s1">'date'</span><span class="p">,</span><span class="s1">'payment_type'</span><span class="p">]</span>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="n">merge_fields</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">fields</span><span class="p">=[</span><span class="s1">'details'</span><span class="p">],</span><span class="w"> </span><span class="n">separator</span><span class="p">=</span><span class="s1">' | '</span><span class="p">}</span>
+</code></pre></div>
+<p>That's a lot! Let's start with the basics.</p>
+<h2 id="finding-columns-using-pdfplumber-coordinates">Finding Columns Using pdfplumber Coordinates<a class="headerlink" href="#finding-columns-using-pdfplumber-coordinates" title="Permanent link">&para;</a></h2>
+<p>The <code>vertical_lines</code> parameter defines column boundaries:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">vertical_lines</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="mi">50</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span><span class="w"> </span><span class="mi">130</span><span class="p">,</span><span class="w"> </span><span class="mi">130</span><span class="p">,</span><span class="w"> </span><span class="mi">320</span><span class="p">,</span><span class="w"> </span><span class="mi">320</span><span class="p">,</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span><span class="w"> </span><span class="mi">400</span><span class="p">,</span><span class="w"> </span><span class="mi">480</span><span class="p">,</span><span class="w"> </span><span class="mi">480</span><span class="p">,</span><span class="w"> </span><span class="mi">555</span><span class="p">]</span>
+</code></pre></div>
+<p>These x-coordinates come in pairs:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Range</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>50 → 100</td>
+<td>Date column (50 PDF points wide)</td>
+</tr>
+<tr>
+<td>1</td>
+<td>100 → 130</td>
+<td>Payment type column (30 points wide)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>130 → 320</td>
+<td>Details column (190 points wide)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>320 → 400</td>
+<td>Paid out column (80 points wide)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>400 → 480</td>
+<td>Paid in column (80 points wide)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>480 → 555</td>
+<td>Balance column (75 points wide)</td>
+</tr>
+</tbody>
+</table>
+<p>The pair <code>[320, 320]</code> (identical x-coordinates) creates a zero-width boundary. This forces a hard column split, ensuring the Details column ends and the Paid Out column begins at exactly x=320, even if there's no visual gap.</p>
+<p><strong>Why not let pdfplumber auto-detect columns?</strong></p>
+<p>pdfplumber can automatically detect columns by looking for gaps in text, but PDF layouts are often imprecise. Explicit boundaries give you full control. If your bank's transaction table has inconsistent spacing, explicit lines ensure consistent extraction.</p>
+<p><strong>How do you find these coordinates?</strong></p>
+<p>Option 1: Use pdfplumber's visual debugging
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pdfplumber</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">with</span> <span class="n">pdfplumber</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"statement.pdf"</span><span class="p">)</span> <span class="k">as</span> <span class="n">pdf</span><span class="p">:</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">page</span> <span class="o">=</span> <span class="n">pdf</span><span class="o">.</span><span class="n">pages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">table</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">extract_table</span><span class="p">()</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="c1"># Inspect page.width, table structure, etc.</span>
+</code></pre></div></p>
+<p>Option 2: Manual measurement
+- Open your PDF in a viewer
+- Measure where each column starts/ends
+- Trial and error: test, adjust, re-test</p>
+<h2 id="bookend-detection-knowing-where-transactions-start-end">Bookend Detection: Knowing Where Transactions Start &amp; End<a class="headerlink" href="#bookend-detection-knowing-where-transactions-start-end" title="Permanent link">&para;</a></h2>
+<p>This is the core logic that handles multi-row transactions. Here's how it works:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">transaction_bookends</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="p">{</span><span class="n">start_fields</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="s1">'payment_type'</span><span class="p">,</span><span class="s1">'details'</span><span class="p">],</span><span class="w"> </span><span class="n">min_non_empty_start</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">end_fields</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="s1">'£_paid_out'</span><span class="p">,</span><span class="s1">'£_paid_in'</span><span class="p">],</span><span class="w"> </span><span class="n">min_non_empty_end</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="p">}</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="p">]</span>
+</code></pre></div>
+<p>A bookend definition has four parts:</p>
+<p><strong><code>start_fields</code></strong> — Fields that mark a transaction start. For HSBC: <code>['payment_type','details']</code></p>
+<p><strong><code>min_non_empty_start</code></strong> — Minimum number of start_fields that must have values. For HSBC: <code>2</code></p>
+<p>This means: A transaction starts when BOTH payment_type AND details have values.</p>
+<p><strong><code>end_fields</code></strong> — Fields that mark a transaction end. For HSBC: <code>['£_paid_out','£_paid_in']</code></p>
+<p><strong><code>min_non_empty_end</code></strong> — Minimum number of end_fields that must have values. For HSBC: <code>1</code></p>
+<p>This means: A transaction ends when EITHER paid_out OR paid_in has a value.</p>
+<p><strong>Let's trace through our example:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Row 1: date=01 Jan | type=FPI | details=SALARY  | out=—   | in=2500 | bal=7500
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>  → Starts? type≠empty, details≠empty → YES (2 of 2 start fields)
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>  → Ends? out=empty, in≠empty → YES (1 of 2 end fields)
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>  → Result: This is a 1-row transaction ✓
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>  → Extract: Transaction { date: 01 Jan, type: FPI, details: SALARY, in: 2500, bal: 7500 }
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>Row 2: date=03 Jan | type=CHQ | details=TESCO   | out=50  | in=—    | bal=7450
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>  → Starts? type≠empty, details≠empty → YES
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>  → Ends? out≠empty, in=empty → YES (1 of 2 end fields)
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>  → Result: This row starts a new transaction ✓
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>Row 3: date=—     | type=—   | details=contd... | out=—   | in=—    | bal=—
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>  → Starts? type=empty, details≠empty → NO (need BOTH; only have 1 of 2)
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>  → Ends? out=empty, in=empty → NO
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>  → Result: This row doesn't start or end a transaction
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>  → Conclusion: Row 3 continues the previous transaction (Row 2)
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>  → Merge with Row 2 ✓
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>  → Extract: Transaction { date: 03 Jan, type: CHQ, details: TESCO | contd..., out: 50, bal: 7450 }
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>Row 4: date=05 Jan | type=TRF | details=WATER   | out=150 | in=—    | bal=7300
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>  → Starts? type≠empty, details≠empty → YES
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>  → Ends? out≠empty → YES
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>  → Result: This is a 1-row transaction ✓
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>  → Extract: Transaction { date: 05 Jan, type: TRF, details: WATER, out: 150, bal: 7300 }
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>Row 5: date=08 Jan | type=DD  | details=ELEC    | out=85  | in=—    | bal=7215
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>  → Starts? type≠empty, details≠empty → YES
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>Row 6: date=—     | type=—   | details=Account | out=—   | in=—    | bal=—
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>  → Starts? type=empty → NO
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>  → Merge with Row 5 ✓
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>  → Extract: Transaction { date: 08 Jan, type: DD, details: ELEC | Account, out: 85, bal: 7215 }
+</code></pre></div>
+<p>Result: 4 transactions extracted correctly, with multi-row transactions merged.</p>
+<p><strong>Why this strategy works:</strong></p>
+<ul>
+<li>Start fields (payment_type, details) only appear on the first line of a transaction</li>
+<li>Amount fields (paid_out, paid_in) only appear on the last line</li>
+<li>Continuation rows have empty values for these fields</li>
+<li>By checking these markers, we can identify transaction boundaries without hardcoding line counts</li>
+</ul>
+<h2 id="fill-forward-fields-repeating-values-across-rows">Fill-Forward Fields: Repeating Values Across Rows<a class="headerlink" href="#fill-forward-fields-repeating-values-across-rows" title="Permanent link">&para;</a></h2>
+<p>In multi-row transactions, the date and payment type only appear on the first row. Row 3 (the continuation of the transaction starting in Row 2) has empty date and payment type fields.</p>
+<p>After extraction, we apply fill-forward:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">fill_forward_fields</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s1">'date'</span><span class="p">,</span><span class="s1">'payment_type'</span><span class="p">]</span>
+</code></pre></div>
+<p>This propagates values down within each transaction:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>Before fill-forward:
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  Row 2: date=03 Jan, type=CHQ, details=TESCO, out=50
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>  Row 3: date=—, type=—, details=contd...
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>After fill-forward:
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>  Row 2: date=03 Jan, type=CHQ, details=TESCO, out=50
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>  Row 3: date=03 Jan, type=CHQ, details=contd...  ← Filled in
+</code></pre></div>
+<p><strong>Why this matters:</strong></p>
+<p>Downstream systems expect every transaction to have a date and type. Without fill-forward, Row 3 would have empty date and type, which would cause validation errors or data corruption.</p>
+<p><strong>Important:</strong> Fill-forward is applied per-page. It doesn't carry across page boundaries. If a transaction spans two pages (rare), you might need to handle it separately.</p>
+<h2 id="merge-fields-combining-multi-row-text">Merge Fields: Combining Multi-Row Text<a class="headerlink" href="#merge-fields-combining-multi-row-text" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">merge_fields</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">fields</span><span class="p">=[</span><span class="s1">'details'</span><span class="p">],</span><span class="w"> </span><span class="n">separator</span><span class="p">=</span><span class="s1">' | '</span><span class="p">}</span>
+</code></pre></div>
+<p>This combines the details field across rows of the same transaction:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>Raw extraction:
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>  Row 2: details="TESCO CARDIFF"
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>  Row 3: details="Reference continues"
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>After merge:
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>  details="TESCO CARDIFF | Reference continues"
+</code></pre></div>
+<p>The separator (' | ') joins them. You could use other separators: ' / ', ' — ', '\n', etc. The goal is to preserve all the text while making it clear there are multiple parts.</p>
+<p><strong>Why this matters:</strong></p>
+<p>Full context is preserved in a single field. When you export to Excel or CSV, each transaction is one row, with details intact.</p>
+<h2 id="field-validation-regex-patterns">Field Validation &amp; Regex Patterns<a class="headerlink" href="#field-validation-regex-patterns" title="Permanent link">&para;</a></h2>
+<p>Each field in the transaction table has a regex pattern:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="err">{</span><span class="n">field</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'date'</span><span class="err">,</span><span class="w"> </span><span class="n">column</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="err">,</span><span class="w"> </span><span class="n">vital</span><span class="o">=</span><span class="kc">false</span><span class="err">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"string"</span><span class="err">,</span><span class="w"> </span><span class="n">string_pattern</span><span class="w"> </span><span class="o">=</span><span class="s1">'^[0-3][0-9]\s?[A-Z][a-z]{2}\s?[0-3][0-9]$'</span><span class="err">},</span>
+</code></pre></div>
+<p>Let's parse this pattern: <code>^[0-3][0-9]\s?[A-Z][a-z]{2}\s?[0-3][0-9]$</code></p>
+<ul>
+<li><code>^</code> — Start of string</li>
+<li><code>[0-3][0-9]</code> — 1–31 (day): First digit 0–3, second digit 0–9</li>
+<li><code>\s?</code> — Optional space</li>
+<li><code>[A-Z][a-z]{2}</code> — 3-letter month: Capital letter followed by 2 lowercase letters (Jan, Feb, Mar, etc.)</li>
+<li><code>\s?</code> — Optional space</li>
+<li><code>[0-3][0-9]</code> — 1–31 (year abbreviated): 00–31</li>
+<li><code>$</code> — End of string</li>
+</ul>
+<p>This matches: "01 Jan 26", "1Jan26", "03 Feb 26", etc. Flexible but strict.</p>
+<p><strong>Payment type pattern:</strong> <code>(^[A-Z0-9]{1,3}$)|(^[)]{3}$)</code></p>
+<p>This is two alternatives:
+- Either 1–3 uppercase alphanumeric chars (FPI, CHQ, TRF, DD) — standard payment types
+- OR three parentheses ")" (a special case for certain HSBC transaction types)</p>
+<p><strong>Details pattern:</strong> <code>.+</code></p>
+<p>Simple: at least one character. Almost everything matches.</p>
+<p><strong>Amount pattern:</strong> No regex; it's <code>type = "currency"</code>, so it's parsed as a number.</p>
+<p><strong>If a field doesn't match its pattern:</strong>
+- <code>vital=true</code>: The entire row is marked as a failure and deleted from output
+- <code>vital=false</code>: The field is marked as empty, but the row is kept</p>
+<p>For HSBC, most fields are <code>vital=false</code> except <code>details</code>. The logic: We can live with missing payment type or amount, but every transaction must have a description.</p>
+<h2 id="currency-numeric-modifiers-revisited-from-post-2">Currency &amp; Numeric Modifiers (Revisited from Post #2)<a class="headerlink" href="#currency-numeric-modifiers-revisited-from-post-2" title="Permanent link">&para;</a></h2>
+<p>HSBC uses separate columns for paid_out and paid_in:</p>
+<table>
+<thead>
+<tr>
+<th>Transaction</th>
+<th>Paid Out</th>
+<th>Paid In</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Salary received</td>
+<td>—</td>
+<td>2500.00</td>
+</tr>
+<tr>
+<td>ATM withdrawal</td>
+<td>100.00</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Transfer out</td>
+<td>50.00</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>Both are stored as positive values in the PDF. Downstream systems typically expect a single amount column with sign:
+- Received £2500 → amount = +2500
+- Spent £100 → amount = -100</p>
+<p>HSBC doesn't use numeric_modifier on paid_in or paid_out (they're already positive/negative contextually). But the balance column uses it:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="err">{</span><span class="n">field</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'£_balance'</span><span class="err">,</span><span class="w"> </span><span class="n">column</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="err">,</span><span class="w"> </span><span class="n">vital</span><span class="o">=</span><span class="kc">false</span><span class="err">,</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"currency"</span><span class="err">,</span><span class="w"> </span><span class="n">numeric_modifier</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">suffix</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s2">"D"</span><span class="p">,</span><span class="w"> </span><span class="n">multiplier</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mf">-1.0000</span><span class="p">}</span><span class="err">},</span>
+</code></pre></div>
+<p>Same logic as Post #2: If balance ends with "D", it's inverted (multiply by -1).</p>
+<h2 id="processing-flags-row-deletion-cleanup">Processing Flags: Row Deletion &amp; Cleanup<a class="headerlink" href="#processing-flags-row-deletion-cleanup" title="Permanent link">&para;</a></h2>
+<p>After extraction, three flags control which rows are kept:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">delete_success_false</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">delete_cast_success_false</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">delete_rows_with_missing_vital_fields</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+</code></pre></div>
+<p><strong><code>delete_success_false = true</code></strong> — Remove rows where any field has success=false (extraction failed)</p>
+<p>If the date pattern doesn't match (success=false for date field), and this flag is true, the entire row is deleted.</p>
+<p><strong><code>delete_cast_success_false = true</code></strong> — Remove rows where numeric casting failed</p>
+<p>If an amount field can't be parsed as a number, the row is deleted.</p>
+<p><strong><code>delete_rows_with_missing_vital_fields = true</code></strong> — Remove rows with any vital field empty</p>
+<p>If <code>details</code> is empty (and vital=true), the row is deleted.</p>
+<p>These are safety nets: they catch malformed rows before reaching your output. Without them, corrupted data would leak through.</p>
+<h2 id="testing-your-transaction-config">Testing Your Transaction Config<a class="headerlink" href="#testing-your-transaction-config" title="Permanent link">&para;</a></h2>
+<p>Here's how to test extraction:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>python<span class="w"> </span>-m<span class="w"> </span>bank_statement_parser<span class="w"> </span>import<span class="w"> </span>path/to/HSBC_statement.pdf<span class="w"> </span>--debug
+</code></pre></div>
+<p>Expected output:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>Transaction 1: date=01 Jan, type=FPI, details=SALARY EMPLOYER, in=2500, balance=7500
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>Transaction 2: date=03 Jan, type=CHQ, details=TESCO CARDIFF | Reference, out=50, balance=7450
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>Transaction 3: date=05 Jan, type=TRF, details=WATER BILL, out=150, balance=7300
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>...
+</code></pre></div></p>
+<p><strong>Common issues and fixes:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"No transactions extracted"</td>
+<td>Coordinates or vertical_lines are wrong. The parser can't find the table. Use pdfplumber to debug or manually measure PDF.</td>
+</tr>
+<tr>
+<td>"Date field failing validation"</td>
+<td>The date format in your PDF doesn't match the regex. Check the actual date format, adjust pattern.</td>
+</tr>
+<tr>
+<td>"Transactions not merged correctly"</td>
+<td>Bookend detection logic is wrong. Review start_fields, end_fields, min_non_empty_start/end. Test manually with your PDF.</td>
+</tr>
+<tr>
+<td>"Details field cut off"</td>
+<td><code>string_max_length = 100</code> might be truncating. Increase if needed (but be careful with very long descriptions).</td>
+</tr>
+<tr>
+<td>"Extra rows appearing in output"</td>
+<td>The delete_* flags might be too lenient. Add validation or increase strictness.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="handling-variable-pdf-layouts">Handling Variable PDF Layouts<a class="headerlink" href="#handling-variable-pdf-layouts" title="Permanent link">&para;</a></h2>
+<p>One challenge: banks sometimes change their PDF layouts. If HSBC redesigned their transaction table tomorrow, your config would break.</p>
+<p>Strategies to handle this:</p>
+<ol>
+<li><strong>Multiple bookends:</strong> Define multiple bookend rules for different layouts. The parser tries each until one works.</li>
+<li><strong>Flexible regex patterns:</strong> Use <code>\s+</code> (flexible whitespace) instead of exact spaces. Use <code>[A-Z0-9]{1,5}</code> instead of hardcoding lengths.</li>
+<li><strong>Dynamic column detection:</strong> Use <code>allow_text_failover = true</code> to fall back to pdfplumber's automatic column detection if explicit dividers fail.</li>
+<li><strong>Versioning:</strong> Keep old configs for old PDF versions. When users submit statements, the parser tries new config first, falls back to old if it fails.</li>
+</ol>
+<p>HSBC has done <code>{vertical_lines = [...], allow_text_failover = true}</code>, combining explicit boundaries with automatic fallback.</p>
+<h2 id="now-its-your-turn-adapting-multi-row-transaction-extraction">Now It's Your Turn: Adapting Multi-Row Transaction Extraction<a class="headerlink" href="#now-its-your-turn-adapting-multi-row-transaction-extraction" title="Permanent link">&para;</a></h2>
+<p>Steps to implement for your bank:</p>
+<ol>
+<li><strong>Download a 2–3 page statement</strong> to study the transaction table layout</li>
+<li><strong>Identify transaction boundaries:</strong></li>
+<li>What fields mark a transaction start? (always filled on first row of transaction)</li>
+<li>What fields mark a transaction end? (always filled on last row of transaction)</li>
+<li>For HSBC, it's payment_type + details for start, amount for end</li>
+<li><strong>Find column positions:</strong></li>
+<li>Use pdfplumber or manual measurement</li>
+<li>Build the vertical_lines array</li>
+<li><strong>Define fields with regex patterns:</strong></li>
+<li>Date format (how does your bank format dates?)</li>
+<li>Payment type or description format</li>
+<li>Amount format</li>
+<li><strong>Create the transaction table config</strong> in statement_tables.toml</li>
+<li><strong>Define bookends:</strong> Which fields mark start and end of transactions?</li>
+<li><strong>Define fill-forward fields:</strong> Which fields repeat across rows?</li>
+<li><strong>Define merge fields:</strong> Which fields need to be combined?</li>
+<li><strong>Test with 10–20 transactions:</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>python<span class="w"> </span>-m<span class="w"> </span>bank_statement_parser<span class="w"> </span>import<span class="w"> </span>path/to/pdf.pdf<span class="w"> </span>--debug
+</code></pre></div></li>
+<li><strong>Refine patterns, coordinates, and logic until satisfied</strong></li>
+</ol>
+<p>In <a href="/blog/hsbc-connecting-the-pieces/">Post #4</a>, we show how all these configs work together, and how to map raw fields to standardized output.</p>
+<hr />
+<h2 id="common-issues-solutions">Common Issues &amp; Solutions<a class="headerlink" href="#common-issues-solutions" title="Permanent link">&para;</a></h2>
+<p><strong>Q: How do I find the exact pixel coordinates for columns?</strong></p>
+<p>A: Use pdfplumber to programmatically extract table structure, or use a PDF viewer that shows coordinates. Trial and error works fine—test, check output, adjust by 10–50 points, re-test. You'll converge quickly.</p>
+<p><strong>Q: Why are some transactions being merged when they shouldn't be?</strong></p>
+<p>A: Your bookend detection is too loose. Review start_fields and end_fields. Make sure min_non_empty_start and min_non_empty_end are strict enough to distinguish real transaction starts/ends from continuation rows.</p>
+<p><strong>Q: What if my bank's transaction table spans multiple pages?</strong></p>
+<p>A: Good news: statement_tables.toml has <code>locations</code> without <code>page_number</code>, which means the same location is applied to every page. The parser automatically extracts transactions from all pages and combines them.</p>
+<p><strong>Q: Can I extract additional fields (like transaction ID or reference number)?</strong></p>
+<p>A: Yes! Add them to the <code>fields</code> array with appropriate column index and regex pattern. The extraction pipeline will handle them like any other field.</p>
+<hr />
+<h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="/blog/hsbc-identifying-bank-statements/">How We Identified HSBC PDFs (Post #1)</a></li>
+<li><a href="/blog/hsbc-extracting-account-details/">Extracting HSBC Account Details (Post #2)</a></li>
+<li><a href="/blog/hsbc-connecting-the-pieces/">Connecting the Pieces (Post #4)</a></li>
+<li><a href="https://boscorat.github.io/bank_statement_parser/latest/guides/new-bank-config/#transaction-table-example">Bank Statement Parser Reference — Transaction Tables</a></li>
+<li><a href="https://boscorat.github.io/bank_statement_parser/latest/guides/new-bank-config/#transactionbookend">Bank Statement Parser Reference — Bookend Detection</a></li>
+<li><a href="https://github.com/jsvine/pdfplumber">pdfplumber Documentation</a></li>
+</ul>
+
+  
+
+
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+  
+
+
+
+      
+    </article>
+  </div>
+
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+          
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["navigation.sections","navigation.expand","navigation.top","search.suggest","search.highlight","content.code.copy","toc.follow","navigation.indexes"],"redirect":"../../redirect.json","search":"../../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.3cb411a8.min.js"></script>
+      
+    
+  </body>
+</html>

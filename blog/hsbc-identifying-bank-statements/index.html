@@ -1,0 +1,2150 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Learn how we detect HSBC PDFs automatically using regex and location-based extraction, with a step-by-step guide to building bank identification configs">
+      
+      
+      
+        <link rel="canonical" href="https://openstan.org/blog/hsbc-identifying-bank-statements/">
+      
+      
+      
+        <link rel="prev" href="../anonymise-bank-statements/">
+      
+      
+        <link rel="next" href="../hsbc-extracting-transactions/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/favicon.svg">
+      <meta name="generator" content="zensical-0.1.2">
+    
+    
+      
+        <title>How We Identified HSBC Bank Statements — Building a PDF Detective - openstan</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../assets/stylesheets/modern/main.ebb7f775.min.css">
+      
+        
+          
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/modern/palette.b60ce83d.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+  
+      
+
+    
+  
+  <script data-goatcounter="openstan.goatcounter.com/count"
+          async src="//gc.zgo.at/count.js"></script>
+  
+  
+  <script type="text/javascript">
+  var sc_project=13354789;
+  var sc_invisible=1;
+  var sc_security="15dbcfe9";
+  </script>
+  <script type="text/javascript"
+  src="https://www.statcounter.com/counter/counter.js"
+  async></script>
+  
+
+    
+  
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="How We Identified HSBC Bank Statements — Building a PDF Detective — openstan">
+  <meta property="og:description" content="Learn how we detect HSBC PDFs automatically using regex and location-based extraction, with a step-by-step guide to building bank identification configs">
+  <meta property="og:url" content="https://openstan.org/blog/hsbc-identifying-bank-statements/">
+  <meta property="og:site_name" content="openstan">
+  <meta property="og:image" content="https://openstan.org//assets/screenshots/statement_results.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="How We Identified HSBC Bank Statements — Building a PDF Detective — openstan">
+  <meta name="twitter:description" content="Learn how we detect HSBC PDFs automatically using regex and location-based extraction, with a step-by-step guide to building bank identification configs">
+  <meta name="twitter:image" content="https://openstan.org//assets/screenshots/statement_results.png">
+   
+   <!-- Organization schema — on all pages -->
+   <script type="application/ld+json">
+   {
+     "@context": "https://schema.org",
+     "@type": "Organization",
+     "name": "openstan",
+     "url": "https://openstan.org/",
+      "logo": "https://openstan.org//assets/logo-light.svg",
+     "description": "User guide for openstan — a desktop application for bank statement analysis and visualisation.",
+     "sameAs": [
+       "https://github.com/boscorat/openstan"
+     ]
+   }
+   </script>
+    
+    
+   <script type="application/ld+json">
+   {
+     "@context": "https://schema.org",
+     "@type": "BreadcrumbList",
+     "itemListElement": [
+       {
+         "@type": "ListItem",
+         "position": 1,
+         "name": "Home",
+         "item": "https://openstan.org/"
+       },
+       {
+         "@type": "ListItem",
+         "position": 2,
+         "name": "How We Identified HSBC Bank Statements — Building a PDF Detective",
+         "item": "https://openstan.org/blog/hsbc-identifying-bank-statements/"
+       }
+     ]
+   }
+   </script>
+   
+
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="openstan" class="md-header__button md-logo" aria-label="openstan" data-md-component="logo">
+      <img src="../../assets/logo-light.svg" alt="openstan" class="stan-logo-light">
+<img src="../../assets/logo-dark.svg" alt="openstan" class="stan-logo-dark">
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            openstan
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              How We Identified HSBC Bank Statements — Building a PDF Detective
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+        <a href="https://github.com/boscorat/openstan" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    boscorat/openstan
+  </div>
+</a>
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="openstan" class="md-nav__button md-logo" aria-label="openstan" data-md-component="logo">
+      <img src="../../assets/logo-light.svg" alt="openstan" class="stan-logo-light">
+<img src="../../assets/logo-dark.svg" alt="openstan" class="stan-logo-dark">
+    </a>
+    openstan
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/boscorat/openstan" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.3.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2026 Fonticons, Inc.--><path fill="currentColor" d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    boscorat/openstan
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Home
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Installation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Quick Start
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Guides
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_4">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Guides
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/project-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project Management
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/import-statements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Import Statements
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/import-results/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Import Results
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/export-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Export Data
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/advanced-export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Advanced Export
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/run-reports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Run Reports
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/anonymise/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Anonymise PDFs
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Logging & Debugging
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/admin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Admin Panel
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../use-cases/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Use Cases
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_5">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Use Cases
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/self-assessment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Self Assessment
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/probate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Probate & Estate Admin
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/multi-account-tracking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Multi-Account Tracking
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/small-business/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Small Business
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../use-cases/conveyancing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Conveyancing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../redaction/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Redaction
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_6">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Redaction
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../redaction/use-cases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Use Cases
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_7">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Reference
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/project-info/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Project Info
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/about/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  About
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Troubleshooting
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../video-tutorials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Video Tutorials
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link md-nav__link--active">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Blog
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link md-nav__link--active" for="__nav_10" id="__nav_10_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_10">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Blog
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_10_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_10_2" id="__nav_10_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Archive
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_10_2_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_10_2">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Archive
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  2026
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_10_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_10_3" id="__nav_10_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Categories
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_10_3_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_10_3">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  Categories
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../category/how-to/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  How to
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://github.com/boscorat/openstan/blob/master/CHANGELOG.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Changelog
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CONTRIBUTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Contributing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../privacy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Privacy Policy
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../codesigning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Code Signing Policy
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../community/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Community & Support
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../feedback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Feedback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-pdf-bank-detection-matters" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Why PDF Bank Detection Matters
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-solution-overview-companiestoml" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        The Solution Overview: <code>companies.toml</code>
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dissecting-hsbcs-companiestoml" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Dissecting HSBC's companies.toml
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-three-locations-lessons-from-real-statements" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Why Three Locations? (Lessons from Real Statements)
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#regex-patterns-from-loose-to-strict" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Regex Patterns: From Loose to Strict
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-extraction-pipeline-what-happens-when-the-parser-sees-a-new-pdf" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        The Extraction Pipeline: What Happens When the Parser Sees a New PDF
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-issues-troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Common Issues &amp; Troubleshooting
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extending-this-to-other-hsbc-account-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Extending This to Other HSBC Account Types
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#now-its-your-turn-building-a-pdf-detector-for-your-bank" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Now It's Your Turn: Building a PDF Detector for Your Bank
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-faqs" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Additional FAQs
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        See Also
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav md-nav--primary">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../" class="md-nav__link">
+                  
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></svg>
+                  <span class="md-ellipsis">
+                    Back to index
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
+                  <span class="md-ellipsis">
+                    Metadata
+                  </span>
+                </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-calendar-days" viewBox="0 0 24 24"><path d="M8 2v3M16 2v3"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01"/></svg>
+                        <time datetime="2026-11-18 00:00:00+00:00" class="md-ellipsis">November 18, 2026</time>
+                      </div>
+                    </li>
+                    
+                    
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-library" viewBox="0 0 24 24"><path d="m16 6 4 14M12 6v14M8 8v12M4 4v16"/></svg>
+                          <span class="md-ellipsis">
+                            in
+                            
+                              <a href="../category/how-to/">how-to</a></span>
+                        </div>
+                      </li>
+                    
+                    
+                      
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                          <span class="md-ellipsis">
+                            
+                              8 min read
+                            
+                          </span>
+                        </div>
+                      </li>
+                    
+                  </ul>
+                </nav>
+              </li>
+            </ul>
+            
+          </nav>
+          
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      <a id="__skip" tabindex="-1"></a>
+      
+        
+
+  
+  
+
+
+<p>When parsing 100+ bank statements automatically, the first challenge isn't extracting data—it's knowing which bank you're dealing with. We built an HSBC PDF detective using TOML configuration. Here's how we solved it, and how you can do the same for your bank.</p>
+<!-- more -->
+
+<h1 id="how-we-identified-hsbc-bank-statements-building-a-pdf-detective">How We Identified HSBC Bank Statements — Building a PDF Detective<a class="headerlink" href="#how-we-identified-hsbc-bank-statements-building-a-pdf-detective" title="Permanent link">&para;</a></h1>
+<h2 id="why-pdf-bank-detection-matters">Why PDF Bank Detection Matters<a class="headerlink" href="#why-pdf-bank-detection-matters" title="Permanent link">&para;</a></h2>
+<p>Imagine you have a folder with 25 PDFs: 12 from HSBC, 6 from NatWest, 3 from Barclays, 2 from TSB, and 2 more from smaller banks. You need to parse them all automatically, extract transactions, and produce a consolidated spreadsheet. But here's the catch: each bank uses a different PDF layout. Your parser can't use the same extraction rules on an HSBC statement that it would use on a NatWest one.</p>
+<p>The first step in any bank statement parser is <strong>bank identification</strong>. Before you extract balances, account numbers, or transactions, you need to answer a simple question: <em>Which bank issued this PDF?</em></p>
+<p>This is where <code>companies.toml</code> comes in. It's the first config file your parser loads, and its job is to scan an unknown PDF and determine its origin. Without it, you're flying blind.</p>
+<h2 id="the-solution-overview-companiestoml">The Solution Overview: <code>companies.toml</code><a class="headerlink" href="#the-solution-overview-companiestoml" title="Permanent link">&para;</a></h2>
+<p>Every bank config starts with a <code>companies.toml</code> file. It's small but crucial—typically 10–15 lines of configuration that tell your parser how to recognize that bank's PDFs.</p>
+<p>Here's the high-level flow:</p>
+<ol>
+<li>Parser receives an unknown PDF</li>
+<li>Opens page 1 and loads all bank identification rules from <code>companies.toml</code> files</li>
+<li>For each bank, tries to find a unique piece of identifying text (usually somewhere on page 1)</li>
+<li>If the text is found AND matches a regex pattern, the PDF is identified as that bank</li>
+<li>Parser stops searching and loads that bank's extraction config</li>
+<li>Remaining extraction uses that bank's configuration (accounts, tables, field mappings)</li>
+</ol>
+<p>This is <strong>Step 1 of the config process</strong>. The <a href="https://boscorat.github.io/bank_statement_parser/latest/guides/new-bank-config/#step-1-register-the-account-type">bank_statement_parser reference guide</a> walks through all 7 steps, but we're focusing on the company identification piece here.</p>
+<p>The genius of this approach: identification is fast (milliseconds), and it fails safe. If no bank matches, the user can manually assign one. If multiple banks match (rare), the parser picks the first one and flags it for review.</p>
+<h2 id="dissecting-hsbcs-companiestoml">Dissecting HSBC's companies.toml<a class="headerlink" href="#dissecting-hsbcs-companiestoml" title="Permanent link">&para;</a></h2>
+<p>Let's look at what HSBC's bank identifier actually looks like. This is the real config from the openstan project:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[HSBC_UK]</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">company</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'HSBC Bank UK'</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">[HSBC_UK.config]</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="n">config</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'Company Info'</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="n">locations</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">        </span><span class="p">{</span><span class="n">page_number</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">top_left</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">475</span><span class="p">,</span><span class="mi">110</span><span class="p">],</span><span class="w"> </span><span class="n">bottom_right</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">575</span><span class="p">,</span><span class="w"> </span><span class="mi">130</span><span class="p">]},</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">        </span><span class="p">{</span><span class="n">page_number</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">top_left</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">460</span><span class="p">,</span><span class="mi">145</span><span class="p">],</span><span class="w"> </span><span class="n">bottom_right</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">575</span><span class="p">,</span><span class="w"> </span><span class="mi">165</span><span class="p">]},</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">        </span><span class="p">{</span><span class="n">page_number</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">top_left</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">460</span><span class="p">,</span><span class="mi">165</span><span class="p">],</span><span class="w"> </span><span class="n">bottom_right</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">575</span><span class="p">,</span><span class="w"> </span><span class="mi">185</span><span class="p">]},</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="p">]</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">    </span><span class="n">field</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="n">field</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s1">'website'</span><span class="p">,</span><span class="w"> </span><span class="n">vital</span><span class="p">=</span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="n">type</span><span class="p">=</span><span class="s2">"string"</span><span class="p">,</span><span class="w"> </span><span class="n">string_pattern</span><span class="w"> </span><span class="p">=</span><span class="s1">'^www\.hsbc\.co\.uk$'</span><span class="p">}</span>
+</code></pre></div>
+<p>Let's break down each part:</p>
+<p><strong><code>[HSBC_UK]</code></strong> — This is the unique identifier for the HSBC_UK company config. It must be unique across all banks in your project (you can't have two entries with the same name). This identifier is used later when you define account types.</p>
+<p><strong><code>company = 'HSBC Bank UK'</code></strong> — A human-readable name. This isn't used for detection; it's just for logging and output. When the parser successfully identifies a statement, it records this name so you know which bank it came from.</p>
+<p><strong><code>config = 'Company Info'</code></strong> — A label for this extraction step. During parsing, the system logs each step it tries: "Attempting Company Info extraction on HSBC_UK..." This is purely for debugging. If extraction fails, you'll see which step failed.</p>
+<p><strong><code>locations</code> array</strong> — This is where the magic happens. It's an array of rectangular regions (bounding boxes) on page 1 of the PDF. Each location has:
+- <code>page_number = 1</code> — Always page 1 for company detection (we're identifying the bank, not individual accounts)
+- <code>top_left = [475,110]</code> — Top-left corner of the rectangle: x=475, y=110 (in PDF points, not pixels—important distinction!)
+- <code>bottom_right = [575, 130]</code> — Bottom-right corner: x=575, y=130</p>
+<p>These coordinates define a small rectangular region on the PDF. The parser will crop to this region and look for text.</p>
+<p><strong><code>field = {...}</code></strong> — This defines what to extract and how to validate it:
+- <code>field = 'website'</code> — The name of the field we're extracting (mostly for internal use)
+- <code>vital=true</code> — This field is mandatory. If extraction fails, the entire company detection fails
+- <code>type="string"</code> — We're extracting text (not a number or currency)
+- <code>string_pattern ='^www\.hsbc\.co\.uk$'</code> — The extracted text must match this regex pattern exactly</p>
+<p>That regex pattern is strict: <code>^www\.hsbc\.co\.uk$</code> means:
+- <code>^</code> — start of string
+- <code>www\.hsbc\.co\.uk</code> — literal text "www.hsbc.co.uk" (the backslashes escape the dots so they're literal, not wildcards)
+- <code>$</code> — end of string</p>
+<p>So it matches "www.hsbc.co.uk" and nothing else. No "HSBC Investment", no "m.hsbc.co.uk", no leading/trailing whitespace. Perfect.</p>
+<h2 id="why-three-locations-lessons-from-real-statements">Why Three Locations? (Lessons from Real Statements)<a class="headerlink" href="#why-three-locations-lessons-from-real-statements" title="Permanent link">&para;</a></h2>
+<p>Here's something you'll discover when parsing real-world bank statements: <strong>nothing is perfectly consistent</strong>. </p>
+<p>Different HSBC PDFs might have the website URL in slightly different positions depending on:
+- Which HSBC product you're using (current account, savings, credit card)
+- Whether it's a joint account (different formatting)
+- When the statement was generated (banks redesign PDFs occasionally)</p>
+<p>So instead of relying on a single coordinate, the HSBC config has three locations. The parser tries them in order:</p>
+<ol>
+<li>Try location 1: crop to [475,110] → [575,130], search for text</li>
+<li>If text found AND matches regex → Success! Bank identified.</li>
+<li>If not found or doesn't match → continue to location 2</li>
+<li>Try location 2: crop to [460,145] → [575,165], search for text</li>
+<li>If text found AND matches regex → Success!</li>
+<li>If not → continue to location 3</li>
+<li>Try location 3: crop to [460,165] → [575,185], search for text</li>
+<li>If text found AND matches regex → Success!</li>
+<li>If not → Bank detection fails (try next bank's config)</li>
+</ol>
+<p>This fallback strategy means the parser can handle slight variations in PDF layout. If HSBC redesigns their statements and the website URL moves 50 pixels down, we update one or two location coordinates instead of rewriting the entire config.</p>
+<h2 id="regex-patterns-from-loose-to-strict">Regex Patterns: From Loose to Strict<a class="headerlink" href="#regex-patterns-from-loose-to-strict" title="Permanent link">&para;</a></h2>
+<p>The website URL pattern is just one example. Let's talk about pattern matching in general, because this is where false positives can creep in.</p>
+<p>Imagine you wanted a loose regex: <code>.*hsbc.*</code></p>
+<p>This would match:
+- ✓ "www.hsbc.co.uk"
+- ✓ "HSBC Bank UK"
+- ✓ "HSBC Investment Management"
+- ✓ "Contact HSBC here"</p>
+<p>Too loose! You'd accidentally identify non-HSBC PDFs containing the word "HSBC".</p>
+<p>A tighter regex: <code>hsbc\.co\.uk</code></p>
+<p>Better, but still risky:
+- ✓ "www.hsbc.co.uk"
+- ✓ "https://hsbc.co.uk"
+- ✓ "api.hsbc.co.uk"
+- ✓ "m.hsbc.co.uk"</p>
+<p>The last two aren't what we want. Mobile and API domains are unlikely to appear on a retail statement.</p>
+<p>The strict regex HSBC uses: <code>^www\.hsbc\.co\.uk$</code></p>
+<p>Perfect:
+- ✓ "www.hsbc.co.uk"
+- ✗ "https://www.hsbc.co.uk" (extra text at start)
+- ✗ "www.hsbc.co.uk/en" (extra text at end)
+- ✗ "api.hsbc.co.uk" (different domain)</p>
+<p>This level of specificity is crucial. You want high confidence that you've identified the right bank before proceeding with extraction rules designed specifically for that bank.</p>
+<p><strong>Quick regex cheatsheet for bank configs:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>^text$</code></td>
+<td>Exact match (nothing before or after)</td>
+</tr>
+<tr>
+<td><code>^text</code></td>
+<td>Starts with text</td>
+</tr>
+<tr>
+<td><code>text$</code></td>
+<td>Ends with text</td>
+</tr>
+<tr>
+<td><code>\.</code></td>
+<td>Literal dot (backslash escapes it)</td>
+</tr>
+<tr>
+<td><code>[A-Z0-9]+</code></td>
+<td>One or more uppercase letters or digits</td>
+</tr>
+<tr>
+<td><code>\d{2}-\d{2}-\d{2}</code></td>
+<td>Exactly 2-2-2 digits (e.g., sort code)</td>
+</tr>
+<tr>
+<td><code>\|</code></td>
+<td>Literal pipe character (backslash escapes it)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-extraction-pipeline-what-happens-when-the-parser-sees-a-new-pdf">The Extraction Pipeline: What Happens When the Parser Sees a New PDF<a class="headerlink" href="#the-extraction-pipeline-what-happens-when-the-parser-sees-a-new-pdf" title="Permanent link">&para;</a></h2>
+<p>Let's trace through the entire company detection process step-by-step:</p>
+<ol>
+<li><strong>User loads a PDF into the parser</strong> (e.g., their HSBC statement from January)</li>
+<li><strong>Parser opens page 1</strong> and extracts text</li>
+<li><strong>Parser loads the config</strong> — It reads <code>companies.toml</code> for all supported banks (HSBC_UK, NatWest_UK, TSB_UK, Barclays_UK, etc.)</li>
+<li><strong>For each bank, it tries each location in order:</strong></li>
+<li>HSBC_UK, location 1: crop PDF to [475,110] → [575,130]<ul>
+<li>Text found: "www.hsbc.co.uk"</li>
+<li>Regex check: Does "www.hsbc.co.uk" match <code>^www\.hsbc\.co\.uk$</code>? YES ✓</li>
+<li><strong>PDF identified as HSBC_UK. Stop searching.</strong></li>
+</ul>
+</li>
+<li><strong>Parser loads HSBC-specific config</strong> (accounts.toml, statement_types.toml, etc.)</li>
+<li><strong>Continue with account identification, balance extraction, transaction extraction</strong> (covered in Posts #2 and #3)</li>
+</ol>
+<p>If location 1 had failed (no text found, or text didn't match the regex), the parser would have tried locations 2 and 3 before giving up on HSBC. Only after all HSBC locations are exhausted would it try the next bank's config.</p>
+<p>This entire process takes milliseconds. Even with 20+ banks in your config, PDF identification is lightning-fast.</p>
+<h2 id="common-issues-troubleshooting">Common Issues &amp; Troubleshooting<a class="headerlink" href="#common-issues-troubleshooting" title="Permanent link">&para;</a></h2>
+<p><strong>Q: My HSBC statement isn't being detected. What went wrong?</strong></p>
+<p>A: The coordinates are probably wrong. HSBC might have redesigned their PDFs, or your statement version is different. 
+- Open your PDF in a PDF reader
+- Manually locate the "www.hsbc.co.uk" text
+- Note its approximate position on the page (you can use the PDF viewer's pointer)
+- Adjust the coordinates and try again
+- Or add a 4th location to the config (more fallback options = better coverage)</p>
+<p><strong>Q: Why use PDF points instead of pixel coordinates?</strong></p>
+<p>A: PDF points are a standard measurement (1/72 inch) built into the PDF format. They're consistent across different viewers and screen resolutions. Pixels are screen-dependent and unreliable for PDF extraction.</p>
+<p><strong>Q: How many locations do I need?</strong></p>
+<p>A: Start with 1–2. If that covers 90% of statements from that bank, you're good. If you encounter variations, add more locations. HSBC uses 3; most banks can do with 2–3. Beyond 5 locations, it's usually better to change your identifying text (find something more consistent).</p>
+<p><strong>Q: Can I use multiple identifying texts (not just the website)?</strong></p>
+<p>A: Yes! You could identify HSBC by its website URL, or by its logo, or by specific header text. If the logo changes positions frequently, you might add another location that looks for a text header instead. Mix-and-match whatever's most reliable for that bank.</p>
+<h2 id="extending-this-to-other-hsbc-account-types">Extending This to Other HSBC Account Types<a class="headerlink" href="#extending-this-to-other-hsbc-account-types" title="Permanent link">&para;</a></h2>
+<p>One thing worth mentioning: this <code>companies.toml</code> works for HSBC Current Accounts, Savings Accounts, Credit Cards, and ISAs. They all have "www.hsbc.co.uk" in roughly the same location on page 1. </p>
+<p>The account-type-specific config happens later—in <code>accounts.toml</code> (covered in Post #2). Company detection is bank-level; account detection is product-level. This separation of concerns means less duplication and easier maintenance.</p>
+<h2 id="now-its-your-turn-building-a-pdf-detector-for-your-bank">Now It's Your Turn: Building a PDF Detector for Your Bank<a class="headerlink" href="#now-its-your-turn-building-a-pdf-detector-for-your-bank" title="Permanent link">&para;</a></h2>
+<p>Ready to try this for your own bank? Here's the process:</p>
+<ol>
+<li><strong>Download a few PDFs from your bank.</strong> (3–5 statements, preferably from different months)</li>
+<li><strong>Open one in a PDF viewer</strong> and examine page 1.</li>
+<li><strong>Find a unique identifying piece of text:</strong></li>
+<li>Bank website (most reliable)</li>
+<li>Bank name or logo (if consistent)</li>
+<li>Specific header text unique to that bank</li>
+<li>Account type label</li>
+<li><strong>Note its approximate location</strong> on the page (you're looking for rough coordinates; exact pixel-perfect precision isn't required, we'll refine later).</li>
+<li><strong>Write a regex pattern</strong> that matches that text (and nothing else).</li>
+<li><strong>Create your first <code>companies.toml</code> entry</strong> in a new folder: <code>project/config/import/YOUR_BANK_COUNTRY/companies.toml</code></li>
+<li><strong>Test with 3–5 statements:</strong>
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>python<span class="w"> </span>-m<span class="w"> </span>bank_statement_parser<span class="w"> </span>identify<span class="w"> </span>path/to/pdf.pdf
+</code></pre></div></li>
+<li>If detection works: congratulations! Move on to account type detection (Post #2).
+   If detection fails: adjust coordinates or regex pattern and retry.</li>
+</ol>
+<p>The <a href="https://github.com/boscorat/bank_statement_parser/blob/main/CONTRIBUTING.md">bank_statement_parser contributing guide</a> has more detail if you get stuck.</p>
+<hr />
+<h2 id="additional-faqs">Additional FAQs<a class="headerlink" href="#additional-faqs" title="Permanent link">&para;</a></h2>
+<p><strong>Q: What's the difference between top_left and bottom_right?</strong></p>
+<p>A: They define a rectangular bounding box. <code>top_left = [475,110]</code> is the top-left corner (x=475, y=110). <code>bottom_right = [575, 130]</code> is the bottom-right corner. The parser crops the PDF to this rectangle and searches for text inside. Make sure you're measuring on the right page and accounting for where text actually appears.</p>
+<p><strong>Q: Can I use multiple <code>companies.toml</code> files?</strong></p>
+<p>A: No, <code>companies.toml</code> must be a single file per bank folder. But you can have multiple banks configured. Each bank gets its own folder (HSBC_UK, NatWest_UK, etc.) with its own companies.toml.</p>
+<p><strong>Q: What if my bank's identifying text changes between statement versions?</strong></p>
+<p>A: Add more locations. If location 1 looks for the website URL and location 2 looks for a logo, you've covered both old and new formats. The parser will try locations in order until one succeeds.</p>
+<hr />
+<h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="https://boscorat.github.io/bank_statement_parser/latest/guides/new-bank-config/">Bank Statement Parser Reference — New Bank Config</a></li>
+<li><a href="https://github.com/boscorat/bank_statement_parser/blob/main/CONTRIBUTING.md">Bank Statement Parser Contributing Guide</a></li>
+<li><a href="/blog/hsbc-extracting-account-details/">How to Extract HSBC Account Details (Post #2)</a></li>
+<li><a href="https://github.com/jsvine/pdfplumber">Understanding PDF Coordinates with pdfplumber</a></li>
+</ul>
+
+  
+
+
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+  
+
+
+
+      
+    </article>
+  </div>
+
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-circle-arrow-up" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4M12 16V8"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+          
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"../..","features":["navigation.sections","navigation.expand","navigation.top","search.suggest","search.highlight","content.code.copy","toc.follow","navigation.indexes"],"redirect":"../../redirect.json","search":"../../assets/javascripts/workers/search.719e0d91.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.3cb411a8.min.js"></script>
+      
+    
+  </body>
+</html>
