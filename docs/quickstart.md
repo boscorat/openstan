@@ -85,6 +85,9 @@ For REVIEW and FAILURE rows, click **View Debug Info** to open a dialog with per
 !!! info "Unsupported banks"
     If all your statements appear in the FAILURE tab, your bank may not yet have a parser configuration. See the [bank\_statement\_parser guide on adding a new bank](https://boscorat.github.io/bank_statement_parser/latest/guides/new-bank-config/) for instructions on creating a TOML config file.
 
+!!! info "Santander Edge Current Account — Experimental"
+    Support for Santander Edge Current Account is **experimental**. If you bank with Santander, please test the import functionality and [report any issues on GitHub](https://github.com/boscorat/openstan/issues) or email [support@openstan.org](mailto:support@openstan.org). Your feedback helps us refine Santander support for general availability.
+
 ---
 
 ## Step 6 — Commit the batch

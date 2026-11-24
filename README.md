@@ -47,10 +47,11 @@ Full user guide, installation instructions, video tutorials, and use-case guides
 
 | Bank | Supported account types |
 |---|---|
-| **HSBC Bank UK** | Rewards Credit Card, Flexible Saver (Savings Account), Bank Account (Current Account), HSBC Advance (Current Account), Online Bonus Saver (Savings Account) |
-| **TSB Bank UK** | Spend & Save (Current Account) |
-| **NatWest Bank UK** | Select Account (Current Account) |
 | **Halifax Bank UK** | Current Account |
+| **HSBC Bank UK** | Rewards Credit Card, Flexible Saver (Savings Account), Bank Account (Current Account), HSBC Advance (Current Account), Online Bonus Saver (Savings Account) |
+| **NatWest Bank UK** | Select Account (Current Account) |
+| **Santander Bank UK** | Edge Current Account |
+| **TSB Bank UK** | Spend & Save (Current Account) |
 
 New banks can be added by anyone via a [TOML configuration file](https://boscorat.github.io/bank_statement_parser/latest/guides/new-bank-config/) — no coding required. Don't see your bank? [Request it here](https://github.com/boscorat/bank_statement_parser/issues/new?template=new-bank-request.yml).
 
